@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-filesystem",
+        "/home/l7vdev/dev/projects/company/active/aft"
+      ]
+    }
+  }
+}

@@ -1,0 +1,16 @@
+# Nix / Devenv / Direnv
+.devenv/
+.devenv.local.*
+.direnv/
+result
+result-*
+
+# General & Build
+.DS_Store
+*.log
+node_modules/
+dist/
+build/
+.next/
+.env.local
+.env.*.local
