@@ -1,0 +1,29 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+  Design tokens. Keep every color the app uses defined here as a CSS custom
+  property, then reference it through the matching Tailwind utility name —
+  never a raw palette class (`zinc-500`) or a hardcoded hex value in a
+  component. See context/ui-context.md.
+*/
+:root {
+  --color-base: #ffffff;
+  --color-copy-primary: #0a0a0a;
+  --color-copy-secondary: #6b7280;
+  --color-surface-border: #e5e7eb;
+  --color-brand: #0a0a0a;
+}
+
+@theme inline {
+  --color-base: var(--color-base);
+  --color-copy-primary: var(--color-copy-primary);
+  --color-copy-secondary: var(--color-copy-secondary);
+  --color-surface-border: var(--color-surface-border);
+  --color-brand: var(--color-brand);
+}
+
+body {
+  background: var(--color-base);
+  color: var(--color-copy-primary);
+}

@@ -1,23 +1,26 @@
-# Agentic Framework Template (AFT) - AI Agent Governance
+<!-- BEGIN:nextjs-agent-rules -->
 
-Bu proje **AFT (Agentic Framework Template)** standartlarında NixOS izole geliştirme ortamı ile yapılandırılmıştır.
+# This is NOT the Next.js you know
 
-## 🛠️ Proje Komutları
-- Dev Shell: `devenv shell`
-- Dev Server: `npm run dev`
-- Build: `npm run build`
-- Lint: `npm run lint`
+This version has breaking changes — APIs, conventions, and file structure may
+all differ from your training data. Read the relevant guide in
+`node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 
-## 📐 Mimari ve Kodlama Standartları
-- **Framework:** Next.js (App Router, React 19, TypeScript).
-- **Stil:** TailwindCSS v4.
-- **Bileşen Yapısı:**
-  - UI bileşenleri: `src/components/ui/` (button, card, input, badge).
-  - Genel bileşenler: `src/components/common/` (header, footer).
-  - Class merging: `src/lib/utils.ts` içindeki `cn()` fonksiyonu.
-- **Bağlam Taraması:** AI Agent'lar geliştirmeye başlamadan önce `context/` dizinindeki dokümanları okumalıdır.
+<!-- END:nextjs-agent-rules -->
 
-## 🔒 Güvenlik ve Kurallar
-1. Sistem geneline paket yüklemeyin; bağımlılıkları `devenv.nix` veya `package.json` içerisine ekleyin.
-2. Sabit API anahtarlarını koda yazmayın, `.env.local` kullanın.
-3. Tip güvenliğini tam sağlamak için `any` yerine belirlenmiş TypeScript arayüzlerini kullanın.
+## Application Building Context
+
+Read the following files in order before implementing or making any
+architectural decision:
+
+1. `context/project-overview.md` — product definition, goals, features, and scope
+2. `context/architecture-context.md` — system structure, boundaries, storage model, and invariants
+3. `context/ui-context.md` — theme, colors, typography, and component conventions
+4. `context/code-standards.md` — implementation rules and conventions
+5. `context/ai-workflow-rules.md` — development workflow, scoping rules, and delivery approach
+6. `context/progress-tracker.md` — current phase, completed work, open questions, and next steps
+
+Update `context/progress-tracker.md` after each meaningful implementation change.
+
+If implementation changes the architecture, scope, or standards documented in
+the context files, update the relevant file before continuing.

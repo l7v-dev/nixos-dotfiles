@@ -1,9 +1,41 @@
-# Project Overview - AFT
+# __PROJECT_TITLE__
 
-## Genel Bakış
-Agentic Framework Template (AFT), modern full-stack web uygulamaları geliştirmek için 2026 AI Agent standartları ile tasarlanmış üretim seviyesinde bir iskelet projedir.
+## Overview
 
-## Ana Hedefler
-1. **AI Agent Uumluluğu:** Cursor, Antigravity ve Claude agent'larının kod yazarken sapma yapmasını engelleyen context mimarisi.
-2. **Deklaratif İzolasyon:** NixOS ve Devenv ile %100 tekrarlanabilir dev ortamı.
-3. **Tip Güvenliği ve Performans:** Next.js App Router, React 19, TypeScript ve TailwindCSS v4.
+<!-- One paragraph: what is this product, who is it for, what problem does it solve. -->
+
+TODO: describe __PROJECT_TITLE__ in one paragraph.
+
+## Goals
+
+1. TODO
+2. TODO
+3. TODO
+
+## Core User Flow
+
+1. TODO — step by step, from entry point to value delivered.
+
+## Features
+
+### TODO: Feature group 1
+
+- TODO
+
+### TODO: Feature group 2
+
+- TODO
+
+## Scope
+
+### In Scope
+
+- TODO
+
+### Out Of Scope
+
+- TODO
+
+## Success Criteria
+
+1. TODO — a testable statement of "this works" for each goal above.
