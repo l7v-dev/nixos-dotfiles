@@ -1,5 +1,5 @@
-# Platform Documentation: Runbook ve operasyon kılavuzlarını
-# /etc/l7v/runbooks altına koyar; sysadmin araçlarını PATH'e ekler.
+# Platform Documentation Module
+# Installs operational runbooks under /etc/l7v/runbooks and adds CLI utilities.
 { lib, config, pkgs, ... }:
 {
   options.l7v.platform.documentation = {
@@ -15,7 +15,7 @@
       yq-go
     ];
 
-    # Runbook dosyaları /etc/l7v/runbooks altında (Google Documentation Standards)
+    # Runbook files deployed to /etc/l7v/runbooks
     environment.etc = {
       "l7v/runbooks/deploy-guide.md".text = builtins.readFile ./../../docs/runbooks/deploy-guide.md;
       "l7v/runbooks/secrets-management.md".text = builtins.readFile ./../../docs/runbooks/secrets-management.md;

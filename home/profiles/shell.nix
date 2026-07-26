@@ -1,4 +1,4 @@
-# Home profile: shell (zsh + starship + fzf + zoxide + cli araçları)
+# Shell environment configuration profile
 { pkgs, ... }:
 {
   programs.zsh = {
@@ -25,7 +25,7 @@
       cat = "bat";
       cd = "z";
 
-      # Nix / Flake (nh power user)
+      # Nix / Flake
       ns = "nh os switch";
       nb = "nh os build";
       nt = "nh os test";
@@ -36,7 +36,7 @@
       nd = "nix develop";
       nom = "nix-output-monitor";
 
-      # İzole ortam
+      # Environment shells
       ns-py = "nix shell nixpkgs#python312 nixpkgs#uv";
       ns-node = "nix shell nixpkgs#nodejs_22 nixpkgs#pnpm";
       ns-rust = "nix shell nixpkgs#rustc nixpkgs#cargo nixpkgs#rust-analyzer";
@@ -61,7 +61,7 @@
       ff = "fd --type f";
       rg = "rg --smart-case";
 
-      # Git quick
+      # Git shortcuts
       gst = "git status";
       gco = "git checkout";
       gaa = "git add -A";
@@ -69,7 +69,7 @@
       gp = "git push";
       gl = "git log --oneline --graph --decorate";
 
-      # Dev & Workspace
+      # Navigation & Status
       pj = "cd ~/dev && ls";
       cdproj = "cd ~/dev/projects";
       dev = "cd ~/dev/projects/personal";
@@ -77,18 +77,18 @@
       btop = "btop";
       dust = "duf -only local";
 
-      # NixOS Repo & Governance
+      # NixOS Repository & Governance
       cdnix = "cd /etc/nixos";
       cdnix-real = "cd /home/l7v/dev/projects/company/active/nixos";
       nval = "/home/l7v/dev/projects/company/active/nixos/scripts/validate.sh L7V";
       nup = "/home/l7v/dev/projects/company/active/nixos/scripts/update.sh";
       nrb = "sudo nixos-rebuild switch --flake /etc/nixos#L7V";
 
-      # SOPS / Age Gizli Yönetim
+      # SOPS / Age Key Management
       sage = "/home/l7v/dev/projects/company/active/nixos/scripts/age-check.sh";
       srotate = "/home/l7v/dev/projects/company/active/nixos/scripts/secrets-rotate.sh";
 
-      # Proje Başlatıcılar (CLI Utilities)
+      # Project Initializers
       aft-init = "/home/l7v/dev/projects/company/active/nixos/scripts/aft-init.sh";
       bpt-init = "/home/l7v/dev/projects/company/active/nixos/scripts/bpt-init.sh";
       adopt = "/home/l7v/dev/projects/company/active/nixos/scripts/adopt-repo.sh";
@@ -102,7 +102,7 @@
     initContent = ''
       export SOPS_AGE_KEY_FILE=/etc/age/key
 
-      # Creates a new Bash script with safe execution flags (set -euo pipefail).
+      # Generates a new Bash script with standard execution flags (set -euo pipefail).
       mkscript() {
         local script_name="$1"
         if [[ -z "$script_name" ]]; then
@@ -126,7 +126,7 @@ EOF
         echo "=========================================================="
         echo ""
         echo "[REPOSITORY & SYSTEM MANAGEMENT]"
-        echo "  cdnix       : Navigates to official system config (/etc/nixos)"
+        echo "  cdnix       : Navigates to system config (/etc/nixos)"
         echo "  cdnix-real  : Navigates to active development workspace"
         echo "  cdproj      : Navigates to projects directory (/home/l7v/dev/projects)"
         echo "  nval        : Runs code validation and dry-run build (validate.sh)"
@@ -139,10 +139,10 @@ EOF
         echo "  aft-init    : Initializes Next.js 16 AI project"
         echo "  bpt-init    : Initializes polyglot project (Python/Node/Rust/Go/Java)"
         echo "  adopt       : Adapts external GitHub repository to system workspace"
-        echo "  mkscript    : Generates POSIX/Google style compliant shell script"
+        echo "  mkscript    : Generates shell script with error handling flags"
         echo ""
         echo "[NIX & FLAKE UTILITIES]"
-        echo "  ns / nb / nt: Executed nh os switch / build / test"
+        echo "  ns / nb / nt: Executes nh os switch / build / test"
         echo "  nfu / nfc   : Updates or checks flake lockfile"
         echo "  ns-py/node  : Opens isolated Python/Node/Rust/Go shell environment"
         echo ""

@@ -1,40 +1,38 @@
 # Contributing Guidelines
 
-Thank you for your interest in contributing to the NixOS Infrastructure repository.
+Thank you for contributing to the NixOS Infrastructure repository.
 
 ---
 
-## 📜 Governance & System Principles
+## 📜 System & Code Standards
 
-All contributions must adhere to the core governance directives documented in [`AGENTS.md`](AGENTS.md):
+All contributions must follow the core governance rules documented in [`AGENTS.md`](AGENTS.md):
 
 1. **Declarative State Integrity:**
-   - Never install packages imperatively via `nix-env` or global system commands.
-   - All packages must be declared in `flake.nix`, `devenv.nix`, or appropriate NixOS platform modules.
+   - Packages must be declared in `flake.nix`, `devenv.nix`, or platform modules. Do not install packages imperatively via `nix-env`.
 
-2. **Secrets Security:**
-   - Never commit plain-text API keys, passwords, or certificates.
-   - All secrets must be encrypted via SOPS using Age keys (`/etc/age/key`).
+2. **Secrets Protection:**
+   - Plain-text credentials or keys must not be committed. Encrypt all secrets using SOPS and Age keys (`/etc/age/key`).
 
-3. **Style & Technical Guidelines:**
-   - **Documentation:** Technical writing must follow the **Google Developer Documentation Style Guide**.
-   - **Shell Scripting:** All bash scripts must strictly follow the **Google Shell Style Guide** (`set -euo pipefail`, POSIX log tags `[INFO]`, `[WARN]`, `[ERROR]`, `[SUCCESS]`, no raw emojis in CLI logs).
-   - **Naming Conventions:** All directory and file names must be lowercase `kebab-case`.
+3. **Code & Script Formatting:**
+   - **Documentation:** Use clear headers, technical terminology, and GitHub alert syntax (`> [!NOTE]`, `> [!IMPORTANT]`).
+   - **Shell Scripting:** Use `set -euo pipefail` and POSIX standard log indicators (`[INFO]`, `[WARN]`, `[ERROR]`, `[SUCCESS]`).
+   - **Naming Conventions:** Lowercase `kebab-case` for file and directory names.
 
 ---
 
-## 🛠️ Developer Workflow & Validation
+## 🛠️ Verification Workflow
 
-Before submitting a Pull Request, run the workspace validation tool to verify code syntax, Nix expression formatting, and dry-run host compilation:
+Run workspace validation prior to committing changes:
 
 ```bash
 ./scripts/validate.sh L7V
 ```
 
-### Commit Messages
+### Commit Format
 
-Use standard Conventional Commit formatting:
-- `feat(platform): add new logging capability`
-- `fix(services): correct PGBouncer configuration syntax`
+Follow standard Conventional Commit formatting:
+- `feat(platform): add new logging module`
+- `fix(services): correct PGBouncer configuration`
 - `docs(runbooks): update deployment guide`
-- `chore(repo): align formatting with style guide`
+- `chore(repo): update flake inputs`
