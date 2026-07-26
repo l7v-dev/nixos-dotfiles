@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# bootstrap.sh [HOSTNAME]
-# - /etc/age/key üretir (yoksa)
-# - Public key'i stdout'a yazar (.sops.yaml'a eklemen için)
-# - Flake check çalıştırır
+# ==============================================================================
+# bootstrap.sh — Host Key Bootstrapper and SOPS Preparation CLI
+# ==============================================================================
+# Usage:
+#   ./scripts/bootstrap.sh [HOSTNAME]
+# ==============================================================================
+
 set -euo pipefail
 
 HOST="${1:-L7V}"
@@ -10,55 +13,54 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 KEY_DIR="/etc/age"
 KEY_FILE="${KEY_DIR}/key"
 
-echo "==> l7v/nixos bootstrap — host: $HOST"
-echo "==> Repo: $REPO_ROOT"
+echo "[INFO] Starting host bootstrap for: $HOST"
+echo "[INFO] Repository root: $REPO_ROOT"
 
-# --- age key dizini ---
+# --- Age key directory ---
 if [[ ! -d "$KEY_DIR" ]]; then
-  echo "==> Creating $KEY_DIR"
+  echo "[INFO] Creating directory $KEY_DIR..."
   sudo mkdir -p "$KEY_DIR"
   sudo chmod 700 "$KEY_DIR"
 fi
 
-# --- age key üret ---
+# --- Age key generation ---
 if [[ ! -f "$KEY_FILE" ]]; then
-  echo "==> Generating age key at $KEY_FILE"
-  # age-keygen nixpkgs'de 'age' paketiyle gelir
+  echo "[INFO] Generating Age key at $KEY_FILE..."
   age-keygen -o /tmp/l7v_age_key_tmp
   sudo mv /tmp/l7v_age_key_tmp "$KEY_FILE"
   sudo chmod 600 "$KEY_FILE"
   sudo chown root:root "$KEY_FILE"
-  echo "==> Key generated."
+  echo "[SUCCESS] Key generated at $KEY_FILE"
 else
-  echo "==> age key already exists at $KEY_FILE"
+  echo "[INFO] Age key already exists at $KEY_FILE"
 fi
 
 PUBKEY=$(sudo grep "^# public key:" "$KEY_FILE" | sed 's/^# public key: //')
 
 echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "------------------------------------------------------------------------"
 echo " Public key for '${HOST}':"
 echo "   $PUBKEY"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "------------------------------------------------------------------------"
 echo ""
-echo " Sonraki adımlar:"
-echo " 1. secrets/sops/.sops.yaml'da şunu ekle/güncelle:"
+echo " Next steps:"
+echo " 1. Register public key in secrets/sops/.sops.yaml:"
 echo "      - &${HOST} ${PUBKEY}"
 echo ""
-echo " 2. Bu key'i creation_rules key_groups'a ekle:"
+echo " 2. Add reference to key_groups:"
 echo "      - age:"
 echo "          - *${HOST}"
 echo ""
-echo " 3. Mevcut secretları yeni key ile re-encrypt et:"
+echo " 3. Re-encrypt secrets with updated key list:"
 echo "      cd $REPO_ROOT"
 echo "      sops updatekeys secrets/sops/secrets.yaml"
 echo ""
 
 cd "$REPO_ROOT"
-echo "==> Running nix flake check --no-build"
+echo "[INFO] Executing nix flake check --no-build..."
 nix flake check --no-build
 
-echo "==> pre-commit hook kuruluyor"
+echo "[INFO] Setting up pre-commit hook..."
 if command -v pre-commit >/dev/null 2>&1; then
   if [[ -n "${SUDO_USER:-}" ]]; then
     sudo -u "$SUDO_USER" pre-commit install
@@ -66,7 +68,7 @@ if command -v pre-commit >/dev/null 2>&1; then
     pre-commit install
   fi
 else
-  echo "    ↳ pre-commit bulunamadı (home.packages'te dev.nix üzerinden gelir), atlanıyor"
+  echo "[INFO] pre-commit tool not found; skipping hook installation."
 fi
 
-echo "==> Bootstrap tamamlandı."
+echo "[SUCCESS] Bootstrap process completed successfully."
