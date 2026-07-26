@@ -1,14 +1,24 @@
 # Shell environment configuration profile
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 {
+  home.file.".p10k.zsh".source = ./p10k.zsh;
+
   programs.zsh = {
     enable = true;
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
 
+    plugins = [
+      {
+        name = "powerlevel10k";
+        src = pkgs.zsh-powerlevel10k;
+        file = "share/zsh-powerlevel10k/powerlevel10k.zsh-theme";
+      }
+    ];
+
     oh-my-zsh = {
       enable = true;
-      theme = "robbyrussell";
+      theme = "";
       plugins = [
         "git"
         "sudo"
@@ -99,7 +109,11 @@
       age-pubkey = "sudo grep 'public key' /etc/age/key";
     };
 
-    initContent = ''
+    initContent = lib.mkBefore ''
+      if [[ -r "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh" ]]; then
+        source "''${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-''${(%):-%n}.zsh"
+      fi
+      [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
       export SOPS_AGE_KEY_FILE=/etc/age/key
 
       # Generates a new Bash script with standard execution flags (set -euo pipefail).
@@ -156,7 +170,7 @@ EOF
   };
 
   programs.starship = {
-    enable = true;
+    enable = false;
     settings = {
       add_newline = true;
       palette = "catppuccin_mocha";

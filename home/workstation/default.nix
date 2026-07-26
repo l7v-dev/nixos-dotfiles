@@ -27,6 +27,7 @@
 
       brave
       firefox
+      google-chrome
       vivaldi
       (inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default)  # Zen Browser (native, firefox tabanlı, güzel)
       librewolf

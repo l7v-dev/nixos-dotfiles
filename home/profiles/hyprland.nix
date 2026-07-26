@@ -19,6 +19,11 @@
       # Monitor configuration.
       monitor = , preferred, auto, 1
 
+      # Autostart essential background services & shell
+      exec-once = dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
+      exec-once = systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
+      exec-once = noctalia
+
       # Hardware input devices, touchpad, and mouse settings.
       input {
         kb_layout = tr

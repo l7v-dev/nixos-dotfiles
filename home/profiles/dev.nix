@@ -79,6 +79,7 @@
     # Web ve Frontend Araçları
     bun
     deno
+    bruno
 
     # AI Agent Araçları
     aider-chat
