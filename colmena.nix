@@ -1,98 +1,53 @@
-# Colmena deploy topolojisi
-# Kullanım:
-#   colmena apply --on @production   # tüm production host'ları
-#   colmena apply --on server        # tek host
-#   colmena build                    # deploy etmeden sadece build
+# Colmena deployment topology.
 #
-# Gereksinim: her host'ta SSH erişimi (root veya sudo yetkisi)
-#   ~/.ssh/config'de Host tanımları platform/deploy/default.nix'te
-
-{ inputs, ... }:
+# Node module lists come from lib/serverModules.nix, so deployments and
+# flake nixosConfigurations resolve roles to capabilities identically.
+# The `servers` argument is the single topology definition held in flake.nix.
+#
+#   colmena apply --on @production
+#   colmena apply --on server
+#   colmena build
+#
+# Requires root SSH access per target; client-side host entries are declared in
+# platform/deploy/default.nix.
+{ inputs, servers }:
 let
-  nixpkgs-stable      = inputs.nixpkgs-stable;
-  home-manager-stable = inputs.home-manager-stable;
-  sops-nix            = inputs.sops-nix;
+  nixpkgsStable = inputs.nixpkgs-stable;
+  lib = nixpkgsStable.lib;
 
-  mkS = import ./lib/mkServer.nix;
+  system = "x86_64-linux";
+  user = "l7v";
 
-  commonServerMeta = {
-    targetUser = "root";
-    buildOnTarget = false;  # local build, sonra push
-  };
+  serverModules = import ./lib/serverModules.nix;
 
-  serverArgs = {
-    inherit inputs;
-    lib         = nixpkgs-stable.lib;
-    pkgs        = nixpkgs-stable;
-    homeManager = home-manager-stable.nixosModules.home-manager;
-    sops        = sops-nix.nixosModules.sops;
-    user        = "l7v";
-    system      = "x86_64-linux";
+  mkNode = host: cfg: {
+    deployment = {
+      targetHost = cfg.targetHost;
+      targetUser = "root";
+      # Build locally and push closures; targets are not sized for compilation.
+      buildOnTarget = false;
+      tags = cfg.tags;
+    };
+
+    imports = serverModules {
+      inherit lib host user;
+      inherit (cfg) roles tags;
+      sops = inputs.sops-nix.nixosModules.sops;
+      homeManager = inputs.home-manager-stable.nixosModules.home-manager;
+    };
   };
 in
 {
   meta = {
-    nixpkgs = nixpkgs-stable.legacyPackages.x86_64-linux;
+    nixpkgs = import nixpkgsStable {
+      inherit system;
+      config.allowUnfree = true;
+    };
 
-    # Her host için özelleştirilebilir nixpkgs
-    nodeNixpkgs = { };
-  };
-
-  server = commonServerMeta // {
-    deployment.targetHost = "server.l7v.dev";  # TODO: EC2 public IP veya Route53 A kaydı
-    deployment.tags       = [ "production" "web" "db" ];
-
-    imports = (mkS (serverArgs // {
-      host  = "server";
-      roles = [ "web" "db" "observe" "git" ];
-      tags  = [ "production" ];
-    })).config._module.args or [ ];
-
-    # Colmena modül olarak server config'i kullanır
-    nixpkgs.hostPlatform = "x86_64-linux";
-    imports = [
-      ./hosts/server/default.nix
-      ./hosts/server/hardware.nix
-      ./infrastructure
-      ./capabilities
-      ./services
-      ./platform
-      sops-nix.nixosModules.sops
-      home-manager-stable.nixosModules.home-manager
-    ];
-  };
-
-  builder = commonServerMeta // {
-    deployment.targetHost = "builder.l7v.dev";  # TODO: EC2 public IP veya Route53 A kaydı
-    deployment.tags       = [ "builder" "ci" ];
-
-    nixpkgs.hostPlatform = "x86_64-linux";
-    imports = [
-      ./hosts/builder/default.nix
-      ./hosts/builder/hardware.nix
-      ./infrastructure
-      ./capabilities
-      ./services
-      ./platform
-      sops-nix.nixosModules.sops
-      home-manager-stable.nixosModules.home-manager
-    ];
-  };
-
-  backup = commonServerMeta // {
-    deployment.targetHost = "backup.l7v.dev";  # TODO: EC2 public IP veya Route53 A kaydı — S3 kullanılıyorsa bu host opsiyonel
-    deployment.tags       = [ "backup" ];
-
-    nixpkgs.hostPlatform = "x86_64-linux";
-    imports = [
-      ./hosts/backup/default.nix
-      ./hosts/backup/hardware.nix
-      ./infrastructure
-      ./capabilities
-      ./services
-      ./platform
-      sops-nix.nixosModules.sops
-      home-manager-stable.nixosModules.home-manager
-    ];
+    nodeSpecialArgs = lib.mapAttrs (host: cfg: {
+      inherit user inputs host;
+      inherit (cfg) roles tags;
+    }) servers;
   };
 }
+// lib.mapAttrs mkNode servers

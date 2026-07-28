@@ -96,19 +96,62 @@
   l7v.virtualisation.enable = true;
   # Not: docker grubu identity/default.nix'te zaten ekleniyor, burada tekrar eklemiyoruz
 
-  # nix-ld — distrobox-export ile host'a çıkarılan dinamik linkli binary'ler
-  # NixOS'un standart linker yolunu bulamadığı için bu olmadan çalışmaz.
+  # nix-ld — distrobox-export ve .deb / ikili dosyaların doğrudan çalışabilmesi için
+  # NixOS'un standart dynamic linker yolunu sağlamak ve gerekli GUI/CLI kütüphanelerini sunmak için.
   programs.nix-ld = {
     enable = true;
     libraries = with pkgs; [
       stdenv.cc.cc
       zlib
+      fuse3
+      alsa-lib
+      at-spi2-atk
+      at-spi2-core
+      cairo
+      cups
+      dbus
+      expat
+      fontconfig
+      freetype
+      gdk-pixbuf
+      glib
+      gtk3
+      gtk4
+      nspr
+      nss
       openssl
+      pango
+      systemd
       curl
       icu
       libxml2
+      libpng
+      libjpeg
+      libwebp
+      libvpx
+      libevdev
+      udev
+      mesa
+      vulkan-loader
+      xorg.libX11
+      xorg.libXcomposite
+      xorg.libXcursor
+      xorg.libXdamage
+      xorg.libXext
+      xorg.libXfixes
+      xorg.libXi
+      xorg.libXrandr
+      xorg.libXrender
+      xorg.libXtst
+      xorg.libxcb
+      xorg.libxkbfile
+      xorg.libXinerama
+      xorg.libxshmfence
     ];
   };
+
+  # FHS dizin uyumluluğu (/bin/bash, /usr/bin/env gibi yolların otomatik eşleşmesi)
+  services.envfs.enable = true;
 
   # Not: l7v.database capability'si server içindir (pgbouncer + secrets gerektirir).
   # Laptop için direkt NixOS modülleri kullanıyoruz — daha basit.
@@ -124,30 +167,39 @@
   services.flatpak.enable = true;
 
   # Nix için güçlü eklentiler (AI agent + prebuilt binary'ler için)
-  # Ek güçlü Nix araçları
+  # Ek güçlü Nix araçları ve geliştirme ortamları
   environment.systemPackages = with pkgs; [
     manix          # nixpkgs içinde man sayfası / docs arama
+    dpkg           # .deb dosyalarını ayıklamak (dpkg-deb -x)
+    steam-run      # İzolasyonlu FHS ortamında binary çalıştırmak
+    patchelf       # ELF dosyalarının rpath ve interpreter ayarlarını düzenlemek
+    jetbrains.clion# JetBrains CLion IDE (C/C++)
+    qtcreator      # Qt Creator IDE
+    wezterm        # GPU-accelerated terminal emulator
   ];
 
-  # auto-cpufreq: AMD laptop için CPU frekans/voltaj optimizasyonu (daha iyi batarya)
-  # power-profiles-daemon: Noctalia'nın power widget'ı için gerekli
-  # İkisi çakışır — auto-cpufreq tercih ediliyor, Noctalia power widget devre dışı.
+  # AMD CPU P-State & Maksimum Performans Kernel Parametreleri
+  boot.kernelParams = [ "amd_pstate=active" ];
+
+  # auto-cpufreq: Maksimum Performans Odaklı Ayar (Hiçbir Performans Kısıtlaması Yok)
+  # power-profiles-daemon ile çakışmaması için kapalı tutulur.
   services.power-profiles-daemon.enable = lib.mkForce false;
   services.auto-cpufreq = {
     enable = true;
     settings = {
       battery = {
-        governor   = "powersave";
-        turbo      = "never";        # batarya ömrünü uzatır
-        scaling_min_freq = 400000;   # 400 MHz min
+        governor = "performance";
+        energy_performance_preference = "performance";
+        turbo = "always";
       };
       charger = {
-        governor   = "performance";
-        turbo      = "auto";
+        governor = "performance";
+        energy_performance_preference = "performance";
+        turbo = "always";
       };
     };
   };
-  services.thermald.enable = true;  # AMD için termal koruma
+  services.thermald.enable = true;  # Termal aşırı ısınma koruması
 
   # Lid kapatma ve güç tuşu davranışı (modern ayar)
   services.logind.settings.Login = {

@@ -1,11 +1,12 @@
 {
   description = "l7v — capability-first NixOS platform";
+
   nixConfig = {
     extra-substituters = [
       "https://cache.nixos.org"
       "https://nix-community.cachix.org"
       "https://niri.cachix.org"
-      "https://noctalia.cachix.org"  # Noctalia binary cache — derleme süresini kısaltır
+      "https://noctalia.cachix.org"
     ];
     extra-trusted-public-keys = [
       "cache.nixos.org-1:6NCHdD59X430o0NTRsrVMVZm7aWcSrq3LcpPo8gvLu8="
@@ -14,9 +15,13 @@
       "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
     ];
   };
+
   inputs = {
-    nixpkgs.url          = "github:NixOS/nixpkgs/nixos-unstable";
-    nixpkgs-stable.url   = "github:NixOS/nixpkgs/nixos-25.05";  # server: kararlılık, workstation unstable kullanır
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    # Servers pin the stable channel; workstations track unstable.
+    nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-25.05";
+
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -38,58 +43,83 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     zen-browser.url = "github:0xc000022070/zen-browser-flake";
-    kiro-ide = {
-      url = "github:l7v-dev/ide.kiro.flake";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    sddm-sugar-candy-nix = {
-      url = "github:Zhaith-Izaliel/sddm-sugar-candy-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
-  outputs = { self, nixpkgs, nixpkgs-stable, home-manager, home-manager-stable, sops-nix, niri-flake, noctalia, zen-browser, kiro-ide, sddm-sugar-candy-nix, ... } @ inputs:
+
+  outputs =
+    {
+      nixpkgs,
+      nixpkgs-stable,
+      home-manager,
+      home-manager-stable,
+      sops-nix,
+      ...
+    }@inputs:
     let
-      lib       = nixpkgs.lib;
-      pkgs      = nixpkgs;
-      pkgsStable = nixpkgs-stable;
-      mkW  = import ./lib/mkWorkstation.nix;
-      mkS  = import ./lib/mkServer.nix;
-      # Ortak argümanlar
-      commonArgs = {
-        inherit lib pkgs inputs;
-        homeManager = home-manager.nixosModules.home-manager;
-        sops        = sops-nix.nixosModules.sops;
-        user        = "l7v";
-        system      = "x86_64-linux";
+      lib = nixpkgs.lib;
+
+      # Server topology. Single source of truth for both nixosConfigurations and
+      # the colmena deployment hive; adding a node here is sufficient.
+      servers = {
+        server = {
+          targetHost = "server.l7v.dev";
+          roles = [
+            "web"
+            "db"
+            "observe"
+            "git"
+          ];
+          tags = [ "production" ];
+        };
+        builder = {
+          targetHost = "builder.l7v.dev";
+          roles = [
+            "ci"
+            "cache"
+          ];
+          tags = [ "builder" ];
+        };
+        backup = {
+          targetHost = "backup.l7v.dev";
+          roles = [ "backup" ];
+          tags = [ "backup" ];
+        };
       };
-      # Server'a özgü argümanlar — stable channel
+
+      mkWorkstation = import ./lib/mkWorkstation.nix;
+      mkServer = import ./lib/mkServer.nix;
+
+      commonArgs = {
+        inherit lib inputs;
+        pkgs = nixpkgs;
+        homeManager = home-manager.nixosModules.home-manager;
+        sops = sops-nix.nixosModules.sops;
+        user = "l7v";
+        system = "x86_64-linux";
+      };
+
       serverArgs = commonArgs // {
-        lib         = pkgsStable.lib;
-        pkgs        = pkgsStable;
+        lib = nixpkgs-stable.lib;
+        pkgs = nixpkgs-stable;
         homeManager = home-manager-stable.nixosModules.home-manager;
       };
-    in {
-      nixosConfigurations.L7V = mkW (commonArgs // {
-        host = "laptop";
-      });
-      nixosConfigurations.server = mkS (serverArgs // {
-        host  = "server";
-        roles = [ "web" "db" "observe" "git" ];
-        tags  = [ "production" ];
-      });
-      nixosConfigurations.builder = mkS (serverArgs // {
-        host  = "builder";
-        roles = [ "ci" "cache" ];
-        tags  = [ "builder" ];
-      });
-      nixosConfigurations.backup = mkS (serverArgs // {
-        host  = "backup";
-        roles = [ "backup" ];
-        tags  = [ "backup" ];
-      });
-      lib.l7v = {
-        mkWorkstation = mkW;
-        mkServer      = mkS;
-      };
+    in
+    {
+      nixosConfigurations = {
+        L7V = mkWorkstation (commonArgs // { host = "laptop"; });
+      }
+      // lib.mapAttrs (
+        host: cfg:
+        mkServer (
+          serverArgs
+          // {
+            inherit host;
+            inherit (cfg) roles tags;
+          }
+        )
+      ) servers;
+
+      colmena = import ./colmena.nix { inherit inputs servers; };
+
+      lib.l7v = { inherit mkWorkstation mkServer; };
     };
 }

@@ -173,7 +173,7 @@
       }
 
       window-rule {
-        match app-id=r#"^(code-cursor|cursor|kiro|code|zed)$"#
+        match app-id=r#"^(code-cursor|cursor|code|zed)$"#
         open-on-workspace "code"
         open-maximized true
       }
@@ -239,7 +239,6 @@
 
         // Developer tooling shortcuts.
         Mod+Shift+C hotkey-overlay-title="Cursor" { spawn "code-cursor"; }
-        Mod+Shift+K hotkey-overlay-title="Kiro IDE" { spawn "kiro"; }
         Mod+Shift+Z hotkey-overlay-title="Zed" { spawn "zed"; }
         Mod+N hotkey-overlay-title="Nvim" { spawn "kitty" "-e" "nvim"; }
         Mod+Y hotkey-overlay-title="Yazi (~/dev)" { spawn "kitty" "-e" "yazi" "~/dev"; }

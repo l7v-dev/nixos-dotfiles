@@ -134,7 +134,7 @@
       windowrulev2 = size 1080 920, class:^(dev.noctalia.Noctalia.Settings)$
 
       windowrulev2 = workspace 2, class:^(zen)$
-      windowrulev2 = workspace 3, class:^(code-cursor|cursor|kiro|code|zed)$
+      windowrulev2 = workspace 3, class:^(code-cursor|cursor|code|zed)$
       windowrulev2 = workspace 6, class:^(obsidian)$
       windowrulev2 = workspace 5, title:(?i)(aider|claude|gemini)
 
@@ -164,7 +164,6 @@
 
       # Developer tools and AI launcher bindings.
       bind = $mod SHIFT, C, exec, code-cursor
-      bind = $mod SHIFT, K, exec, kiro
       bind = $mod SHIFT, Z, exec, zed
       bind = $mod SHIFT, A, exec, $terminal -e aider
       bind = $mod CTRL, A, exec, $terminal -e aider --model claude-3-5-sonnet-20241022
