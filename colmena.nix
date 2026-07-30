@@ -13,7 +13,7 @@
 { inputs, servers }:
 let
   nixpkgsStable = inputs.nixpkgs-stable;
-  lib = nixpkgsStable.lib;
+  inherit (nixpkgsStable) lib;
 
   system = "x86_64-linux";
   user = "l7v";
@@ -22,11 +22,10 @@ let
 
   mkNode = host: cfg: {
     deployment = {
-      targetHost = cfg.targetHost;
+      inherit (cfg) targetHost tags;
       targetUser = "root";
       # Build locally and push closures; targets are not sized for compilation.
       buildOnTarget = false;
-      tags = cfg.tags;
     };
 
     imports = serverModules {

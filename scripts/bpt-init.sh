@@ -42,9 +42,11 @@ EOF
 
 case "$TYPE" in
   python|devenv-python)
+    # shellcheck disable=SC2016  # .envrc literal olarak yazilmali; direnv calisma aninda genisletir
     echo 'eval "$(devenv print-dev-env)"' > .envrc
     ;;
   node|devenv-node)
+    # shellcheck disable=SC2016  # .envrc literal olarak yazilmali; direnv calisma aninda genisletir
     echo 'eval "$(devenv print-dev-env)"' > .envrc
     ;;
   rust|go|java|minimal)

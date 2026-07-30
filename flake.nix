@@ -55,7 +55,7 @@
       ...
     }@inputs:
     let
-      lib = nixpkgs.lib;
+      inherit (nixpkgs) lib;
 
       # Server topology. Single source of truth for both nixosConfigurations and
       # the colmena deployment hive; adding a node here is sufficient.
@@ -98,7 +98,7 @@
       };
 
       serverArgs = commonArgs // {
-        lib = nixpkgs-stable.lib;
+        inherit (nixpkgs-stable) lib;
         pkgs = nixpkgs-stable;
         homeManager = home-manager-stable.nixosModules.home-manager;
       };

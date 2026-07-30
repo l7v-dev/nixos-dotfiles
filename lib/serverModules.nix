@@ -78,19 +78,20 @@ in
   (hostDir + "/default.nix")
   (hostDir + "/hardware.nix")
   {
-    l7v.identity.user = user;
-    l7v.infrastructure.isServer = true;
-    l7v.server.roles = roles;
-    l7v.server.tags = tags;
+    l7v = {
+      identity.user = user;
+      infrastructure.isServer = true;
+      server = { inherit roles tags; };
 
-    l7v.secrets.enable = lib.elem "secrets" capabilities;
-    l7v.database.enable = lib.elem "database" capabilities;
-    l7v.metrics.enable = lib.elem "metrics" capabilities;
-    l7v.logging.enable = lib.elem "logging" capabilities;
-    l7v.reverseProxy.enable = lib.elem "reverse-proxy" capabilities;
-    l7v.backup.enable = lib.elem "backup" capabilities;
-    l7v.cache.enable = lib.elem "cache" capabilities;
-    l7v.messaging.enable = lib.elem "messaging" capabilities;
+      secrets.enable = lib.elem "secrets" capabilities;
+      database.enable = lib.elem "database" capabilities;
+      metrics.enable = lib.elem "metrics" capabilities;
+      logging.enable = lib.elem "logging" capabilities;
+      reverseProxy.enable = lib.elem "reverse-proxy" capabilities;
+      backup.enable = lib.elem "backup" capabilities;
+      cache.enable = lib.elem "cache" capabilities;
+      messaging.enable = lib.elem "messaging" capabilities;
+    };
 
     home-manager = {
       useGlobalPkgs = true;

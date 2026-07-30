@@ -4,27 +4,90 @@
   networking.hostName = "L7V";
   system.stateVersion = "25.05";
 
-  # Touchpad (libinput) - geliştirilmiş laptop deneyimi
-  services.libinput = {
-    enable = true;
-    touchpad = {
-      tapping = true;
-      naturalScrolling = true;
-      accelProfile = "adaptive";
-      accelSpeed = "0.2";
-      scrollMethod = "twofinger";
-      disableWhileTyping = true;
-      clickMethod = "clickfinger";
+  services = {
+    # Touchpad (libinput) - geliştirilmiş laptop deneyimi
+    libinput = {
+      enable = true;
+      touchpad = {
+        tapping = true;
+        naturalScrolling = true;
+        accelProfile = "adaptive";
+        accelSpeed = "0.2";
+        scrollMethod = "twofinger";
+        disableWhileTyping = true;
+        clickMethod = "clickfinger";
+      };
+    };
+
+    # Keyboard
+    xserver.xkb.layout = "tr";
+
+    # FHS dizin uyumluluğu (/bin/bash, /usr/bin/env gibi yolların otomatik eşleşmesi)
+    envfs.enable = true;
+
+    # Not: l7v.database capability'si server içindir (pgbouncer + secrets gerektirir).
+    # Laptop için direkt NixOS modülleri kullanıyoruz — daha basit.
+    redis.servers."".enable = true;
+
+    postgresql = {
+      enable  = true;
+      package = pkgs.postgresql_16;
+    };
+
+    flatpak.enable = true;
+
+    # auto-cpufreq: Maksimum Performans Odaklı Ayar (Hiçbir Performans Kısıtlaması Yok)
+    # power-profiles-daemon ile çakışmaması için kapalı tutulur.
+    power-profiles-daemon.enable = lib.mkForce false;
+    auto-cpufreq = {
+      enable = true;
+      settings = {
+        battery = {
+          governor = "performance";
+          energy_performance_preference = "performance";
+          turbo = "always";
+        };
+        charger = {
+          governor = "performance";
+          energy_performance_preference = "performance";
+          turbo = "always";
+        };
+      };
+    };
+    thermald.enable = true;  # Termal aşırı ısınma koruması
+
+    # Lid kapatma ve güç tuşu davranışı (modern ayar)
+    logind.settings.Login = {
+      HandleLidSwitch = "suspend";
+      HandleLidSwitchExternalPower = "ignore";
+      HandlePowerKey = "suspend";
+      IdleAction = "suspend";
+      IdleActionSec = "30min";
     };
   };
 
-  # Bluetooth
-  l7v.experience.bluetooth     = true;
+  l7v = {
+    # Experience capabilities
+    experience = {
+      bluetooth     = true;  # Bluetooth
+      notifications = true;  # mako + libnotify
+      clipboard     = true;  # wl-clipboard + cliphist + xsel
+      screencast    = true;  # xdg-portal + pipewire screen + obs + wf-recorder
+    };
 
-  # Experience capabilities
-  l7v.experience.notifications = true;  # mako + libnotify
-  l7v.experience.clipboard     = true;  # wl-clipboard + cliphist + xsel
-  l7v.experience.screencast    = true;  # xdg-portal + pipewire screen + obs + wf-recorder
+    virtualisation.enable = true;
+
+    # /etc/age/key ile secrets.yaml decrypt edilir
+    # age public key: age100fgm3zj79kwsw962f9ehw8s43llfk7z2tpsh2juy3platc99qcs7lj0yw
+    secrets.enable = true;
+
+    platform = {
+      deploy.enable        = true;
+      inventory.enable     = true;
+      documentation.enable = true;
+      recovery.enable      = true;  # snapper btrfs + kurtarma araçları
+    };
+  };
 
   # AMD GPU
   hardware.graphics = {
@@ -84,8 +147,6 @@
     };
   };
 
-  # Keyboard
-  services.xserver.xkb.layout = "tr";
   console.keyMap = "trq";
 
   # Sudo passwordless for wheel
@@ -93,7 +154,6 @@
 
   # Docker
   virtualisation.docker.enable = true;
-  l7v.virtualisation.enable = true;
   # Not: docker grubu identity/default.nix'te zaten ekleniyor, burada tekrar eklemiyoruz
 
   # nix-ld — distrobox-export ve .deb / ikili dosyaların doğrudan çalışabilmesi için
@@ -150,21 +210,8 @@
     ];
   };
 
-  # FHS dizin uyumluluğu (/bin/bash, /usr/bin/env gibi yolların otomatik eşleşmesi)
-  services.envfs.enable = true;
-
-  # Not: l7v.database capability'si server içindir (pgbouncer + secrets gerektirir).
-  # Laptop için direkt NixOS modülleri kullanıyoruz — daha basit.
-  services.redis.servers."".enable = true;
-
-  services.postgresql = {
-    enable  = true;
-    package = pkgs.postgresql_16;
-  };
-
   # Laptop UX iyileştirmeleri
   programs.dconf.enable = true; # GTK uygulamaları için ayar depolama
-  services.flatpak.enable = true;
 
   # Nix için güçlü eklentiler (AI agent + prebuilt binary'ler için)
   # Ek güçlü Nix araçları ve geliştirme ortamları
@@ -180,42 +227,4 @@
 
   # AMD CPU P-State & Maksimum Performans Kernel Parametreleri
   boot.kernelParams = [ "amd_pstate=active" ];
-
-  # auto-cpufreq: Maksimum Performans Odaklı Ayar (Hiçbir Performans Kısıtlaması Yok)
-  # power-profiles-daemon ile çakışmaması için kapalı tutulur.
-  services.power-profiles-daemon.enable = lib.mkForce false;
-  services.auto-cpufreq = {
-    enable = true;
-    settings = {
-      battery = {
-        governor = "performance";
-        energy_performance_preference = "performance";
-        turbo = "always";
-      };
-      charger = {
-        governor = "performance";
-        energy_performance_preference = "performance";
-        turbo = "always";
-      };
-    };
-  };
-  services.thermald.enable = true;  # Termal aşırı ısınma koruması
-
-  # Lid kapatma ve güç tuşu davranışı (modern ayar)
-  services.logind.settings.Login = {
-    HandleLidSwitch = "suspend";
-    HandleLidSwitchExternalPower = "ignore";
-    HandlePowerKey = "suspend";
-    IdleAction = "suspend";
-    IdleActionSec = "30min";
-  };
-
-  # /etc/age/key ile secrets.yaml decrypt edilir
-  # age public key: age100fgm3zj79kwsw962f9ehw8s43llfk7z2tpsh2juy3platc99qcs7lj0yw
-  l7v.secrets.enable = true;
-
-  l7v.platform.deploy.enable       = true;
-  l7v.platform.inventory.enable    = true;
-  l7v.platform.documentation.enable = true;
-  l7v.platform.recovery.enable     = true;  # snapper btrfs + kurtarma araçları
 }
