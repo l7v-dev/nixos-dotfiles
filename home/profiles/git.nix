@@ -1,30 +1,21 @@
 # Home profile: git + delta pager
-_:
-{
+_: {
   programs.git = {
     enable = true;
-    userName = "l7v-dev";
-    userEmail = "l7v.dev@kuazon.com";
 
-    aliases = {
-      st = "status -sb";
-      lg = "log --oneline --graph --decorate --all";
-      undo = "reset HEAD~1 --mixed";
-      wip = "commit -am 'wip'";
-    };
+    settings = {
+      user = {
+        name = "l7v-dev";
+        email = "l7v.dev@kuazon.com";
+      };
 
-    ignores = [
-      ".direnv"
-      ".env"
-      ".env.local"
-      "*.swp"
-      "*.swo"
-      ".DS_Store"
-      "result"
-      "result-*"
-    ];
+      alias = {
+        st = "status -sb";
+        lg = "log --oneline --graph --decorate --all";
+        undo = "reset HEAD~1 --mixed";
+        wip = "commit -am 'wip'";
+      };
 
-    extraConfig = {
       init.defaultBranch = "main";
       pull.rebase = true;
       push.autoSetupRemote = true;
@@ -40,6 +31,17 @@ _:
       # GitHub shorthand
       url."https://github.com/".insteadOf = "gh:";
     };
+
+    ignores = [
+      ".direnv"
+      ".env"
+      ".env.local"
+      "*.swp"
+      "*.swo"
+      ".DS_Store"
+      "result"
+      "result-*"
+    ];
   };
 
   programs.delta = {
