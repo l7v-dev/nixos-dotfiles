@@ -42,7 +42,7 @@
     gh
 
     # Nix Araçları (Sistem geneli gerekli)
-    nixfmt-rfc-style
+    nixfmt
     statix
     deadnix
     nix-tree

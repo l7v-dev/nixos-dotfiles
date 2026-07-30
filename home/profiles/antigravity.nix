@@ -2,12 +2,16 @@
 { pkgs, lib, ... }:
 {
   home.packages =
-    (if (pkgs ? antigravity-fhs) then
-      [ pkgs.antigravity-fhs ]
-    else if (pkgs ? antigravity) then
-      [ pkgs.antigravity ]
-    else
-      [ ])
+    (
+      if (pkgs ? antigravity-ide-fhs) then
+        [ pkgs.antigravity-ide-fhs ]
+      else if (pkgs ? antigravity-fhs) then
+        [ pkgs.antigravity-fhs ]
+      else if (pkgs ? antigravity) then
+        [ pkgs.antigravity ]
+      else
+        [ ]
+    )
     ++ (with pkgs; [
       # Node.js & Package Managers (chrome-devtools-mcp, postman, context, visualization)
       nodejs_22
