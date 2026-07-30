@@ -1,6 +1,14 @@
 # Home-manager workstation profili
 # Tüm workstation home modülleri buradan koordine edilir.
-{ lib, config, pkgs, user, inputs, ... }: {
+{
+  lib,
+  config,
+  pkgs,
+  user,
+  inputs,
+  ...
+}:
+{
   # Shell: Noctalia v5 — home/profiles/noctalia.nix üzerinden home-manager modülü ile yönetilir.
 
   options.l7v.home.workstation.enable = lib.mkOption {
@@ -16,7 +24,7 @@
     };
 
     # --- Developer klasör yapısı (standartlaştırma) ----------------------
-    home.activation.createDevDirs = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    home.activation.createDevDirs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       mkdir -p ~/dev/{learning/{books,courses,tutorials},projects/{company/{active,archived},personal,oss},sandboxes/{labs,playgrounds},tools/{bin,configs,scripts},workspaces}
     '';
 
@@ -29,10 +37,10 @@
       firefox
       google-chrome
       vivaldi
-      (inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default)  # Zen Browser (native, firefox tabanlı, güzel)
+      (inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default) # Zen Browser (native, firefox tabanlı, güzel)
       librewolf
       ungoogled-chromium
-      mullvad-browser  # privacy odaklı (Mullvad)
+      mullvad-browser # privacy odaklı (Mullvad)
       # Tor Browser istersen: tor-browser (ağır)
 
       obsidian
@@ -45,10 +53,9 @@
       gvfs
       file-roller
       zoxide
-      
 
       # Nautilus zenginleştirme (görsel + yetenek)
-      sushi                 # hızlı önizleme (space tuşu)
+      sushi # hızlı önizleme (space tuşu)
       nautilus-python
       gnome-tweaks
 
@@ -59,9 +66,9 @@
 
       # Terminal dosya yöneticisi (ana silah) - Yazi çok güçlü
       yazi
-      chafa                 # terminalde görsel önizleme
+      chafa # terminalde görsel önizleme
       exiftool
-      poppler-utils         # pdf önizleme
+      poppler-utils # pdf önizleme
       mediainfo
       jq
       ripgrep
@@ -124,7 +131,10 @@
       gobuster
       hashcat
 
-      dbeaver-bin      
+      dbeaver-bin
+
+      # AI & Model CLI Tools
+      python3Packages.huggingface-hub
     ];
   };
 }
