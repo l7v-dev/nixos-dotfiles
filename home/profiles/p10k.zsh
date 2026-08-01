@@ -1,7 +1,13 @@
 # Powerlevel10k Zsh Theme Configuration — NixOS L7V Profile
 # Configured for Nerd Fonts, Git status, Nix shell, execution time, and clean UI.
 
+# Temporarily change options.
 'builtin' 'local' '-a' 'p10k_config_opts'
+[[ ! -o 'aliases'         ]] || p10k_config_opts+=('aliases')
+[[ ! -o 'sh_glob'         ]] || p10k_config_opts+=('sh_glob')
+[[ ! -o 'no_brace_expand' ]] || p10k_config_opts+=('no_brace_expand')
+'builtin' 'setopt' 'no_aliases' 'no_sh_glob' 'brace_expand'
+
 'builtin' 'zstyle' ':p10k:*' 'number-of-frames' 1
 'builtin' 'zstyle' ':p10k:*' 'frame-rate' 30
 
@@ -10,9 +16,12 @@
 
   unset -m '(POWERLEVEL9K_*|DEFAULT_USER)~POWERLEVEL9K_GITSTATUS_DIR'
 
+  # Zsh >= 5.1 is required.
+  [[ $ZSH_VERSION == (5.<1->*|<6->.*) ]] || return
+
   # Left prompt elements
   typeset -g POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(
-    os_icon                 # OS identifier icon (NixOS )
+    os_icon                 # OS identifier icon (NixOS)
     dir                     # Current directory
     vcs                     # Git status
     prompt_char             # Prompt symbol (❯ or #)
@@ -23,7 +32,7 @@
     status                  # Exit code of previous command
     command_execution_time  # Duration of last command
     background_jobs         # Background jobs indicator
-    nix_shell               # Nix shell indicator (❄️)
+    nix_shell               # Nix shell indicator
     virtualenv              # Python virtual environment
     direnv                  # Direnv status
     context                 # user@hostname
@@ -31,14 +40,14 @@
   )
 
   # General prompt styling
-  typeset -g POWERLEVEL9K_MODE='nerdfont-v2'
+  typeset -g POWERLEVEL9K_MODE='nerdfont-v3'
   typeset -g POWERLEVEL9K_ICON_PADDING=none
   typeset -g POWERLEVEL9K_BACKGROUND=
   typeset -g POWERLEVEL9K_PROMPT_ADD_NEWLINE=true
 
   # Prompt character symbols
-  typeset -g POWERLEVEL9K_PROMPT_CHAR_OK_{VIINS,VICMD,VIMSG,OK}_VIINS_FOREGROUND=76
-  typeset -g POWERLEVEL9K_PROMPT_CHAR_ERROR_{VIINS,VICMD,VIMSG,OK}_VIINS_FOREGROUND=196
+  typeset -g POWERLEVEL9K_PROMPT_CHAR_OK_{VIINS,VICMD,VIMSG}_FOREGROUND=76
+  typeset -g POWERLEVEL9K_PROMPT_CHAR_ERROR_{VIINS,VICMD,VIMSG}_FOREGROUND=196
   typeset -g POWERLEVEL9K_PROMPT_CHAR_OK_VIINS_CONTENT_EXPANSION='❯'
   typeset -g POWERLEVEL9K_PROMPT_CHAR_ERROR_VIINS_CONTENT_EXPANSION='❯'
   typeset -g POWERLEVEL9K_PROMPT_CHAR_OK_VICMD_CONTENT_EXPANSION='❮'
@@ -55,7 +64,7 @@
   typeset -g POWERLEVEL9K_DIR_MAX_LENGTH=80
 
   # VCS (Git) styling
-  typeset -g POWERLEVEL9K_VCS_BRANCH_ICON=' '
+  typeset -g POWERLEVEL9K_VCS_BRANCH_ICON=' '
   typeset -g POWERLEVEL9K_VCS_UNTRACKED_ICON='?'
   typeset -g POWERLEVEL9K_VCS_CLEAN_FOREGROUND=76
   typeset -g POWERLEVEL9K_VCS_MODIFIED_FOREGROUND=178
@@ -65,7 +74,9 @@
 
   # Nix Shell indicator
   typeset -g POWERLEVEL9K_NIX_SHELL_FOREGROUND=75
-  typeset -g POWERLEVEL9K_NIX_SHELL_CONTENT_EXPANSION='❄️ ${name}'
+  # Default nix_shell icon (❄) is already shown automatically under nerdfont-v3.
+  # Uncomment below only if you want to override the label text:
+  # typeset -g POWERLEVEL9K_NIX_SHELL_CONTENT_EXPANSION='❄ $P9K_CONTENT'
 
   # Command execution time
   typeset -g POWERLEVEL9K_COMMAND_EXECUTION_TIME_THRESHOLD=3
@@ -88,7 +99,13 @@
 
   # Disable transient prompt
   typeset -g POWERLEVEL9K_TRANSIENT_PROMPT=off
+
+  # Hot reload: if p10k is already loaded, apply changes immediately.
+  (( ! $+functions[p10k] )) || p10k reload
 }
+
+# Tell `p10k configure` which file it should overwrite.
+typeset -g POWERLEVEL9K_CONFIG_FILE=${${(%):-%x}:a}
 
 (( ${#p10k_config_opts} )) && setopt ${p10k_config_opts[@]}
 'builtin' 'unset' 'p10k_config_opts'
