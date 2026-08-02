@@ -1,5 +1,10 @@
 # Bluetooth: hardware support + blueman manager
-{ lib, config, pkgs, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 {
   options.l7v.experience.bluetooth = lib.mkEnableOption "bluetooth support";
 

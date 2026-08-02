@@ -1,5 +1,5 @@
 # Home profile: Antigravity IDE — Agentic Development Platform & MCP Runtime Ecosystem
-{ pkgs, lib, ... }:
+{ pkgs, ... }:
 {
   home.packages =
     (

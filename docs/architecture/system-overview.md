@@ -16,6 +16,10 @@
 ├── templates/                    # Project templates (AFT)
 ├── scripts/                      # System administration and initializer scripts
 ├── hosts/                        # Machine configurations (L7V, server, builder)
+├── home/                         # Home-Manager user profiles
+│   ├── minimal/                  # Headless server home profile
+│   ├── workstation/              # Desktop workstation home coordinator
+│   └── profiles/                 # Modular application & shell profiles (niri/, yazi.nix, etc.)
 ├── platform/                     # System platform modules
 ├── services/                     # Managed NixOS services
 └── secrets/                      # SOPS encrypted secrets

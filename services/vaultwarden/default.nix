@@ -2,7 +2,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 
@@ -79,7 +78,7 @@ in
 
     services.vaultwarden = {
       enable = true;
-      backupDir = cfg.backupDir;
+      inherit (cfg) backupDir;
 
       config = {
         DOMAIN = "https://${cfg.domain}";
@@ -102,11 +101,11 @@ in
         IP_HEADER = "X-Real-IP";
 
         # SMTP — l7v.messaging.enable ve messaging.smtp.enable aktifse otomatik açılır
-        SMTP_HOST         = lib.mkIf config.l7v.messaging.enable "localhost";
-        SMTP_PORT         = lib.mkIf config.l7v.messaging.enable 25;
-        SMTP_SECURITY     = lib.mkIf config.l7v.messaging.enable "off";
-        SMTP_FROM         = lib.mkIf config.l7v.messaging.enable "vault@${cfg.domain}";
-        SMTP_FROM_NAME    = lib.mkIf config.l7v.messaging.enable "L7V Vault";
+        SMTP_HOST = lib.mkIf config.l7v.messaging.enable "localhost";
+        SMTP_PORT = lib.mkIf config.l7v.messaging.enable 25;
+        SMTP_SECURITY = lib.mkIf config.l7v.messaging.enable "off";
+        SMTP_FROM = lib.mkIf config.l7v.messaging.enable "vault@${cfg.domain}";
+        SMTP_FROM_NAME = lib.mkIf config.l7v.messaging.enable "L7V Vault";
       };
     };
 

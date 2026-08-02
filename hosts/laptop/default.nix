@@ -1,5 +1,10 @@
 # Host: laptop (L7V)
-{ lib, host, user, pkgs, ... }:
+{
+  lib,
+  user,
+  pkgs,
+  ...
+}:
 {
   networking.hostName = "L7V";
   system.stateVersion = "25.05";
@@ -30,7 +35,7 @@
     redis.servers."".enable = true;
 
     postgresql = {
-      enable  = true;
+      enable = true;
       package = pkgs.postgresql_16;
     };
 
@@ -54,7 +59,7 @@
         };
       };
     };
-    thermald.enable = true;  # Termal aşırı ısınma koruması
+    thermald.enable = true; # Termal aşırı ısınma koruması
 
     # Lid kapatma ve güç tuşu davranışı (modern ayar)
     logind.settings.Login = {
@@ -69,10 +74,10 @@
   l7v = {
     # Experience capabilities
     experience = {
-      bluetooth     = true;  # Bluetooth
-      notifications = true;  # mako + libnotify
-      clipboard     = true;  # wl-clipboard + cliphist + xsel
-      screencast    = true;  # xdg-portal + pipewire screen + obs + wf-recorder
+      bluetooth = true; # Bluetooth
+      notifications = true; # mako + libnotify
+      clipboard = true; # wl-clipboard + cliphist + xsel
+      screencast = true; # xdg-portal + pipewire screen + obs + wf-recorder
     };
 
     virtualisation.enable = true;
@@ -82,10 +87,10 @@
     secrets.enable = true;
 
     platform = {
-      deploy.enable        = true;
-      inventory.enable     = true;
+      deploy.enable = true;
+      inventory.enable = true;
       documentation.enable = true;
-      recovery.enable      = true;  # snapper btrfs + kurtarma araçları
+      recovery.enable = true; # snapper btrfs + kurtarma araçları
     };
   };
 
@@ -111,17 +116,24 @@
   # NOT: XDG_SESSION_TYPE, AMD_VULKAN_ICD vb. experience/desktop/niri/default.nix'te tanımlı.
   # Burada sadece laptop'a özgü olanlar:
   environment.sessionVariables = {
-    NIXOS_OZONE_WL     = "1";           # Electron/Chromium Wayland
-    MOZ_ENABLE_WAYLAND = "1";           # Firefox Wayland
-    QT_QPA_PLATFORM    = "wayland;xcb"; # Qt Wayland fallback
-    GDK_BACKEND        = "wayland,x11"; # GTK
+    NIXOS_OZONE_WL = "1"; # Electron/Chromium Wayland
+    MOZ_ENABLE_WAYLAND = "1"; # Firefox Wayland
+    QT_QPA_PLATFORM = "wayland;xcb"; # Qt Wayland fallback
+    GDK_BACKEND = "wayland,x11"; # GTK
   };
 
   # Nix settings (best practices for developer workstation)
   nix = {
     settings = {
-      experimental-features = [ "nix-command" "flakes" "ca-derivations" ];
-      trusted-users = [ "root" user ];
+      experimental-features = [
+        "nix-command"
+        "flakes"
+        "ca-derivations"
+      ];
+      trusted-users = [
+        "root"
+        user
+      ];
       auto-optimise-store = true;
       substituters = [
         "https://cache.nixos.org"
@@ -137,7 +149,7 @@
       ];
       keep-outputs = true; # useful for dev (devShell'lar için)
       keep-derivations = true;
-      download-buffer-size = "128M";  # büyük flake'ler için
+      download-buffer-size = "128M"; # büyük flake'ler için
     };
 
     gc = {
@@ -216,13 +228,13 @@
   # Nix için güçlü eklentiler (AI agent + prebuilt binary'ler için)
   # Ek güçlü Nix araçları ve geliştirme ortamları
   environment.systemPackages = with pkgs; [
-    manix          # nixpkgs içinde man sayfası / docs arama
-    dpkg           # .deb dosyalarını ayıklamak (dpkg-deb -x)
-    steam-run      # İzolasyonlu FHS ortamında binary çalıştırmak
-    patchelf       # ELF dosyalarının rpath ve interpreter ayarlarını düzenlemek
-    jetbrains.clion# JetBrains CLion IDE (C/C++)
-    qtcreator      # Qt Creator IDE
-    wezterm        # GPU-accelerated terminal emulator
+    manix # nixpkgs içinde man sayfası / docs arama
+    dpkg # .deb dosyalarını ayıklamak (dpkg-deb -x)
+    steam-run # İzolasyonlu FHS ortamında binary çalıştırmak
+    patchelf # ELF dosyalarının rpath ve interpreter ayarlarını düzenlemek
+    jetbrains.clion # JetBrains CLion IDE (C/C++)
+    qtcreator # Qt Creator IDE
+    wezterm # GPU-accelerated terminal emulator
   ];
 
   # AMD CPU P-State & Maksimum Performans Kernel Parametreleri

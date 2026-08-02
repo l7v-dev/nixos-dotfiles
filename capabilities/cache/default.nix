@@ -4,16 +4,16 @@
 {
   options.l7v.cache = {
     enable = lib.mkEnableOption "nix binary cache capability";
-    port   = lib.mkOption {
-      type    = lib.types.port;
+    port = lib.mkOption {
+      type = lib.types.port;
       default = 5000;
     };
   };
 
   config = lib.mkIf config.l7v.cache.enable {
     services.nix-serve = {
-      enable        = true;
-      port          = config.l7v.cache.port;
+      enable = true;
+      port = config.l7v.cache.port;
       secretKeyFile = config.sops.secrets."cache/signing_key".path or "/etc/nix/signing-key";
     };
 

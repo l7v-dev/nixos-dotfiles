@@ -62,9 +62,7 @@ let
 
   # Unknown roles resolve to secrets only, keeping sops available for host-local
   # secret declarations rather than failing evaluation.
-  capabilities = lib.unique (
-    lib.concatMap (role: roleCapabilities.${role} or [ "secrets" ]) roles
-  );
+  capabilities = lib.unique (lib.concatMap (role: roleCapabilities.${role} or [ "secrets" ]) roles);
 
   hostDir = ../hosts/${host};
 in

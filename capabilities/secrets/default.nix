@@ -1,5 +1,10 @@
 # Secrets capability: sops-nix + age keys + cross-host sync
-{ lib, config, pkgs, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 {
   options.l7v.secrets = {
     enable = lib.mkEnableOption "sops-nix secrets capability";
@@ -7,12 +12,12 @@
     # Cross-host sync: hangi hostların key'leri burada tanımlı
     hosts = lib.mkOption {
       type = lib.types.attrsOf lib.types.str;
-      default = {};
+      default = { };
       description = "hostname → age public key eşlemesi";
       example = {
-        server  = "age1abc...";
+        server = "age1abc...";
         builder = "age1def...";
-        backup  = "age1ghi...";
+        backup = "age1ghi...";
       };
     };
   };
@@ -21,7 +26,7 @@
     sops = {
       defaultSopsFile = ../../secrets/sops/secrets.yaml;
       age = {
-        keyFile     = "/etc/age/key";
+        keyFile = "/etc/age/key";
         generateKey = false;
       };
     };
@@ -35,7 +40,7 @@
     environment.systemPackages = with pkgs; [
       age
       sops
-      ssh-to-age  # SSH key → age key
+      ssh-to-age # SSH key → age key
     ];
   };
 }

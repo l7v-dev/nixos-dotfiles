@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 # User environment configuration for Hyprland compositor.
 {

@@ -9,7 +9,7 @@
 { pkgs, ... }:
 {
   programs.niri = {
-    enable  = true;
+    enable = true;
     package = pkgs.niri;
   };
 }

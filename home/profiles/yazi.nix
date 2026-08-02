@@ -1,4 +1,4 @@
-{ ... }:
+_:
 
 # Yazi file manager options and keymaps.
 {

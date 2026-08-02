@@ -1,6 +1,6 @@
 # Experience katmanı: SADECE workstation'lara import edilir.
 # Sunucularda GUI/audio/power olmaz.
-{ lib, ... }:
+{ ... }:
 {
   imports = [
     ./desktop/common

@@ -5,7 +5,12 @@
 #   colmena apply --on @production
 #   colmena apply --on server
 #   colmena build
-{ lib, config, pkgs, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 {
   options.l7v.platform.deploy = {
     enable = lib.mkEnableOption "colmena deploy tooling";
@@ -14,9 +19,9 @@
   config = lib.mkIf config.l7v.platform.deploy.enable {
     environment.systemPackages = with pkgs; [
       colmena
-      rage        # age şifreleme CLI
-      ssh-to-age  # SSH key → age key dönüşümü
-      sops        # secret düzenleme
+      rage # age şifreleme CLI
+      ssh-to-age # SSH key → age key dönüşümü
+      sops # secret düzenleme
     ];
 
     # Server'lara SSH erişimi için config

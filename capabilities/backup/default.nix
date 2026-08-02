@@ -90,14 +90,15 @@ in
       }
     ];
 
-    sops.secrets."backup/restic_password" = { };
-
-    sops.secrets."aws/access_key_id" = lib.mkIf (cfg.backend == "s3") { };
-    sops.secrets."aws/secret_access_key" = lib.mkIf (cfg.backend == "s3") { };
+    sops.secrets = {
+      "backup/restic_password" = { };
+      "aws/access_key_id" = lib.mkIf (cfg.backend == "s3") { };
+      "aws/secret_access_key" = lib.mkIf (cfg.backend == "s3") { };
+    };
 
     services.restic.backups.l7v = {
       repository = repositoryUrl;
-      paths = cfg.paths;
+      inherit (cfg) paths;
       passwordFile = config.sops.secrets."backup/restic_password".path;
 
       # Create the repository on first run; restic otherwise fails until it is
@@ -129,9 +130,11 @@ in
       '';
     };
 
-    environment.systemPackages = with pkgs; [
-      restic
-    ]
-    ++ lib.optional (cfg.backend == "s3") awscli2;
+    environment.systemPackages =
+      with pkgs;
+      [
+        restic
+      ]
+      ++ lib.optional (cfg.backend == "s3") awscli2;
   };
 }

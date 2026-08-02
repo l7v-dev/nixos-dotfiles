@@ -6,8 +6,8 @@
 { pkgs, ... }:
 {
   programs.hyprland = {
-    enable         = true;
-    package        = pkgs.hyprland;
+    enable = true;
+    package = pkgs.hyprland;
     xwayland.enable = true;
   };
 
@@ -15,6 +15,9 @@
   # gnome portal'a EK olarak eklenir, "hyprland" oturumu için önceliklendirilir.
   xdg.portal = {
     extraPortals = [ pkgs.xdg-desktop-portal-hyprland ];
-    config."hyprland".default = [ "hyprland" "gtk" ];
+    config."hyprland".default = [
+      "hyprland"
+      "gtk"
+    ];
   };
 }

@@ -1,5 +1,8 @@
 # Host: backup — restic SFTP target node
-{ lib, config, host, user, roles, tags, ... }:
+{
+  user,
+  ...
+}:
 {
   networking.hostName = "backup";
   system.stateVersion = "25.05";

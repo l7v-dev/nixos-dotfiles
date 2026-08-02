@@ -5,11 +5,11 @@
   options.l7v.services.forgejo = {
     enable = lib.mkEnableOption "forgejo git forge service";
     domain = lib.mkOption {
-      type    = lib.types.str;
+      type = lib.types.str;
       default = "git.l7v.dev";
     };
     adminEmail = lib.mkOption {
-      type    = lib.types.str;
+      type = lib.types.str;
       default = "admin@l7v.dev";
     };
   };
@@ -18,15 +18,15 @@
     assertions = [
       {
         assertion = config.l7v.database.enable;
-        message   = "l7v.services.forgejo requires l7v.database.enable = true";
+        message = "l7v.services.forgejo requires l7v.database.enable = true";
       }
       {
         assertion = config.l7v.reverseProxy.enable;
-        message   = "l7v.services.forgejo requires l7v.reverseProxy.enable = true";
+        message = "l7v.services.forgejo requires l7v.reverseProxy.enable = true";
       }
       {
         assertion = config.l7v.secrets.enable;
-        message   = "l7v.services.forgejo requires l7v.secrets.enable = true";
+        message = "l7v.services.forgejo requires l7v.secrets.enable = true";
       }
     ];
 
@@ -34,60 +34,65 @@
       owner = "forgejo";
     };
 
-    services.postgresql.ensureDatabases = [ "forgejo" ];
-    services.postgresql.ensureUsers = [{
-      name = "forgejo";
-      ensureDBOwnership = true;
-    }];
-
-    services.forgejo = {
-      enable   = true;
-      database = {
-        type = "postgres";
-        user = "forgejo";
-        name = "forgejo";
-        # socket auth — şifre gerekmez
-        socket = "/run/postgresql";
+    services = {
+      postgresql = {
+        ensureDatabases = [ "forgejo" ];
+        ensureUsers = [
+          {
+            name = "forgejo";
+            ensureDBOwnership = true;
+          }
+        ];
       };
-      settings = {
-        server = {
-          DOMAIN    = config.l7v.services.forgejo.domain;
-          ROOT_URL  = "https://${config.l7v.services.forgejo.domain}";
-          HTTP_PORT = 3000;
-          HTTP_ADDR = "127.0.0.1";
+
+      forgejo = {
+        enable = true;
+        database = {
+          type = "postgres";
+          user = "forgejo";
+          name = "forgejo";
+          # socket auth — şifre gerekmez
+          socket = "/run/postgresql";
         };
-        service = {
-          DISABLE_REGISTRATION        = true;
-          REQUIRE_SIGNIN_VIEW         = false;
-          DEFAULT_KEEP_EMAIL_PRIVATE  = true;
+        settings = {
+          server = {
+            DOMAIN = config.l7v.services.forgejo.domain;
+            ROOT_URL = "https://${config.l7v.services.forgejo.domain}";
+            HTTP_PORT = 3000;
+            HTTP_ADDR = "127.0.0.1";
+          };
+          service = {
+            DISABLE_REGISTRATION = true;
+            REQUIRE_SIGNIN_VIEW = false;
+            DEFAULT_KEEP_EMAIL_PRIVATE = true;
+          };
+          mailer = {
+            ENABLED = false;
+          };
+          security = {
+            INSTALL_LOCK = true;
+          };
+          log = {
+            LEVEL = "Warn";
+          };
         };
-        mailer = {
-          ENABLED = false;
-        };
-        security = {
-          INSTALL_LOCK = true;
-        };
-        log = {
-          LEVEL = "Warn";
+      };
+
+      nginx.virtualHosts.${config.l7v.services.forgejo.domain} = {
+        forceSSL = true;
+        enableACME = true;
+        locations."/" = {
+          proxyPass = "http://127.0.0.1:3000";
+          proxyWebsockets = true;
+          extraConfig = ''
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            client_max_body_size 512m;
+          '';
         };
       };
     };
-
-    services.nginx.virtualHosts.${config.l7v.services.forgejo.domain} = {
-      forceSSL    = true;
-      enableACME  = true;
-      locations."/" = {
-        proxyPass       = "http://127.0.0.1:3000";
-        proxyWebsockets = true;
-        extraConfig = ''
-          proxy_set_header Host $host;
-          proxy_set_header X-Real-IP $remote_addr;
-          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-          proxy_set_header X-Forwarded-Proto $scheme;
-          client_max_body_size 512m;
-        '';
-      };
-    };
-
   };
 }

@@ -7,19 +7,25 @@
 
   config = lib.mkIf config.l7v.logging.enable {
     services.loki = {
-      enable      = true;
+      enable = true;
       configuration = {
         server.http_listen_port = 3100;
         common.instance_addr = "127.0.0.1";
-        storage_config.boltdb_shipper.active_index_directory = "/var/lib/loki/boltdb-shipper-active";
-        storage_config.boltdb_shipper.cache_location = "/var/lib/loki/boltdb-shipper-cache";
-        storage_config.filesystem.directory = "/var/lib/loki/chunks";
-        schema_config.configs = [{
-          from = "2024-01-01";
-          store = "boltdb-shipper";
-          object_store = "filesystem";
-          schema = "v11";
-        }];
+        storage_config = {
+          boltdb_shipper = {
+            active_index_directory = "/var/lib/loki/boltdb-shipper-active";
+            cache_location = "/var/lib/loki/boltdb-shipper-cache";
+          };
+          filesystem.directory = "/var/lib/loki/chunks";
+        };
+        schema_config.configs = [
+          {
+            from = "2024-01-01";
+            store = "boltdb-shipper";
+            object_store = "filesystem";
+            schema = "v11";
+          }
+        ];
       };
     };
 

@@ -16,24 +16,33 @@
 }:
 lib.nixosSystem {
   inherit system;
-  specialArgs = { inherit user inputs host roles tags; };
-  modules = import ./serverModules.nix {
+  specialArgs = {
     inherit
-      lib
-      sops
-      homeManager
-      host
       user
+      inputs
+      host
       roles
       tags
       ;
-  }
-  ++ [
-    {
-      nixpkgs.pkgs = import pkgs {
-        inherit system;
-        config.allowUnfree = true;
-      };
+  };
+  modules =
+    import ./serverModules.nix {
+      inherit
+        lib
+        sops
+        homeManager
+        host
+        user
+        roles
+        tags
+        ;
     }
-  ];
+    ++ [
+      {
+        nixpkgs.pkgs = import pkgs {
+          inherit system;
+          config.allowUnfree = true;
+        };
+      }
+    ];
 }

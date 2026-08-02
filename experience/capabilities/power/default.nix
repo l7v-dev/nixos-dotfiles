@@ -1,6 +1,5 @@
 # Power capability (experience): upower + power management
-{ pkgs, ... }:
-{
+_: {
   config = {
     services.upower.enable = true;
     services.power-profiles-daemon.enable = true;

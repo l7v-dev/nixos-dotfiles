@@ -1,4 +1,4 @@
-{ ... }:
+_:
 let
   defaultKey = "~/.ssh/id_ed25519";
 

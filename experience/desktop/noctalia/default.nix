@@ -25,7 +25,7 @@
   # NixOS modülü: system PATH'e paketi ekler, systemd user service altyapısını hazırlar.
   # Asıl enable + config home-manager tarafından (home/profiles/noctalia.nix) yönetilir.
   programs.noctalia = {
-    enable         = lib.mkDefault false;  # home-manager'dan override edilir
+    enable = lib.mkDefault false; # home-manager'dan override edilir
     systemd.enable = lib.mkDefault false;
 
     # Noctalia'nın wifi/bluetooth/upower/power-profile servislerini başlatır.

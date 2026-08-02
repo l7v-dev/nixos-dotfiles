@@ -4,30 +4,32 @@
   options.l7v.storage.luks = {
     enable = lib.mkEnableOption "LUKS disk şifreleme ve initrd kilit açma desteği";
     devices = lib.mkOption {
-      type = lib.types.attrsOf (lib.types.submodule {
-        options = {
-          device = lib.mkOption {
-            type        = lib.types.str;
-            description = "Şifreli blok cihazı (ör. /dev/disk/by-uuid/...)";
+      type = lib.types.attrsOf (
+        lib.types.submodule {
+          options = {
+            device = lib.mkOption {
+              type = lib.types.str;
+              description = "Şifreli blok cihazı (ör. /dev/disk/by-uuid/...)";
+            };
+            allowDiscards = lib.mkOption {
+              type = lib.types.bool;
+              default = true;
+              description = "SSD/NVMe disklere TRIM komut izni verir";
+            };
+            keyFile = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+              description = "Initrd içerisindeki opsiyonel keyfile yolu";
+            };
+            preLVM = lib.mkOption {
+              type = lib.types.bool;
+              default = true;
+              description = "LUKS kilit açma işleminin LVM taramasından önce yapılmasını sağlar";
+            };
           };
-          allowDiscards = lib.mkOption {
-            type        = lib.types.bool;
-            default     = true;
-            description = "SSD/NVMe disklere TRIM komut izni verir";
-          };
-          keyFile = lib.mkOption {
-            type        = lib.types.nullOr lib.types.str;
-            default     = null;
-            description = "Initrd içerisindeki opsiyonel keyfile yolu";
-          };
-          preLVM = lib.mkOption {
-            type        = lib.types.bool;
-            default     = true;
-            description = "LUKS kilit açma işleminin LVM taramasından önce yapılmasını sağlar";
-          };
-        };
-      });
-      default     = {};
+        }
+      );
+      default = { };
       description = "boot.initrd.luks.devices altında yapılandırılacak şifreli cihaz eşlemeleri";
     };
   };
@@ -36,10 +38,10 @@
     # LUKS Disk Şifreleme initrd Yapılandırması
     boot.initrd.luks.devices = lib.mkIf config.l7v.storage.luks.enable (
       lib.mapAttrs (_: cfg: {
-        device        = cfg.device;
-        allowDiscards = cfg.allowDiscards;
-        keyFile       = cfg.keyFile;
-        preLVM        = cfg.preLVM;
+        inherit (cfg) device;
+        inherit (cfg) allowDiscards;
+        inherit (cfg) keyFile;
+        inherit (cfg) preLVM;
       }) config.l7v.storage.luks.devices
     );
 
@@ -54,7 +56,10 @@
 
     # btrfs mount noatime — btrfs subvol yapısı hosts/<host>/hardware.nix'te
     # Burada sadece default mount optimizasyonu
-    fileSystems."/".options = [ "noatime" "compress=zstd" ];
+    fileSystems."/".options = [
+      "noatime"
+      "compress=zstd"
+    ];
 
     # Zram (workstation'da; server'da memory pressure daha az)
     zramSwap = {

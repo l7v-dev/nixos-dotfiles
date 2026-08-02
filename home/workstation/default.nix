@@ -37,7 +37,7 @@
       firefox
       google-chrome
       vivaldi
-      (inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default) # Zen Browser (native, firefox tabanlı, güzel)
+      inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default # Zen Browser (native, firefox tabanlı, güzel)
       librewolf
       ungoogled-chromium
       mullvad-browser # privacy odaklı (Mullvad)

@@ -1,6 +1,11 @@
 # Virtualisation capability: libvirt + virt-manager
 # BUG-006: enable option eklendi, hardcoded user kaldırıldı
-{ lib, config, pkgs, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 {
   options.l7v.virtualisation = {
     enable = lib.mkEnableOption "libvirt virtualisation capability";
