@@ -11,6 +11,7 @@ Declarative NixOS host infrastructure, system module templates, and operational 
 
 System documentation, operational runbooks, and skill directives are organized in [`docs/`](docs/README.md):
 
+- **[Repository Technical Wiki](docs/wiki/Home.md)** — Master wiki index, Flake architecture, Niri WM, services, security & troubleshooting.
 - **[Operational Runbooks](docs/runbooks/)**: [`deploy-guide`](docs/runbooks/deploy-guide.md), [`secrets-management`](docs/runbooks/secrets-management.md), [`disaster-recovery`](docs/runbooks/disaster-recovery.md), [`service-operations`](docs/runbooks/service-operations.md), [`developer-workflows`](docs/runbooks/developer-workflows.md)
 - **[Developer Skills](docs/skills/)**: [`project-init`](docs/skills/project-init.md), [`playground-adoption`](docs/skills/playground-adoption.md), [`aft-template`](docs/skills/aft-template.md)
 - **[Architecture](docs/architecture/)**: [`system-overview`](docs/architecture/system-overview.md)

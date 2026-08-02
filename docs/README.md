@@ -6,6 +6,9 @@ Centralized documentation index for L7V NixOS declarative infrastructure and dev
 
 ## 📂 Documentation Structure
 
+### 📖 0. Technical Wiki (`docs/wiki/`)
+- [Master Technical Wiki](wiki/Home.md) — Centralized repository wiki covering architecture, Niri desktop, services, security, CLI tools, and troubleshooting.
+
 ### 📘 1. Operational Runbooks (`docs/runbooks/`)
 - [Deployment Guide](runbooks/deploy-guide.md) — Workstation switch and multi-host deployment.
 - [Secrets Management](runbooks/secrets-management.md) — SOPS encryption, Age keys, and secret rotation.

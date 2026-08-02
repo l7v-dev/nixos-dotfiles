@@ -30,15 +30,15 @@
   libxkbfile,
   libX11,
   libxcb,
-  libxcomposite,
-  libxcursor,
-  libxdamage,
-  libxext,
-  libxfixes,
-  libxi,
-  libxrandr,
-  libxrender,
-  libxtst,
+  libXcomposite,
+  libXcursor,
+  libXdamage,
+  libXext,
+  libXfixes,
+  libXi,
+  libXrandr,
+  libXrender,
+  libXtst,
   useLocalSrc ? false,
   localSrcPath ? ./qoder_x86_64.rpm,
 }:
@@ -87,15 +87,15 @@ stdenv.mkDerivation rec {
     libxkbfile
     libX11
     libxcb
-    libxcomposite
-    libxcursor
-    libxdamage
-    libxext
-    libxfixes
-    libxi
-    libxrandr
-    libxrender
-    libxtst
+    libXcomposite
+    libXcursor
+    libXdamage
+    libXext
+    libXfixes
+    libXi
+    libXrandr
+    libXrender
+    libXtst
   ];
 
   unpackPhase = ''

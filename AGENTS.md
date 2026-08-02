@@ -31,6 +31,7 @@
 ├── .agents/skills/               # Automation skill definitions
 ├── docs/                         # Technical documentation tree
 │   ├── README.md                 # Master index
+│   ├── wiki/                     # Repository Technical Wiki pages
 │   ├── runbooks/                 # Operational guides
 │   ├── skills/                   # Developer and automation directives
 │   └── architecture/             # Infrastructure architecture
@@ -47,6 +48,11 @@
 │   └── secrets-rotate.sh         # SOPS secret re-encryption script
 ├── hosts/                        # Host configurations (L7V, server, builder)
 ├── home/                         # Home-Manager user profiles
+│   ├── minimal/                  # Headless server home profile
+│   ├── workstation/              # Desktop workstation home coordinator
+│   └── profiles/                 # Modular application & shell profiles
+│       ├── niri/                 # Modular Niri compositor config (input, layout, binds...)
+│       └── yazi.nix              # Independent Yazi file manager profile
 ├── platform/                     # System platform modules
 └── services/                     # Managed NixOS services
 ```
