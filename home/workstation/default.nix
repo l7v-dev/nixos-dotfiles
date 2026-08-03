@@ -106,8 +106,8 @@
       sshfs
       rsync
 
-      vscode # vscodeum kaldırıldı
-      micro # terminal editörü — nano alternatifi
+      vscode 
+      micro
       git
       gcc
       gnumake
