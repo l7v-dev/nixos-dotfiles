@@ -39,9 +39,12 @@
 
     services.pgbouncer = {
       enable = true;
-      listenAddress = config.l7v.database.listenAddress;
-      # pgbouncer auth: sops secret'tan okunan postgres şifresiyle userlist
-      authFile = config.sops.secrets."database/postgres_password".path;
+      settings = {
+        pgbouncer = {
+          listen_addr = config.l7v.database.listenAddress;
+          auth_file = config.sops.secrets."database/postgres_password".path;
+        };
+      };
     };
   };
 }

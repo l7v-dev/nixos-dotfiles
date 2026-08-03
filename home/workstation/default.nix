@@ -44,6 +44,8 @@
       # Tor Browser istersen: tor-browser (ağır)
 
       obsidian
+      apostrophe
+      zettlr
       discord
       telegram-desktop
       qbittorrent
