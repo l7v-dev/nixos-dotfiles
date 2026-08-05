@@ -5,9 +5,9 @@ let
     pname = "kiro-ide";
     version = "1.0.242";
 
-    src = builtins.path {
-      path = "/home/l7v/İndirilenler/kiro-ide-1.0.242-stable-linux-x64.deb";
-      name = "kiro-ide-deb";
+    src = pkgs.fetchurl {
+      url = "https://prod.download.desktop.kiro.dev/releases/stable/linux-x64/signed/1.0.242/deb/kiro-ide-1.0.242-stable-linux-x64.deb";
+      sha256 = "1r22d97ivh7kx70nqs7hmhswrqkn8hwrx4hh45xfiq8rf1wih8ki";
     };
 
     nativeBuildInputs = with pkgs; [
@@ -34,19 +34,19 @@ let
       nspr
       pango
       systemd
-      xorg.libX11
-      xorg.libxcb
-      xorg.libXcomposite
-      xorg.libXcursor
-      xorg.libXdamage
-      xorg.libXext
-      xorg.libXfixes
-      xorg.libXi
-      xorg.libXrandr
-      xorg.libXrender
-      xorg.libXtst
-      xorg.libxkbfile
-      xorg.libxshmfence
+      libx11
+      libxcb
+      libxcomposite
+      libxcursor
+      libxdamage
+      libxext
+      libxfixes
+      libxi
+      libxrandr
+      libxrender
+      libxtst
+      libxkbfile
+      libxshmfence
       libxkbcommon
       libglvnd
       vulkan-loader

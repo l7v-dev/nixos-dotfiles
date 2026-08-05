@@ -106,7 +106,7 @@
       sshfs
       rsync
 
-      vscode 
+      vscode
       micro
       git
       gcc

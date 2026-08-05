@@ -5,9 +5,9 @@ let
     pname = "kiro-crew";
     version = "1.0.0";
 
-    src = builtins.path {
-      path = "/home/l7v/İndirilenler/KiroCrew-x86_64.AppImage";
-      name = "KiroCrew.AppImage";
+    src = pkgs.fetchurl {
+      url = "https://download.crew.kiro.dev/desktop/stable/latest/KiroCrew-x86_64.AppImage";
+      sha256 = "0xpi4m21s77967vrcnl285r6yd3w4kxg8s76bmm65vgvy58vdi01";
     };
 
     extraPkgs =
@@ -29,19 +29,19 @@ let
         nss
         pango
         systemd
-        xorg.libX11
-        xorg.libxcb
-        xorg.libXcomposite
-        xorg.libXcursor
-        xorg.libXdamage
-        xorg.libXext
-        xorg.libXfixes
-        xorg.libXi
-        xorg.libXrandr
-        xorg.libXrender
-        xorg.libXtst
-        xorg.libxkbfile
-        xorg.libxshmfence
+        libx11
+        libxcb
+        libxcomposite
+        libxcursor
+        libxdamage
+        libxext
+        libxfixes
+        libxi
+        libxrandr
+        libxrender
+        libxtst
+        libxkbfile
+        libxshmfence
         libxkbcommon
       ];
 
