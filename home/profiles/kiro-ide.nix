@@ -50,11 +50,17 @@ let
       libxkbcommon
       libglvnd
       vulkan-loader
+      # Kiro için gerekli ek bağımlılıklar (autoPatchelf tarafından tespit edildi)
+      webkitgtk_4_1
+      libsoup_3
+      libsecret
+      libcap
     ];
 
     unpackPhase = ''
       runHook preUnpack
-      dpkg-deb -x $src .
+      # chrome-sandbox setuid bitini atlayarak aç (Nix sandbox izin vermiyor)
+      dpkg-deb --fsys-tarfile $src | tar xf - --no-same-permissions
       runHook postUnpack
     '';
 
