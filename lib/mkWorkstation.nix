@@ -65,6 +65,8 @@ lib.nixosSystem {
             (homeDir + "/profiles/vscode.nix")
             (homeDir + "/profiles/cursor.nix")
             (homeDir + "/profiles/antigravity.nix")
+            (homeDir + "/profiles/kiro-ide.nix")
+            (homeDir + "/profiles/kiro-crew.nix")
           ];
         };
       };
