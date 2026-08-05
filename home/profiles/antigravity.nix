@@ -30,8 +30,8 @@
 
   # Environment Variables for MCP Integrations & GCP Region (Frankfurt: europe-west3)
   home.sessionVariables = {
-    CHROME_PATH = "${pkgs.ungoogled-chromium}/bin/chromium";
-    PUPPETEER_EXECUTABLE_PATH = "${pkgs.ungoogled-chromium}/bin/chromium";
+    CHROME_PATH = "${pkgs.google-chrome}/bin/google-chrome-stable";
+    PUPPETEER_EXECUTABLE_PATH = "${pkgs.google-chrome}/bin/google-chrome-stable";
     PLAYWRIGHT_BROWSERS_PATH = "${pkgs.playwright-driver.browsers}";
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1";
 

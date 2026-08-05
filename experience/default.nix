@@ -6,7 +6,7 @@
     ./desktop/common
     ./desktop/greeter
     ./desktop/niri
-    ./desktop/hyprland
+    # ./desktop/hyprland (devre dışı)
     ./desktop/noctalia
     ./capabilities/audio
     ./capabilities/power

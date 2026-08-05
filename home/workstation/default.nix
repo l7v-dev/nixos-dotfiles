@@ -5,7 +5,6 @@
   config,
   pkgs,
   user,
-  inputs,
   ...
 }:
 {
@@ -33,15 +32,10 @@
       vlc
       ffmpeg
 
-      brave
       firefox
       google-chrome
-      vivaldi
-      inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default # Zen Browser (native, firefox tabanlı, güzel)
-      librewolf
-      ungoogled-chromium
       mullvad-browser # privacy odaklı (Mullvad)
-      # Tor Browser istersen: tor-browser (ağır)
+      # Kaldırılanlar: brave, vivaldi, zen-browser, librewolf, ungoogled-chromium (RAM tasarrufu)
 
       obsidian
       apostrophe

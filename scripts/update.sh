@@ -16,5 +16,5 @@ if [[ "${SKIP_REBUILD:-0}" == "1" ]]; then
 fi
 
 echo "[INFO] Rebuilding system configuration for target host: ${HOST}..."
-sudo nixos-rebuild switch --flake ".#${HOST}"
+sudo nixos-rebuild switch --flake ".#${HOST}" --max-jobs 1
 

@@ -57,7 +57,7 @@ lib.nixosSystem {
             (homeDir + "/profiles/git.nix")
             (homeDir + "/profiles/ssh.nix")
             (homeDir + "/profiles/niri")
-            (homeDir + "/profiles/hyprland.nix")
+            # (homeDir + "/profiles/hyprland.nix")
             (homeDir + "/profiles/yazi.nix")
             (homeDir + "/profiles/dev.nix")
             (homeDir + "/profiles/noctalia.nix")
