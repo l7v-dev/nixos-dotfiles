@@ -1,16 +1,20 @@
-# Service: Forgejo (git forge)
+# Service: Forgejo (self-hosted git forge — git.l7v.dev)
 # Requires: database + reverseProxy + secrets
 { lib, config, ... }:
 {
   options.l7v.services.forgejo = {
     enable = lib.mkEnableOption "forgejo git forge service";
+
     domain = lib.mkOption {
       type = lib.types.str;
       default = "git.l7v.dev";
+      description = "Public FQDN for the Forgejo instance.";
     };
+
     adminEmail = lib.mkOption {
       type = lib.types.str;
       default = "admin@l7v.dev";
+      description = "Admin contact address.";
     };
   };
 
@@ -51,7 +55,7 @@
           type = "postgres";
           user = "forgejo";
           name = "forgejo";
-          # socket auth — şifre gerekmez
+          # Unix socket auth — no password required between service and PostgreSQL.
           socket = "/run/postgresql";
         };
         settings = {
@@ -66,15 +70,9 @@
             REQUIRE_SIGNIN_VIEW = false;
             DEFAULT_KEEP_EMAIL_PRIVATE = true;
           };
-          mailer = {
-            ENABLED = false;
-          };
-          security = {
-            INSTALL_LOCK = true;
-          };
-          log = {
-            LEVEL = "Warn";
-          };
+          mailer.ENABLED = false;
+          security.INSTALL_LOCK = true;
+          log.LEVEL = "Warn";
         };
       };
 

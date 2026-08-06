@@ -1,4 +1,4 @@
-# Services: capability üzerine inşa edilen uygulama servisleri
+# Services: user-facing application services built on top of capabilities.
 { ... }:
 {
   imports = [

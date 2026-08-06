@@ -1,24 +1,23 @@
-# Home profile: dev araçları
+# Home profile: developer tooling.
 #
-# Felsefe:
-# Sistemi kirletmemek için dil runtime'ları (node, python, rust, go)
-# GLOBAL olarak kurulmaz. Her proje kendi izole ortamını taşır:
+# Philosophy — language runtimes (Node, Python, Rust, Go) are NOT installed
+# globally. Each project carries its own isolated environment:
 #
-# 1. nix develop      -> flake.nix#devShell (en sağlam, tam reproducible)
-# 2. nix shell        -> tek seferlik geçici araç (sisteme yazmaz)
-# 3. devenv           -> proje bazlı declarative ortam (.devenv/)
-# 4. direnv + .envrc  -> klasöre girince otomatik aktif (nix-direnv ile)
-# 5. uv venv          -> Python için pip alternatifi (izole .venv/)
+#   nix develop          flake.nix#devShell  (most reproducible)
+#   nix shell            one-off ephemeral tool (nothing written to system)
+#   devenv               project-scoped declarative env (.devenv/)
+#   direnv + .envrc      auto-activates on directory entry (via nix-direnv)
+#   uv venv              Python isolated virtualenv (.venv/)
 #
-# Ortak kural: `pip install`, `npm install -g`, `cargo install` YASAK!
-# Bunların yerine: `nix shell nixpkgs#paket` veya flake devShell.
-
+# Rule: pip install, npm install -g, cargo install are FORBIDDEN.
+# Use nix shell nixpkgs#<pkg> or a flake devShell instead.
+#
+# AI coding agents and CLI tools are in home/profiles/ai-tools.nix.
 { pkgs, ... }:
 {
   home.packages = with pkgs; [
-    # DevOps ve Infra
+    # ── DevOps / Infrastructure ───────────────────────────────────────────
     colmena
-    claude-code
     kubectl
     kubectx
     k9s
@@ -31,17 +30,17 @@
     google-cloud-sdk
     oci-cli
 
-    # Editörler
+    # ── Editors ───────────────────────────────────────────────────────────
     neovim
     micro
     gnome-boxes
     distrobox
 
-    # Git Araçları
+    # ── Git tooling ───────────────────────────────────────────────────────
     lazygit
     gh
 
-    # Nix Araçları (Sistem geneli gerekli)
+    # ── Nix tooling ───────────────────────────────────────────────────────
     nixfmt
     statix
     deadnix
@@ -53,51 +52,50 @@
     nix-output-monitor
     nixd
 
-    # İzole Ortam Araçları
+    # ── Isolated environment tooling ──────────────────────────────────────
     devenv
 
-    # Python Paket Yöneticisi
+    # ── Python package manager ────────────────────────────────────────────
     uv
 
-    # Rust Araçları
+    # ── Rust tooling ──────────────────────────────────────────────────────
     cargo-info
     cargo-watch
 
-    # Go Araçları
+    # ── Go tooling ────────────────────────────────────────────────────────
     gopls
 
-    # Build Araçları
+    # ── Build tooling ─────────────────────────────────────────────────────
     gnumake
     pkg-config
     cmake
 
-    # Java / JVM
+    # ── Java / JVM ────────────────────────────────────────────────────────
     temurin-bin-21
     maven
     gradle
 
-    # Web ve Frontend Araçları
+    # ── Web / Frontend ────────────────────────────────────────────────────
     bun
     deno
     bruno
 
-    # AI Agent Araçları
-    aider-chat
+    # ── Quality / linting ─────────────────────────────────────────────────
     pre-commit
+    shellcheck
+    hadolint
 
-    # Veritabanı CLI Araçları
+    # ── Database CLI ──────────────────────────────────────────────────────
     sqlite
     pgcli
     redis
 
-    # Test, Debug ve Terminal Araçları
+    # ── Test / debug / terminal ───────────────────────────────────────────
     playwright
     just
     httpie
     xh
     dive
-    shellcheck
-    hadolint
     zellij
   ];
 }

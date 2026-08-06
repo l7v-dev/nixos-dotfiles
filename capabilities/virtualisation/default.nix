@@ -1,5 +1,4 @@
-# Virtualisation capability: libvirt + virt-manager
-# BUG-006: enable option eklendi, hardcoded user kaldırıldı
+# Virtualisation capability: libvirt + virt-manager (KVM/QEMU).
 {
   lib,
   config,
@@ -12,9 +11,7 @@
   };
 
   config = lib.mkIf config.l7v.virtualisation.enable {
-    virtualisation.libvirtd = {
-      enable = true;
-    };
+    virtualisation.libvirtd.enable = true;
 
     users.users.${config.l7v.identity.user}.extraGroups = [ "libvirtd" ];
 

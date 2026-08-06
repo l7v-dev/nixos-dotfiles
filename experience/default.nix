@@ -1,12 +1,12 @@
-# Experience katmanı: SADECE workstation'lara import edilir.
-# Sunucularda GUI/audio/power olmaz.
+# Experience layer: imported exclusively on workstations.
+# Servers are headless — no GUI, audio, or power management here.
 { ... }:
 {
   imports = [
     ./desktop/common
     ./desktop/greeter
     ./desktop/niri
-    # ./desktop/hyprland (devre dışı)
+    # ./desktop/hyprland  # disabled — kept for future parallel compositor support
     ./desktop/noctalia
     ./capabilities/audio
     ./capabilities/power

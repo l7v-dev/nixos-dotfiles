@@ -1,11 +1,12 @@
-# Desktop: niri (Wayland compositor)
-# Login ekranı  → experience/desktop/greeter (greetd + regreet)
-# Ortak ayarlar → experience/desktop/common (env var, portal, font, imleç)
-# Ekran kilidi  → Noctalia IPC (swaylock kaldırıldı)
+# Desktop: Niri scrollable-tiling Wayland compositor.
 #
-# NOT: XDG_CURRENT_DESKTOP / XDG_SESSION_DESKTOP burada BİLEREK set edilmiyor —
-# niri-session bunu kendisi export ediyor. Global sessionVariables'a yazılırsa
-# Hyprland de aynı makinede olduğu için session'lar arası çakışır.
+# Login screen  → experience/desktop/greeter (greetd + regreet)
+# Shared env    → experience/desktop/common (session vars, portals, fonts, cursor)
+# Screen lock   → Noctalia IPC
+#
+# XDG_CURRENT_DESKTOP / XDG_SESSION_DESKTOP are intentionally not set here —
+# niri-session exports them automatically. Setting them in sessionVariables
+# would conflict with a parallel Hyprland session on the same machine.
 { pkgs, ... }:
 {
   programs.niri = {

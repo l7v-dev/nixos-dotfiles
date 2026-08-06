@@ -1,8 +1,11 @@
 # Recovery tooling: local btrfs snapshots and restic repository verification.
 #
-# Sole owner of services.snapper; the backup capability covers offsite restic
-# only. Repository coordinates are read back from services.restic so this module
-# stays agnostic of the configured backend.
+# This module owns services.snapper exclusively. The backup capability covers
+# offsite restic operations; this module only verifies repository reachability.
+#
+# The recovery-check systemd service and timer are only created when the backup
+# capability is active. All attribute accesses on the restic backup config are
+# guarded by config.l7v.backup.enable so evaluation never touches absent attrs.
 {
   lib,
   config,
@@ -11,7 +14,11 @@
 }:
 let
   cfg = config.l7v.platform.recovery;
-  resticBackup = config.services.restic.backups.l7v or null;
+
+  # Read backup config only when the capability is active. Using a let binding
+  # evaluated inside mkIf keeps the outer scope free of conditional attr access.
+  backupEnabled = config.l7v.backup.enable;
+  resticBackup = config.services.restic.backups.l7v or { };
 in
 {
   options.l7v.platform.recovery = {
@@ -21,15 +28,15 @@ in
       enable = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Timeline snapshots of the configured subvolume.";
+        description = "Enable timeline snapshots of the configured subvolume.";
       };
 
       subvolume = lib.mkOption {
         type = lib.types.str;
         default = "/";
         description = ''
-          Mount point to snapshot. Must be a btrfs subvolume: snapper cannot
-          create the required .snapshots subvolume under the btrfs top level
+          Mount point to snapshot. Must be a btrfs subvolume — snapper cannot
+          create the required .snapshots directory under the btrfs top-level
           (subvolid=5).
         '';
       };
@@ -74,23 +81,26 @@ in
       };
     };
 
-    # Repository reachability check. Requires a configured repository, so it
-    # follows the backup capability rather than recovery tooling alone.
-    # stdout is journalled by systemd; no shell redirection is possible here.
-    systemd.services.recovery-check = lib.mkIf config.l7v.backup.enable {
+    # Repository reachability check. Only created when the backup capability is
+    # active; all resticBackup attribute accesses are guarded by backupEnabled.
+    systemd.services.recovery-check = lib.mkIf backupEnabled {
       description = "Restic repository health check";
-      serviceConfig = {
-        Type = "oneshot";
-        Environment = [
-          "RESTIC_REPOSITORY=${resticBackup.repository}"
-          "RESTIC_PASSWORD_FILE=${resticBackup.passwordFile}"
-        ];
-        EnvironmentFile = lib.optional (resticBackup.environmentFile != null) resticBackup.environmentFile;
-        ExecStart = "${pkgs.restic}/bin/restic snapshots --latest 1 --no-cache";
-      };
+      serviceConfig =
+        let
+          hasEnvFile = (resticBackup ? environmentFile) && (resticBackup.environmentFile != null);
+        in
+        {
+          Type = "oneshot";
+          Environment = [
+            "RESTIC_REPOSITORY=${resticBackup.repository}"
+            "RESTIC_PASSWORD_FILE=${resticBackup.passwordFile}"
+          ];
+          EnvironmentFile = lib.optional hasEnvFile resticBackup.environmentFile;
+          ExecStart = "${pkgs.restic}/bin/restic snapshots --latest 1 --no-cache";
+        };
     };
 
-    systemd.timers.recovery-check = lib.mkIf config.l7v.backup.enable {
+    systemd.timers.recovery-check = lib.mkIf backupEnabled {
       wantedBy = [ "timers.target" ];
       timerConfig = {
         OnCalendar = "weekly";

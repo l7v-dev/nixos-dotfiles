@@ -1,4 +1,4 @@
-# Home-manager minimal profili: sunucu operasyonları (GUI yok)
+# Home-manager minimal profile: headless server operations (no GUI).
 {
   lib,
   config,
@@ -10,6 +10,7 @@
   options.l7v.home.minimal.enable = lib.mkOption {
     type = lib.types.bool;
     default = true;
+    description = "Enable the minimal (server) home-manager profile.";
   };
 
   config = lib.mkIf config.l7v.home.minimal.enable {
@@ -20,17 +21,17 @@
     };
 
     home.packages = with pkgs; [
-      # Editörler
+      # Editors
       vim
       neovim
 
-      # Sistem izleme
+      # System monitoring
       htop
       btop
       ncdu
       duf
 
-      # Ağ araçları
+      # Network utilities
       curl
       wget
       rsync
@@ -38,21 +39,21 @@
       nettools
       iproute2
 
-      # Veri işleme
+      # Data processing
       jq
       yq-go
       ripgrep
       fd
 
-      # Sürüm kontrolü
+      # Version control
       git
       lazygit
 
-      # Terminal çoklayıcı
+      # Terminal multiplexers
       tmux
       zellij
 
-      # Sops / secrets
+      # Secrets management
       age
       sops
     ];

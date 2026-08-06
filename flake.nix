@@ -44,12 +44,15 @@
       "https://nix-community.cachix.org"
       "https://niri.cachix.org"
       "https://noctalia.cachix.org"
+      # Numtide binary cache — pre-built AI CLI tools from llm-agents.nix
+      "https://cache.numtide.com"
     ];
     extra-trusted-public-keys = [
       "cache.nixos.org-1:6NCHdD59X430o0NTRsrVMVZm7aWcSrq3LcpPo8gvLu8="
       "nix-community.cachix.org-1:mB9FSh9qf2QlZceEZWgjwkngzBLckc0Vc8t9aXXj4mQ="
       "niri.cachix.org-1:Wv0m4ydO/mub0AXv9+66Cg94SgB9nCsc3LymnscbAt8="
       "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+      "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
     ];
   };
   
@@ -102,9 +105,18 @@
       url = "github:noctalia-dev/noctalia";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    
+
     # Zen Browser - privacy-focused Firefox fork
     zen-browser.url = "github:0xc000022070/zen-browser-flake";
+
+    # AI coding agent CLI tools — auto-updated daily, pre-built via Numtide cache.
+    # Intentionally NOT following our nixpkgs to guarantee cache hits and ensure
+    # we get the exact combination tested in CI (see README: "Omitting follows
+    # costs you a second nixpkgs evaluation but guarantees pre-built binaries").
+    # Provides: gemini-cli, codex, opencode, copilot-cli, qoder-cli, and 100+ more.
+    llm-agents = {
+      url = "github:numtide/llm-agents.nix";
+    };
   };
 
   outputs =

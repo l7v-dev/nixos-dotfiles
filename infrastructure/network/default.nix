@@ -1,4 +1,4 @@
-# Network: NetworkManager (workstation) / systemd-networkd (server)
+# Network: NetworkManager for workstations, systemd-networkd for servers.
 { lib, config, ... }:
 {
   config = {
@@ -9,7 +9,7 @@
       firewall = {
         enable = true;
         allowedTCPPorts = [
-          22 # ssh
+          22 # SSH
         ];
       };
     };

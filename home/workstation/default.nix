@@ -1,5 +1,4 @@
-# Home-manager workstation profili
-# Tüm workstation home modülleri buradan koordine edilir.
+# Home-manager workstation profile — coordinates all workstation home modules.
 {
   lib,
   config,
@@ -8,11 +7,24 @@
   ...
 }:
 {
-  # Shell: Noctalia v5 — home/profiles/noctalia.nix üzerinden home-manager modülü ile yönetilir.
+  options.l7v.home.workstation = {
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Enable the workstation home-manager profile.";
+    };
 
-  options.l7v.home.workstation.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = true;
+    # Offensive security tools are powerful and not needed on every machine.
+    # Set to true explicitly in host config or user config to include them.
+    enableSecurityTools = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Install offensive/penetration-testing tools (sqlmap, nikto, hydra, john,
+        aircrack-ng, hashcat, gobuster, masscan, wireshark-cli).
+        Disabled by default — enable only on machines designated for security work.
+      '';
+    };
   };
 
   config = lib.mkIf config.l7v.home.workstation.enable {
@@ -22,115 +34,137 @@
       stateVersion = "25.05";
     };
 
-    # --- Developer klasör yapısı (standartlaştırma) ----------------------
+    # Standard developer directory layout
     home.activation.createDevDirs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       mkdir -p ~/dev/{learning/{books,courses,tutorials},projects/{company/{active,archived},personal,oss},sandboxes/{labs,playgrounds},tools/{bin,configs,scripts},workspaces}
     '';
 
-    home.packages = with pkgs; [
-      mpv
-      vlc
-      ffmpeg
+    home.packages =
+      with pkgs;
+      [
+        # Media
+        mpv
+        vlc
+        ffmpeg
 
-      firefox
-      google-chrome
-      mullvad-browser # privacy odaklı (Mullvad)
-      # Kaldırılanlar: brave, vivaldi, zen-browser, librewolf, ungoogled-chromium (RAM tasarrufu)
+        # Browsers
+        firefox
+        google-chrome
+        mullvad-browser
 
-      obsidian
-      apostrophe
-      zettlr
-      discord
-      telegram-desktop
-      qbittorrent
+        # Productivity / notes
+        obsidian
+        apostrophe
+        zettlr
 
-      nautilus
-      thunar
-      gvfs
-      file-roller
-      zoxide
+        # Communication
+        discord
+        telegram-desktop
 
-      # Nautilus zenginleştirme (görsel + yetenek)
-      sushi # hızlı önizleme (space tuşu)
-      nautilus-python
-      gnome-tweaks
+        # Downloads
+        qbittorrent
 
-      # Daha zengin ikon ve tema
-      papirus-icon-theme
-      adwaita-icon-theme
-      gnome-themes-extra
+        # File managers
+        nautilus
+        thunar
+        kdePackages.dolphin
+        kdePackages.kdialog
+        kdePackages.kio-extras
+        kdePackages.ffmpegthumbs
+        gvfs
+        file-roller
+        zoxide
 
-      # Terminal dosya yöneticisi (ana silah) - Yazi çok güçlü
-      yazi
-      chafa # terminalde görsel önizleme
-      exiftool
-      poppler-utils # pdf önizleme
-      mediainfo
-      jq
-      ripgrep
-      fd
+        # Nautilus enhancements
+        sushi # quick preview (space key)
+        nautilus-python
+        gnome-tweaks
 
-      btop
-      htop
-      fastfetch
-      inxi
-      powertop
+        # Icon and theme packs
+        papirus-icon-theme
+        adwaita-icon-theme
+        gnome-themes-extra
 
-      btrfs-progs
-      e2fsprogs
-      exfatprogs
-      ntfs3g
-      nfs-utils
+        # Terminal file manager
+        yazi
+        chafa # image preview in terminal
+        exiftool
+        poppler-utils # PDF preview
+        mediainfo
+        jq
+        ripgrep
+        fd
 
-      p7zip
-      unrar
-      zip
-      unzip
-      xz
-      zstd
+        # System monitoring
+        btop
+        htop
+        fastfetch
+        inxi
+        powertop
 
-      nmap
-      nettools
-      iproute2
-      wget
-      curl
-      ethtool
-      whois
-      bind
-      sshfs
-      rsync
+        # Filesystem utilities
+        btrfs-progs
+        e2fsprogs
+        exfatprogs
+        ntfs3g
+        nfs-utils
 
-      vscode
-      micro
-      git
-      gcc
-      gnumake
-      pkg-config
-      perl
+        # Archive tools
+        p7zip
+        unrar
+        zip
+        unzip
+        xz
+        zstd
 
-      jetbrains.idea
-      zed-editor
+        # Networking
+        nmap
+        nettools
+        iproute2
+        wget
+        curl
+        ethtool
+        whois
+        bind
+        sshfs
+        rsync
 
-      noto-fonts
-      noto-fonts-color-emoji
-      dejavu_fonts
-      fira-code
+        # Editors and IDEs
+        vscode
+        micro
+        git
+        gcc
+        gnumake
+        pkg-config
+        perl
+        jetbrains.idea
+        zed-editor
 
-      sqlmap
-      nikto
-      hydra
-      john
-      aircrack-ng
-      wireshark-cli
-      tcpdump
-      masscan
-      gobuster
-      hashcat
+        # Fonts
+        noto-fonts
+        noto-fonts-color-emoji
+        dejavu_fonts
+        fira-code
 
-      dbeaver-bin
+        # Database GUI
+        dbeaver-bin
 
-      # AI & Model CLI Tools
-      python3Packages.huggingface-hub
-    ];
+        # AI / ML tooling
+        python3Packages.huggingface-hub
+      ]
+      ++ lib.optionals config.l7v.home.workstation.enableSecurityTools [
+        # Offensive security / penetration testing tools.
+        # Enable via: l7v.home.workstation.enableSecurityTools = true;
+        sqlmap
+        nikto
+        hydra
+        john
+        aircrack-ng
+        wireshark-cli
+        tcpdump
+        masscan
+        gobuster
+        hashcat
+      ];
   };
 }

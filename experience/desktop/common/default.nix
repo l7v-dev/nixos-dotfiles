@@ -1,19 +1,23 @@
-# Deneyim: niri + Hyprland arasında PAYLAŞILAN wayland ortam katmanı.
-# Compositor'a özgü olmayan her şey burada — tekrar (duplicate env var,
-# çakışan option tanımı) yaşamamak için tek yerden yönetiliyor.
+# Desktop common: shared Wayland environment layer for Niri and Hyprland.
+#
+# All compositor-agnostic configuration lives here to avoid duplicating env
+# vars and option definitions across compositor modules. Compositor-specific
+# portals are added via extraPortals in each compositor's own module.
 { pkgs, lib, ... }:
 {
   environment = {
     systemPackages = with pkgs; [
       xdg-utils
+      zenity # GTK file dialog and notification utility (Electron/IDE support)
+      kdePackages.kdialog # KDE file dialog utility
       wl-clipboard # wl-copy / wl-paste
-      grim # ekran görüntüsü
-      slurp # alan seçimi (grim ile birlikte)
-      brightnessctl # parlaklık kontrolü
-      bibata-cursors # imleç teması
-      xwayland-satellite # X11 app'leri için standalone XWayland
-      playerctl # MPRIS medya tuşları
-      wev # tuş adı / input debug
+      grim # screenshot
+      slurp # region selection (used with grim)
+      brightnessctl # brightness control
+      bibata-cursors # cursor theme
+      xwayland-satellite # standalone XWayland for X11 apps
+      playerctl # MPRIS media key control
+      wev # keyboard / input event debug tool
     ];
 
     etc."X11/Xresources".text = ''
@@ -24,19 +28,19 @@
     sessionVariables = {
       XDG_SESSION_TYPE = "wayland";
 
-      # AMD GPU
+      # AMD GPU — use RADV open-source Vulkan driver
       AMD_VULKAN_ICD = "RADV";
 
-      # Electron / Chromium Wayland
+      # Electron / Chromium Wayland native rendering
       NIXOS_OZONE_WL = "1";
-      # Firefox Wayland
+      # Firefox Wayland native rendering
       MOZ_ENABLE_WAYLAND = "1";
-      # Qt Wayland (xcb fallback)
+      # Qt Wayland with xcb fallback
       QT_QPA_PLATFORM = "wayland;xcb";
-      # GTK Wayland
+      # GTK Wayland with X11 fallback
       GDK_BACKEND = "wayland,x11";
 
-      # İmleç
+      # Cursor theme
       XCURSOR_THEME = "Bibata-Modern-Amber";
       XCURSOR_SIZE = "24";
       XCURSOR_PATH = lib.mkForce "${pkgs.bibata-cursors}/share/icons";
@@ -44,18 +48,49 @@
   };
 
   xdg.mime.defaultApplications = {
-    "inode/directory" = "org.gnome.Nautilus.desktop";
-    "x-scheme-handler/file" = "org.gnome.Nautilus.desktop";
+    "inode/directory" = [
+      "org.kde.dolphin.desktop"
+      "org.gnome.Nautilus.desktop"
+    ];
+    "x-scheme-handler/file" = [
+      "org.kde.dolphin.desktop"
+      "org.gnome.Nautilus.desktop"
+    ];
   };
 
   services.gvfs.enable = true;
 
-  # Compositor'a özgü portal'lar kendi modüllerinde extraPortals'a eklenir
-  # (ör. experience/desktop/hyprland → xdg-desktop-portal-hyprland).
   xdg.portal = {
     enable = true;
-    extraPortals = [ pkgs.xdg-desktop-portal-gnome ];
-    config.common.default = "*";
+    extraPortals = with pkgs; [
+      xdg-desktop-portal-gtk
+      kdePackages.xdg-desktop-portal-kde
+      xdg-desktop-portal-gnome
+    ];
+    config = {
+      common = {
+        default = [
+          "gtk"
+          "kde"
+          "gnome"
+        ];
+        "org.freedesktop.impl.portal.FileChooser" = [
+          "gtk"
+          "kde"
+        ];
+      };
+      niri = {
+        default = [
+          "gtk"
+          "kde"
+          "gnome"
+        ];
+        "org.freedesktop.impl.portal.FileChooser" = [
+          "gtk"
+          "kde"
+        ];
+      };
+    };
   };
 
   fonts.packages = with pkgs; [

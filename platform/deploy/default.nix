@@ -1,7 +1,7 @@
-# Platform Deploy: colmena araçları + SSH config
-# Topoloji tanımı: /colmena.nix (flake root'unda)
+# Platform deploy: Colmena deployment tooling and SSH host configuration.
 #
-# Kullanım:
+# The deployment topology is defined in /colmena.nix (flake root).
+#
 #   colmena apply --on @production
 #   colmena apply --on server
 #   colmena build
@@ -19,12 +19,12 @@
   config = lib.mkIf config.l7v.platform.deploy.enable {
     environment.systemPackages = with pkgs; [
       colmena
-      rage # age şifreleme CLI
-      ssh-to-age # SSH key → age key dönüşümü
-      sops # secret düzenleme
+      rage # age encryption CLI
+      ssh-to-age # convert SSH keys to age format
+      sops # secret file editor
     ];
 
-    # Server'lara SSH erişimi için config
+    # SSH client config for root access to managed nodes.
     programs.ssh.extraConfig = ''
       Host server.l7v.dev
         User root

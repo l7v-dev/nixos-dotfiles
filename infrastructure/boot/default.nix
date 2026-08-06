@@ -1,5 +1,6 @@
-# Boot: systemd-boot. Workstation'da zen kernel, sunucu'da LTS kernel (mkServer'da)
-# Initrd modülleri donanım desteği için
+# Boot: systemd-boot EFI loader.
+# Workstations default to the Zen kernel; servers override to linuxPackages_lts
+# inside lib/serverModules.nix via the isServer flag.
 {
   lib,
   pkgs,
@@ -13,10 +14,10 @@
         efi.canTouchEfiVariables = true;
       };
 
-      # Workstation için zen kernel (isteğe bağlı, isServer flag'ine göre override edilebilir)
+      # Zen kernel as the workstation default; overridable per-host.
       kernelPackages = lib.mkDefault pkgs.linuxPackages_zen;
 
-      # Ortak initrd modülleri (NVMe, USB, SATA, Ethernet)
+      # Common initrd modules: NVMe, USB, SATA, Ethernet
       initrd.availableKernelModules = [
         "xhci_pci"
         "ahci"

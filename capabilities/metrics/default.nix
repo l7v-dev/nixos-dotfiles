@@ -1,4 +1,14 @@
-# Metrics capability: Prometheus + exporters
+# Metrics capability: Prometheus + exporters.
+#
+# Port assignments:
+#   9090  prometheus
+#   9100  node exporter
+#   9113  nginx exporter   (only when reverseProxy is enabled)
+#   9187  postgres exporter (only when database is enabled)
+#   9558  systemd exporter  (default port for prometheus-systemd-exporter)
+#
+# The systemd exporter uses port 9558 by default; this is declared explicitly
+# so the scrape config and the service configuration stay in sync.
 { lib, config, ... }:
 {
   options.l7v.metrics = {
@@ -25,16 +35,21 @@
             "thermal_zone"
           ];
         };
+
         nginx = {
           enable = config.l7v.reverseProxy.enable;
           port = 9113;
         };
+
         postgres = {
           enable = config.l7v.database.enable;
           port = 9187;
         };
+
+        # Explicitly declare port 9558 so the scrape target below is consistent.
         systemd = {
           enable = true;
+          port = 9558;
         };
       };
 

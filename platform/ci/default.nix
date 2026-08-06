@@ -1,5 +1,5 @@
-# Platform CI: Forgejo Actions runner
-# CI rolüne sahip hostlarda enable edilir (builder host)
+# Platform CI: Forgejo Actions runner.
+# Enabled on hosts with the "ci" role (builder host).
 {
   lib,
   config,
@@ -9,16 +9,20 @@
 {
   options.l7v.platform.ci = {
     enable = lib.mkEnableOption "Forgejo Actions runner";
+
     forgejoUrl = lib.mkOption {
       type = lib.types.str;
       default = "https://git.l7v.dev";
+      description = "Forgejo instance URL the runner registers against.";
     };
+
     labels = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [
         "ubuntu-latest:docker://node:20-bullseye"
         "nix:host"
       ];
+      description = "Runner labels exposed to Forgejo Actions workflows.";
     };
   };
 
@@ -40,11 +44,11 @@
       labels = config.l7v.platform.ci.labels;
     };
 
-    # Docker socket erişimi runner için
+    # The runner spawns Docker containers for workflow jobs.
     virtualisation.docker.enable = lib.mkDefault true;
 
     environment.systemPackages = with pkgs; [
-      act # local CI test
+      act # run Forgejo/GitHub Actions workflows locally
     ];
   };
 }

@@ -8,6 +8,15 @@
         "/home/l7v/dev/projects/company/active/nixos"
       ]
     },
+    "mcp-nixos": {
+      "command": "uvx",
+      "args": [
+        "mcp-nixos"
+      ],
+      "env": {
+        "NIXOS_CHANNEL": "nixos-unstable"
+      }
+    },
     "chrome-devtools": {
       "command": "npx",
       "args": [
@@ -17,4 +26,3 @@
     }
   }
 }
-

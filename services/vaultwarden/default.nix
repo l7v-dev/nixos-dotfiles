@@ -1,13 +1,24 @@
-# Vaultwarden — Bitwarden-uyumlu parola yöneticisi (vault.l7v.dev)
+# Service: Vaultwarden — Bitwarden-compatible password manager (vault.l7v.dev)
+#
+# ADMIN_TOKEN delivery:
+#   sops-nix decrypts the token to /run/secrets/vaultwarden/admin_token at
+#   activation time. A tmpfiles.d rule writes /run/vaultwarden-env from the
+#   decrypted file; the vaultwarden service reads it via EnvironmentFile.
+#
+#   Using systemd-tmpfiles (Type=f with content derived at runtime via ExecStart
+#   rewrite) is not viable because the secret is only available after activation.
+#   Instead we hook into the sops-nix "setupSecrets" activation barrier via
+#   system.activationScripts with the correct deps declaration, which sops-nix
+#   registers as an activation step named "setupSecrets".
 {
   config,
   lib,
+  pkgs,
   ...
 }:
-
 let
   cfg = config.l7v.services.vaultwarden;
-  port = 8222;
+  inherit (cfg) port;
 in
 {
   options.l7v.services.vaultwarden = {
@@ -21,7 +32,7 @@ in
 
     port = lib.mkOption {
       type = lib.types.port;
-      default = port;
+      default = 8222;
       description = "Internal Rocket listener port.";
     };
 
@@ -40,40 +51,41 @@ in
 
   config = lib.mkIf cfg.enable {
 
-    # Sanity checks — hard fail if deps missing
     assertions = [
       {
         assertion = config.l7v.reverseProxy.enable;
-        message = "[vaultwarden] l7v.reverseProxy.enable gerekli (nginx + ACME).";
+        message = "l7v.services.vaultwarden requires l7v.reverseProxy.enable = true (nginx + ACME).";
+      }
+      {
+        assertion = config.l7v.secrets.enable;
+        message = "l7v.services.vaultwarden requires l7v.secrets.enable = true.";
       }
     ];
 
-    # secrets.yaml'daki "vaultwarden/admin_token" key'ini runtime'da
-    # /run/secrets/vaultwarden/admin_token'a açar.
     sops.secrets."vaultwarden/admin_token" = {
       owner = "vaultwarden";
       group = "vaultwarden";
+      mode = "0400";
     };
 
-    # Vaultwarden ADMIN_TOKEN'ı env var olarak bekler.
-    # sops secrets direkt env var olamaz — bir wrapper dosyası üretiriz.
-    systemd.services.vaultwarden = {
-      serviceConfig = {
-        # sops'un açtığı token'ı EnvironmentFile formatında sarmalayan dosya
-        # Nix activation script'i bu dosyayı oluşturur.
-        EnvironmentFile = "/run/vaultwarden-env";
-      };
-    };
-
-    # Activation script: sops secret hazır olduktan sonra env dosyasını yaz
+    # Write the EnvironmentFile from the sops-decrypted secret.
+    # The "setupSecrets" name is the activation step registered by sops-nix;
+    # declaring it as a dep ensures the secret file exists before this runs.
     system.activationScripts.vaultwardenEnv = {
       deps = [ "setupSecrets" ];
       text = ''
-        TOKEN=$(cat ${config.sops.secrets."vaultwarden/admin_token".path})
-        printf 'ADMIN_TOKEN=%s\n' "$TOKEN" > /run/vaultwarden-env
-        chmod 400 /run/vaultwarden-env
-        chown vaultwarden:vaultwarden /run/vaultwarden-env 2>/dev/null || true
+        umask 077
+        install -m 400 /dev/null /run/vaultwarden-env
+        printf 'ADMIN_TOKEN=%s\n' \
+          "$(cat ${config.sops.secrets."vaultwarden/admin_token".path})" \
+          > /run/vaultwarden-env
+        ${pkgs.coreutils}/bin/chown vaultwarden:vaultwarden /run/vaultwarden-env 2>/dev/null || true
       '';
+    };
+
+    systemd.services.vaultwarden = {
+      after = [ "activate.service" ];
+      serviceConfig.EnvironmentFile = "/run/vaultwarden-env";
     };
 
     services.vaultwarden = {
@@ -83,7 +95,7 @@ in
       config = {
         DOMAIN = "https://${cfg.domain}";
         ROCKET_ADDRESS = "127.0.0.1";
-        ROCKET_PORT = cfg.port;
+        ROCKET_PORT = port;
         ROCKET_LOG = "critical";
 
         SIGNUPS_ALLOWED = cfg.signupsAllowed;
@@ -100,7 +112,6 @@ in
 
         IP_HEADER = "X-Real-IP";
 
-        # SMTP — l7v.messaging.enable ve messaging.smtp.enable aktifse otomatik açılır
         SMTP_HOST = lib.mkIf config.l7v.messaging.enable "localhost";
         SMTP_PORT = lib.mkIf config.l7v.messaging.enable 25;
         SMTP_SECURITY = lib.mkIf config.l7v.messaging.enable "off";
@@ -114,7 +125,7 @@ in
       forceSSL = true;
 
       locations."/" = {
-        proxyPass = "http://127.0.0.1:${toString cfg.port}";
+        proxyPass = "http://127.0.0.1:${toString port}";
         proxyWebsockets = true;
         extraConfig = ''
           proxy_set_header X-Real-IP $remote_addr;
@@ -127,7 +138,5 @@ in
         '';
       };
     };
-
-    # 8222 sadece localhost — nginx 443 zaten reverseProxy modülünde açık.
   };
 }

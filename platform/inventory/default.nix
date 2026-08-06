@@ -1,6 +1,5 @@
-# Platform Inventory: host metadata ve donanım envanteri.
-# l7v.platform.inventory.hosts ile makine bilgileri merkezi tanımlanır,
-# /etc/l7v/inventory.json olarak sisteme yazılır.
+# Platform inventory: centralised host metadata written to /etc/l7v/inventory.json.
+# The `l7v-inventory` CLI reads and formats this file.
 {
   lib,
   config,
@@ -17,14 +16,15 @@ in
     enable = lib.mkEnableOption "host inventory";
 
     hosts = lib.mkOption {
-      description = "Donanım ve rol envanteri";
+      description = "Hardware and role inventory for all managed hosts.";
+      type = lib.types.attrsOf (lib.types.attrsOf lib.types.anything);
       default = {
         laptop = {
           role = "workstation";
           cpu = "AMD Ryzen";
           disk = "476G NVMe btrfs";
           os = "NixOS unstable";
-          purpose = "L7V geliştirme makinesi";
+          purpose = "L7V primary development machine";
         };
         server = {
           role = "server";
@@ -65,7 +65,6 @@ in
           ];
         };
       };
-      type = lib.types.attrsOf (lib.types.attrsOf lib.types.anything);
     };
   };
 

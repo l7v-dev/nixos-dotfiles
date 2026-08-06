@@ -1,50 +1,5 @@
-# ==============================================================================
-# mkWorkstation: Unstable Channel Workstation Builder Module
-# ==============================================================================
-# Builds a NixOS system configuration optimized for developer workstations
-# with bleeding-edge packages, Zen kernel, and modern Wayland compositor.
-#
-# ARCHITECTURE OVERVIEW:
-# <ul>
-#   <li><strong>Channel Strategy:</strong> nixos-unstable for latest packages</li>
-#   <li><strong>Kernel:</strong> Zen kernel (low-latency, desktop optimized)</li>
-#   <li><strong>Compositor:</strong> Niri scrollable tiling Wayland WM</li>
-#   <li><strong>Desktop:</strong> Noctalia customization layer</li>
-#   <li><strong>User Management:</strong> Home-manager for dotfiles and apps</li>
-# </ul>
-#
-# MODULE STACK COMPOSITION:
-# <ol>
-#   <li>SOPS - Secrets management with age encryption</li>
-#   <li>Home Manager - User environment orchestration</li>
-#   <li>Niri Flakes - Wayland compositor module</li>
-#   <li>Infrastructure - Boot, network, security, identity, storage</li>
-#   <li>Experience - Desktop environments and user capabilities</li>
-#   <li>Capabilities - Cross-cutting infrastructure features</li>
-#   <li>Services - Application-level services (Forgejo, Grafana, etc.)</li>
-#   <li>Platform - CI/CD, deployment, recovery tooling</li>
-#   <li>Host Config - Hardware-specific overrides</li>
-# </ol>
-#
-# @param pkgs [Nixpkgs] Primary nixpkgs instance (unstable channel)
-# @param lib [Lib] Nix library functions (defaults to pkgs.lib)
-# @param inputs [Attrs] Flake inputs containing external dependencies
-# @param homeManager [Module] Home-manager NixOS module
-# @param sops [Module] SOPS-nix secrets management module
-# @param host [String] Hostname for hardware configuration lookup
-# @param user [String] Primary username for system and home-manager
-# @param system [String] Target architecture (default: "x86_64-linux")
-#
-# @return [NixOS System] Complete NixOS configuration with home-manager
-#
-# @example Usage in flake.nix
-#   mkWorkstation = import ./lib/mkWorkstation.nix;
-#   L7V = mkWorkstation (commonArgs // { host = "laptop"; });
-#
-# @see ./mkServer.nix Server builder using stable channel
-# @see ../flake.nix Main flake entry point
-# @see https://nixos.org/manual/nixos/stable/ NixOS Manual
-# ==============================================================================
+# mkWorkstation: builds a workstation NixOS system on nixos-unstable.
+# Pulls in Niri, Noctalia, home-manager with all workstation profiles.
 {
   pkgs,
   lib ? pkgs.lib,
@@ -122,6 +77,7 @@ lib.nixosSystem {
     {
       nixpkgs.pkgs = import pkgs {
         inherit system;
+<<<<<<< HEAD
         
         # Enable non-free software (firmware, proprietary drivers)
         config.allowUnfree = true;
@@ -132,6 +88,17 @@ lib.nixosSystem {
           "librewolf-151.0.2-1"
           "librewolf-unwrapped-151.0.2-1"
         ];
+||||||| parent of 7ba3b81 (feat: declarative AI tooling + comprehensive audit fixes)
+        config = {
+          allowUnfree = true;
+          permittedInsecurePackages = [
+            "librewolf-151.0.2-1"
+            "librewolf-unwrapped-151.0.2-1"
+          ];
+        };
+=======
+        config.allowUnfree = true;
+>>>>>>> 7ba3b81 (feat: declarative AI tooling + comprehensive audit fixes)
       };
     }
     
@@ -153,9 +120,15 @@ lib.nixosSystem {
         
         # Enable per-user package installation via home.packages
         useUserPackages = true;
+<<<<<<< HEAD
         
         # CRITICAL: Timestamped backups prevent data loss during updates
         # Avoids overwriting existing .bak files from previous rollbacks
+||||||| parent of 7ba3b81 (feat: declarative AI tooling + comprehensive audit fixes)
+        # Timestamped backups to avoid clobbering existing .*-bak files
+=======
+        # Timestamped backups so repeated switches never clobber existing .*-bak files.
+>>>>>>> 7ba3b81 (feat: declarative AI tooling + comprehensive audit fixes)
         backupCommand = ''
           mv "$1" "$1.bak-$(date +%Y%m%d-%H%M%S)"
         '';
@@ -175,6 +148,7 @@ lib.nixosSystem {
             (homeDir + "/profiles/git.nix")
             (homeDir + "/profiles/ssh.nix")
             (homeDir + "/profiles/dev.nix")
+<<<<<<< HEAD
             
             # Desktop environment - Niri WM (primary)
             (homeDir + "/profiles/niri")
@@ -182,6 +156,10 @@ lib.nixosSystem {
             
             # Productivity applications
             (homeDir + "/profiles/yazi.nix")
+||||||| parent of 7ba3b81 (feat: declarative AI tooling + comprehensive audit fixes)
+=======
+            (homeDir + "/profiles/ai-tools.nix")
+>>>>>>> 7ba3b81 (feat: declarative AI tooling + comprehensive audit fixes)
             (homeDir + "/profiles/noctalia.nix")
             (homeDir + "/profiles/theme.nix")
             

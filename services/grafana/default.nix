@@ -1,16 +1,21 @@
-# Service: Grafana (dashboard + metrics)
+# Service: Grafana (observability dashboard — grafana.l7v.dev)
 # Requires: metrics + reverseProxy + secrets
+# Port: 3001 (Forgejo occupies 3000)
 { lib, config, ... }:
 {
   options.l7v.services.grafana = {
     enable = lib.mkEnableOption "grafana dashboard service";
+
     domain = lib.mkOption {
       type = lib.types.str;
       default = "grafana.l7v.dev";
+      description = "Public FQDN for the Grafana instance.";
     };
+
     adminEmail = lib.mkOption {
       type = lib.types.str;
       default = "admin@l7v.dev";
+      description = "Admin contact address.";
     };
   };
 
@@ -41,20 +46,17 @@
           domain = config.l7v.services.grafana.domain;
           root_url = "https://${config.l7v.services.grafana.domain}";
           http_addr = "127.0.0.1";
-          http_port = 3001; # forgejo 3000, grafana 3001
+          http_port = 3001;
         };
-        database = {
-          type = "sqlite3"; # basit, postgres gerekmez
-        };
+        # SQLite is sufficient for a single-node dashboard; no PostgreSQL needed.
+        database.type = "sqlite3";
         security = {
           admin_user = "admin";
           admin_password = "$__file{${config.sops.secrets."grafana/admin_password".path}}";
           disable_gravatar = true;
           cookie_secure = true;
         };
-        users = {
-          allow_sign_up = false;
-        };
+        users.allow_sign_up = false;
         analytics = {
           reporting_enabled = false;
           check_for_updates = false;
@@ -86,6 +88,5 @@
         '';
       };
     };
-
   };
 }

@@ -1,4 +1,4 @@
-# Identity: user, zsh, locale, timezone, multi-user
+# Identity: primary user account, locale, timezone, sudo rules.
 {
   lib,
   config,
@@ -10,6 +10,7 @@
     user = lib.mkOption {
       type = lib.types.str;
       default = "l7v";
+      description = "Primary system user name.";
     };
 
     extraUsers = lib.mkOption {
@@ -36,11 +37,13 @@
         }
       );
       default = { };
+      description = "Additional user accounts beyond the primary user.";
     };
 
     sshKeys = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ ];
+      description = "Authorised SSH public keys for the primary user.";
     };
   };
 
@@ -87,10 +90,12 @@
     ];
 
     programs.zsh.enable = true;
+
     security.sudo = {
       enable = true;
       wheelNeedsPassword = lib.mkDefault true;
-      # nixos-rebuild için şifre sorma — editör ve terminal'den rebuild kolaylığı
+      # Allow passwordless nixos-rebuild for the primary user — useful from
+      # editors and terminals during iterative development.
       extraRules = [
         {
           users = [ config.l7v.identity.user ];

@@ -55,6 +55,7 @@ let
       libsoup_3
       libsecret
       libcap
+      gsettings-desktop-schemas
     ];
 
     unpackPhase = ''
@@ -89,11 +90,25 @@ let
 
       makeWrapper $out/share/kiro/kiro $out/bin/kiro \
         --add-flags "--ozone-platform-hint=auto" \
+        --set ELECTRON_USE_PORTAL "1" \
+        --prefix PATH : "${
+          pkgs.lib.makeBinPath [
+            pkgs.zenity
+            pkgs.kdePackages.kdialog
+            pkgs.kdePackages.dolphin
+            pkgs.nautilus
+            pkgs.xdg-utils
+          ]
+        }" \
+        --prefix XDG_DATA_DIRS : "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}" \
+        --prefix XDG_DATA_DIRS : "${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}" \
         --prefix LD_LIBRARY_PATH : "${
           pkgs.lib.makeLibraryPath [
             pkgs.libglvnd
             pkgs.vulkan-loader
             pkgs.mesa
+            pkgs.libsecret
+            pkgs.libcap
           ]
         }"
 

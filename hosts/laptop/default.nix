@@ -1,4 +1,4 @@
-# Host: laptop (L7V)
+# Host: laptop (L7V workstation)
 {
   lib,
   user,
@@ -10,7 +10,7 @@
   system.stateVersion = "25.05";
 
   services = {
-    # Touchpad (libinput) - geliştirilmiş laptop deneyimi
+    # Touchpad (libinput) — enhanced laptop experience
     libinput = {
       enable = true;
       touchpad = {
@@ -24,14 +24,15 @@
       };
     };
 
-    # Keyboard
+    # Keyboard layout
     xserver.xkb.layout = "tr";
 
-    # FHS dizin uyumluluğu (/bin/bash, /usr/bin/env gibi yolların otomatik eşleşmesi)
+    # FHS path compatibility (/bin/bash, /usr/bin/env etc.)
     envfs.enable = true;
 
-    # Not: l7v.database capability'si server içindir (pgbouncer + secrets gerektirir).
-    # Laptop için direkt NixOS modülleri kullanıyoruz — daha basit.
+    # Local Redis and PostgreSQL for development.
+    # Note: l7v.database capability is server-only (requires pgbouncer + secrets).
+    # On the laptop we use the NixOS modules directly — simpler and no secrets needed.
     redis.servers."".enable = true;
 
     postgresql = {
@@ -41,8 +42,8 @@
 
     flatpak.enable = true;
 
-    # auto-cpufreq: Maksimum Performans Odaklı Ayar (Hiçbir Performans Kısıtlaması Yok)
-    # power-profiles-daemon ile çakışmaması için kapalı tutulur.
+    # auto-cpufreq: performance-first tuning with no power restrictions.
+    # power-profiles-daemon is disabled to avoid conflicts with auto-cpufreq.
     power-profiles-daemon.enable = lib.mkForce false;
     auto-cpufreq = {
       enable = true;
@@ -59,9 +60,9 @@
         };
       };
     };
-    thermald.enable = true; # Termal aşırı ısınma koruması
+    thermald.enable = true;
 
-    # Lid kapatma ve güç tuşu davranışı (modern ayar)
+    # Lid and power-button behaviour
     logind.settings.Login = {
       HandleLidSwitch = "suspend";
       HandleLidSwitchExternalPower = "ignore";
@@ -72,17 +73,16 @@
   };
 
   l7v = {
-    # Experience capabilities
     experience = {
-      bluetooth = true; # Bluetooth
-      notifications = true; # mako + libnotify
-      clipboard = true; # wl-clipboard + cliphist + xsel
-      screencast = true; # xdg-portal + pipewire screen + obs + wf-recorder
+      bluetooth = true;
+      notifications = true;
+      clipboard = true;
+      screencast = true;
     };
 
     virtualisation.enable = true;
 
-    # /etc/age/key ile secrets.yaml decrypt edilir
+    # Secrets decrypted via /etc/age/key.
     # age public key: age100fgm3zj79kwsw962f9ehw8s43llfk7z2tpsh2juy3platc99qcs7lj0yw
     secrets.enable = true;
 
@@ -90,7 +90,7 @@
       deploy.enable = true;
       inventory.enable = true;
       documentation.enable = true;
-      recovery.enable = true; # snapper btrfs + kurtarma araçları
+      recovery.enable = true;
     };
   };
 
@@ -98,8 +98,7 @@
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
-    # Wayland/Niri ve Vulkan uygulamalarında yazılımsal render'a düşmemesi için
-    # AMD'nin Mesa sürücülerini açıkça etkinleştir.
+    # Explicit Mesa drivers prevent fallback to software rendering under Wayland/Niri.
     extraPackages = with pkgs; [
       mesa
       vulkan-loader
@@ -112,17 +111,13 @@
   };
   hardware.amdgpu.initrd.enable = true;
 
-  # Wayland + Electron / uygulama uyumluluğu + AMD
-  # NOT: XDG_SESSION_TYPE, AMD_VULKAN_ICD vb. experience/desktop/niri/default.nix'te tanımlı.
-  # Burada sadece laptop'a özgü olanlar:
-  environment.sessionVariables = {
-    NIXOS_OZONE_WL = "1"; # Electron/Chromium Wayland
-    MOZ_ENABLE_WAYLAND = "1"; # Firefox Wayland
-    QT_QPA_PLATFORM = "wayland;xcb"; # Qt Wayland fallback
-    GDK_BACKEND = "wayland,x11"; # GTK
-  };
+  # Laptop-specific session variables only.
+  # Wayland backend vars (NIXOS_OZONE_WL, MOZ_ENABLE_WAYLAND, QT_QPA_PLATFORM,
+  # GDK_BACKEND, XDG_SESSION_TYPE, AMD_VULKAN_ICD) are declared in
+  # experience/desktop/common/default.nix to avoid duplication.
+  environment.sessionVariables = { };
 
-  # Nix settings (best practices for developer workstation)
+  # Nix settings — developer workstation best practices
   nix = {
     settings = {
       experimental-features = [
@@ -140,16 +135,19 @@
         "https://nix-community.cachix.org"
         "https://niri.cachix.org"
         "https://noctalia.cachix.org"
+        # Numtide cache: pre-built AI CLI tools from llm-agents.nix
+        "https://cache.numtide.com"
       ];
       trusted-public-keys = [
         "cache.nixos.org-1:6NCHdD59X430o0NTRsrVMVZm7aWcSrq3LcpPo8gvLu8="
         "nix-community.cachix.org-1:mB9FSh9qf2QlZceEZWgjwkngzBLckc0Vc8t9aXXj4mQ="
         "niri.cachix.org-1:Wv0m4ydO/mub0AXv9+66Cg94SgB9nCsc3LymnscbAt8="
         "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+        "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
       ];
-      keep-outputs = true; # useful for dev (devShell'lar için)
+      keep-outputs = true;
       keep-derivations = true;
-      download-buffer-size = "128M"; # büyük flake'ler için
+      download-buffer-size = "128M";
     };
 
     gc = {
@@ -161,15 +159,15 @@
 
   console.keyMap = "trq";
 
-  # Sudo passwordless for wheel
+  # Passwordless sudo for wheel group (developer workstation convenience)
   security.sudo.wheelNeedsPassword = false;
 
   # Docker
   virtualisation.docker.enable = true;
-  # Not: docker grubu identity/default.nix'te zaten ekleniyor, burada tekrar eklemiyoruz
+  # Note: the docker group is already added in infrastructure/identity/default.nix
 
-  # nix-ld — distrobox-export ve .deb / ikili dosyaların doğrudan çalışabilmesi için
-  # NixOS'un standart dynamic linker yolunu sağlamak ve gerekli GUI/CLI kütüphanelerini sunmak için.
+  # nix-ld: provides a compatible dynamic linker for prebuilt binaries,
+  # distrobox-exported apps, and .deb extracts.
   programs.nix-ld = {
     enable = true;
     libraries = with pkgs; [
@@ -205,38 +203,36 @@
       udev
       mesa
       vulkan-loader
-      xorg.libX11
-      xorg.libXcomposite
-      xorg.libXcursor
-      xorg.libXdamage
-      xorg.libXext
-      xorg.libXfixes
-      xorg.libXi
-      xorg.libXrandr
-      xorg.libXrender
-      xorg.libXtst
-      xorg.libxcb
-      xorg.libxkbfile
-      xorg.libXinerama
-      xorg.libxshmfence
+      libx11
+      libxcomposite
+      libxcursor
+      libxdamage
+      libxext
+      libxfixes
+      libxi
+      libxrandr
+      libxrender
+      libxtst
+      libxcb
+      libxkbfile
+      libxinerama
+      libxshmfence
     ];
   };
 
-  # Laptop UX iyileştirmeleri
-  programs.dconf.enable = true; # GTK uygulamaları için ayar depolama
+  # GTK app settings storage
+  programs.dconf.enable = true;
 
-  # Nix için güçlü eklentiler (AI agent + prebuilt binary'ler için)
-  # Ek güçlü Nix araçları ve geliştirme ortamları
   environment.systemPackages = with pkgs; [
-    manix # nixpkgs içinde man sayfası / docs arama
-    dpkg # .deb dosyalarını ayıklamak (dpkg-deb -x)
-    steam-run # İzolasyonlu FHS ortamında binary çalıştırmak
-    patchelf # ELF dosyalarının rpath ve interpreter ayarlarını düzenlemek
+    manix # nixpkgs documentation search
+    dpkg # extract .deb archives (dpkg-deb -x)
+    steam-run # run binaries in an isolated FHS environment
+    patchelf # patch ELF rpath / interpreter
     jetbrains.clion # JetBrains CLion IDE (C/C++)
     qtcreator # Qt Creator IDE
     wezterm # GPU-accelerated terminal emulator
   ];
 
-  # AMD CPU P-State & Maksimum Performans Kernel Parametreleri
+  # AMD CPU P-State for maximum responsiveness
   boot.kernelParams = [ "amd_pstate=active" ];
 }

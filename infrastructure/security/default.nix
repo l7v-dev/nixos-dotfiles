@@ -1,34 +1,34 @@
-# Security: ssh hardening, fail2ban, auditd, sysctl, CA kök sertifikaları / PKI
+# Security: SSH hardening, fail2ban, sysctl kernel hardening, custom PKI trust store.
+#
+# SSH and fail2ban are enabled on servers only; workstations are not exposed
+# to inbound SSH by default (override in host config if needed).
 { lib, config, ... }:
 {
   options.l7v.security.pki = {
     enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
-      description = "Özel CA kök sertifikaları ve PKI güven deposu desteği";
+      description = "Custom CA root certificate and PKI trust store support.";
     };
     certificateFiles = lib.mkOption {
       type = lib.types.listOf lib.types.path;
       default = [ ];
-      description = "Sistem güven deposuna eklenecek ek CA kök sertifika dosyaları (.crt/.pem)";
+      description = "Additional CA root certificate files (.crt/.pem) added to the system trust store.";
     };
     certificates = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ ];
-      description = "Sistem güven deposuna eklenecek ek CA kök sertifika metin blokları (PEM)";
+      description = "Additional CA root certificate PEM blocks added to the system trust store.";
     };
   };
 
   config = {
-    # CA Kök Sertifikaları (PKI Trust Store)
     security.pki = lib.mkIf config.l7v.security.pki.enable {
       certificateFiles = config.l7v.security.pki.certificateFiles;
       certificates = config.l7v.security.pki.certificates;
     };
 
-    # SSH — sadece server'larda açık
-    # Workstation'da SSH kapalı; açmak istersen host config'de override et.
-    # BUG-007: koşulsuz enable kaldırıldı
+    # SSH is only enabled on servers; workstations keep port 22 closed.
     services.openssh = lib.mkIf config.l7v.infrastructure.isServer {
       enable = true;
       settings = {
@@ -40,10 +40,10 @@
       openFirewall = true;
     };
 
-    # Fail2ban — sadece server'larda anlamlı
+    # fail2ban only makes sense on internet-facing servers.
     services.fail2ban.enable = lib.mkIf config.l7v.infrastructure.isServer true;
 
-    # Sysctl hardening — her iki tip için geçerli
+    # Sysctl hardening — applied to all host types.
     boot.kernel.sysctl = {
       "net.ipv4.conf.all.rp_filter" = 1;
       "net.ipv4.conf.default.rp_filter" = 1;
