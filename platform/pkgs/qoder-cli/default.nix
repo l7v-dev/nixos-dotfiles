@@ -21,7 +21,7 @@ stdenv.mkDerivation rec {
 
   src = fetchurl {
     url = "https://qoder-ide.oss-accelerate.aliyuncs.com/qodercli/releases/${version}/qodercli-linux-x64.tar.gz";
-    sha256 = "1fjjr8k12zq82g0lx7qmc0fwrhiiilvjyhvw05rn8w369pwa9hkg";
+    sha256 = "1gyi17s75fgjp5x9r9c652fxyhga2bmjff678af5lhyf76xcsn0a";
   };
 
   nativeBuildInputs = [ autoPatchelfHook ];

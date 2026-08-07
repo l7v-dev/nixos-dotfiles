@@ -45,7 +45,7 @@
 
 stdenv.mkDerivation rec {
   pname = "qoder";
-  version = "latest";
+  version = "1.23.0";
 
   src =
     if useLocalSrc then
@@ -53,7 +53,7 @@ stdenv.mkDerivation rec {
     else
       fetchurl {
         url = "https://download.qoder.com/release/latest/qoder_x86_64.rpm";
-        sha256 = "0pvi130yx61np94yxw8757fj1s30gcnfrnj3rzbk98hc693574rg";
+        sha256 = "1s045m3dvkfzfgdsnrnvryj733s8i27svb99sksbvfqdf5fr1252";
       };
 
   nativeBuildInputs = [

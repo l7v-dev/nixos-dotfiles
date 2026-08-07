@@ -113,7 +113,7 @@ All AI tools are managed declaratively — no `curl | bash`, no `npm install -g`
 | `codex` | `llm-agents.nix` | OpenAI Codex CLI |
 | `opencode` | `llm-agents.nix` | Multi-model terminal agent |
 | `copilot-cli` | `llm-agents.nix` | GitHub Copilot terminal |
-| `qoder-cli` | `llm-agents.nix` | Qoder AI CLI |
+| `qoder-cli` | `platform/pkgs/qoder-cli` | Qoder AI CLI (pinned — updated faster than llm-agents.nix) |
 | `goose-cli` | `llm-agents.nix` | Block/Square Goose agent |
 | `cc-sdd` | `llm-agents.nix` | Spec-driven development harness |
 | `vibe-kanban` | `llm-agents.nix` | Multi-agent Kanban board |
@@ -146,6 +146,22 @@ When a new Kiro CLI version ships:
 1. Find the tarball URL at `https://kiro.dev/docs/getting-started/installation/`
 2. Compute hash: `nix-prefetch-url --unpack <url>`
 3. Update `version`, `url`, `sha256` in `platform/pkgs/kiro-cli/default.nix`
+4. Validate: `./scripts/validate.sh L7V`
+
+### Qoder CLI derivation maintenance
+
+When a new Qoder CLI version ships:
+1. Check the manifest: `curl -s https://qoder-ide.oss-accelerate.aliyuncs.com/qodercli/channels/manifest.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['latest'])"`
+2. Compute hash: `nix-prefetch-url --unpack https://qoder-ide.oss-accelerate.aliyuncs.com/qodercli/releases/<version>/qodercli-linux-x64.tar.gz`
+3. Update `version` and `sha256` in `platform/pkgs/qoder-cli/default.nix`
+4. Validate: `./scripts/validate.sh L7V`
+
+### Qoder IDE derivation maintenance
+
+When a new Qoder IDE (Desktop) version ships:
+1. Check latest version at `https://qoder.com/changelog`
+2. Compute hash: `nix-prefetch-url https://download.qoder.com/release/latest/qoder_x86_64.rpm`
+3. Update `version` and `sha256` in `platform/pkgs/qoder/default.nix`
 4. Validate: `./scripts/validate.sh L7V`
 
 ## MCP Servers Available
