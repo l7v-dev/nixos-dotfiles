@@ -28,12 +28,22 @@ let
       buildOnTarget = false;
     };
 
-    imports = serverModules {
-      inherit lib host user;
-      inherit (cfg) roles tags;
-      sops = inputs.sops-nix.nixosModules.sops;
-      homeManager = inputs.home-manager-stable.nixosModules.home-manager;
-    };
+    imports =
+      serverModules {
+        inherit lib host user;
+        inherit (cfg) roles tags;
+        sops = inputs.sops-nix.nixosModules.sops;
+        homeManager = inputs.home-manager-stable.nixosModules.home-manager;
+      }
+      # microvm NixOS module must be present so that capabilities/virtualisation
+      # can reference microvm.* options without errors. No-op on servers since
+      # l7v.virtualisation.enable is never set true for server nodes.
+      ++ [
+        inputs.microvm.nixosModules.host
+        # Explicitly disabled on servers — workstations enable this via
+        # l7v.virtualisation.microvm.enable in hosts/laptop/default.nix.
+        { microvm.host.enable = false; }
+      ];
   };
 in
 {

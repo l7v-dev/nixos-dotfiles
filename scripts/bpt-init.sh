@@ -227,7 +227,71 @@ This project was initialized using the Base Polyglot Template (BPT).
 ## Governance Rules
 1. Declare all workspace packages within \`flake.nix\` or \`devenv.nix\`.
 2. Store secret keys and API credentials in \`.env.local\`.
+3. See canonical platform rules: /home/l7v/dev/projects/company/active/nixos/AGENTS.md
 EOF
+
+cat > CLAUDE.md << EOF
+# AI Agent Rules — ${NAME}
+
+## Environment
+
+- NixOS flake project. **NEVER** use \`apt\`, \`pip install --user\`, or \`npm install -g\`.
+- Enter the dev shell: \`direnv allow\` (auto) or \`nix develop\` (manual).
+- Stack: **${TYPE}**
+
+## Workflow
+
+\`\`\`bash
+# Before editing
+direnv allow
+
+# After editing — validate before committing
+nix flake check
+git add <files> && git commit -m "feat: description"
+\`\`\`
+
+## Agent Sandbox
+
+| Risk Level | Tool |
+|---|---|
+| Daily / trusted code | \`claudebox\` (sandboxed runner) |
+| Untrusted / risky repo | \`microvm -r coding-agent\` (ephemeral VM) |
+
+## Nix Rules
+
+- \`git add <new-file>.nix\` before \`nh os switch\` — flakes only track git-staged files.
+- Never commit \`.env\` or plaintext secrets.
+- systemd services need explicit \`WorkingDirectory\` and \`PATH\` env vars.
+EOF
+
+cat > devenv.nix << DEVENV
+{ pkgs, lib, config, ... }:
+{
+  # Add project packages here
+  packages = with pkgs; [
+    git
+    jq
+  ];
+
+  # Uncomment services as needed:
+  # services.postgres = {
+  #   enable = true;
+  #   initialDatabases = [{ name = "${NAME}"; }];
+  # };
+  # services.redis.enable = true;
+
+  scripts.validate.exec = ''
+    set -euo pipefail
+    echo "[INFO] Validating ${NAME}..."
+    nix flake check
+    echo "[SUCCESS] Validation passed."
+  '';
+
+  enterShell = ''
+    echo "[INFO] ${NAME} dev shell ready (${TYPE}). Run 'devenv tasks run validate' to validate."
+  '';
+}
+DEVENV
 
 cat > README.md << EOF
 # ${NAME}
@@ -248,4 +312,6 @@ fi
 
 echo ""
 echo "[SUCCESS] BPT Project initialized at: $DEST (Type: $TYPE)"
-echo "          Next Step: cd $DEST"
+echo "          Next Step: cd $DEST && direnv allow"
+echo "          Validate : devenv tasks run validate"
+echo "          Agent    : claudebox  (sandboxed runner)"

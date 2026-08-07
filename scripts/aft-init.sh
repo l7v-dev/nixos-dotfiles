@@ -48,7 +48,49 @@ sed -i "s/name: \"AFT\"/name: \"${PROJECT_NAME^^}\"/g" src/config/site.ts 2>/dev
 rm -rf .git
 git init -b main
 
-# 4. Allow Direnv if available
+# 4. Write AI agent context files
+cat > CLAUDE.md << EOF
+# AI Agent Rules — ${PROJECT_NAME}
+
+## Environment
+
+- NixOS flake project (Next.js 16 AFT). **NEVER** use \`npm install -g\` or global installs.
+- Enter the dev shell: \`direnv allow\` (auto) or \`nix develop\` (manual).
+- Stack: **Next.js 16 / TypeScript / Tailwind / tRPC**
+
+## Workflow
+
+\`\`\`bash
+# Before editing
+direnv allow
+
+# Development
+pnpm install
+pnpm dev
+
+# After editing — validate before committing
+pnpm lint && pnpm type-check
+nix flake check
+git add <files> && git commit -m "feat: description"
+\`\`\`
+
+## Agent Sandbox
+
+| Risk Level | Tool |
+|---|---|
+| Daily / trusted code | \`claudebox\` (sandboxed runner) |
+| Untrusted / risky repo | \`microvm -r coding-agent\` (ephemeral VM) |
+
+## Project Conventions
+
+- All API routes use tRPC procedures, not raw fetch handlers.
+- Authentication: next-auth — never roll custom auth.
+- DB access only via Prisma ORM — no raw SQL strings with user input.
+- Environment variables declared in \`src/env.mjs\` with Zod validation.
+- Secrets go in \`.env.local\` (gitignored) — never commit plaintext secrets.
+EOF
+
+# 5. Allow Direnv if available
 if command -v direnv &>/dev/null; then
   direnv allow "$TARGET_DIR" 2>/dev/null || true
 fi
@@ -56,4 +98,5 @@ fi
 echo ""
 echo "[SUCCESS] Project '$PROJECT_NAME' created using AFT template."
 echo "          Location: $TARGET_DIR"
-echo "          Next Step: cd $TARGET_DIR && npm install && npm run dev"
+echo "          Next Step: cd $TARGET_DIR && pnpm install && pnpm dev"
+echo "          Agent    : claudebox  (sandboxed runner)"

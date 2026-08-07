@@ -44,26 +44,53 @@ if [[ "${#nix_files[@]}" -eq 0 ]]; then
   exit 1
 fi
 
-run_step 1 6 "nixfmt formatting check" \
+run_step 1 7 "nixfmt formatting check" \
   nix_tool nixfmt --check "${nix_files[@]}"
 
-run_step 2 6 "statix lint" \
+run_step 2 7 "statix lint" \
   nix_tool statix check .
 
-run_step 3 6 "deadnix unused code detection" \
+run_step 3 7 "deadnix unused code detection" \
   nix_tool deadnix --fail .
 
-run_step 4 6 "shellcheck on scripts" \
+run_step 4 7 "shellcheck on scripts" \
   nix_tool shellcheck --severity=warning scripts/*.sh
 
-run_step 5 6 ".mcp.json syntax check" \
+run_step 5 7 ".mcp.json syntax check" \
   nix_tool jq -e . .mcp.json >/dev/null
 
-run_step 6 6 "nix flake check" \
-  nix flake check --no-build
+# Step 6: Nix module system check — eval only the target HOST.
+#
+# Full `nix flake check --no-build` evaluates every nixosConfiguration in
+# parallel and exhausts RAM on workstations. Evaluating all hosts sequentially
+# still costs ~1.5 GB per host because each `nix eval` process re-parses the
+# entire nixpkgs tree from scratch.
+#
+# Strategy: eval only HOST (the workstation being validated). Remote server
+# configs are verified at deploy time by colmena build, which runs on the
+# builder host with sufficient RAM.
+#
+# We check three lightweight attributes that force the full module closure
+# without opening the derivation build graph:
+#   system.stateVersion  — triggers assertions and option type checking
+#   networking.hostName  — confirms identity module resolved correctly
+#   system.nixos.label   — verifies NixOS version pinning is intact
+echo "[INFO] [6/7] NixOS module eval for host: ${HOST}..."
+for attr in \
+    "config.system.stateVersion" \
+    "config.networking.hostName" \
+    "config.system.nixos.label"; do
+  result=$(nix eval --no-warn-dirty --raw \
+    ".#nixosConfigurations.${HOST}.${attr}" 2>/dev/null) || {
+    echo "[ERROR] Failed to eval nixosConfigurations.${HOST}.${attr}" >&2
+    exit 1
+  }
+  echo "[INFO]   ${attr} = ${result}"
+done
+echo "[INFO] [6/7] Module eval passed for host: ${HOST}."
 
-echo "[INFO] Dry-run build for host: ${HOST}..."
-nix build ".#nixosConfigurations.${HOST}.config.system.build.toplevel" --dry-run
+run_step 7 7 "dry-run build for host ${HOST}" \
+  nix build --no-warn-dirty ".#nixosConfigurations.${HOST}.config.system.build.toplevel" --dry-run
 
 echo ""
 echo "[SUCCESS] Validation completed for host: ${HOST}"

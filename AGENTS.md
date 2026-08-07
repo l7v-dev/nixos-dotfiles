@@ -33,6 +33,7 @@
 │   ├── README.md                 # Master index
 │   ├── wiki/                     # Repository Technical Wiki pages
 │   ├── runbooks/                 # Operational guides
+│   │   └── agent-operations.md  # Agent sandbox, autonomous loop, rollback
 │   ├── skills/                   # Developer and automation directives
 │   └── architecture/             # Infrastructure architecture
 ├── templates/
@@ -40,6 +41,8 @@
 ├── scripts/                      # System administration and initializer tools
 │   ├── aft-init.sh               # Next.js 16 full-stack project initializer
 │   ├── bpt-init.sh               # Polyglot project initializer
+│   ├── agent-init.sh             # Agent-friendly project bootstrapper (NEW)
+│   ├── claude-autonomous.sh      # Autonomous agent loop via worktree + tmux (NEW)
 │   ├── adopt-repo.sh             # External repository adoption CLI
 │   ├── validate.sh               # System formatting, linting, and build validator
 │   ├── update.sh                 # Flake update and rebuild script
@@ -51,8 +54,11 @@
 │   ├── minimal/                  # Headless server home profile
 │   ├── workstation/              # Desktop workstation home coordinator
 │   └── profiles/                 # Modular application & shell profiles
-│       ├── niri/                 # Modular Niri compositor config (input, layout, binds...)
+│       ├── ai-tools.nix          # All AI agents (claudebox, cc-sdd, vibe-kanban…)
+│       ├── niri/                 # Modular Niri compositor config
 │       └── yazi.nix              # Independent Yazi file manager profile
+├── capabilities/
+│   └── virtualisation/           # libvirt + microvm host support
 ├── platform/                     # System platform modules
 └── services/                     # Managed NixOS services
 ```
@@ -71,19 +77,118 @@
 ./scripts/bpt-init.sh <project-name> [python|node|rust|go|java|minimal]
 ```
 
-### 3. Adopt Repository (ADOPT)
+### 3. Initialize Agent-Friendly Project
+```bash
+./scripts/agent-init.sh <project-name> [python|node|rust|go|minimal]
+```
+Creates: `flake.nix`, `devenv.nix`, `.envrc`, `CLAUDE.md`, `AGENTS.md`
+
+### 4. Run Autonomous Agent Loop
+```bash
+./scripts/claude-autonomous.sh <task-slug> "<prompt>" [max-iterations] [agent]
+# agent: claude (default) | codex | gemini
+```
+
+### 5. Adopt Repository (ADOPT)
 ```bash
 ./scripts/adopt-repo.sh <github-url-or-slug>
 ```
 
-### 4. Validate Codebase (VALIDATE)
+### 6. Validate Codebase
 ```bash
 ./scripts/validate.sh L7V
 ```
 
 ---
 
+## 🤖 Agent Workflow
+
+> [!IMPORTANT]
+> Always work inside a dev shell. Never install packages globally.
+
+### Standard Workflow
+
+```bash
+# 1. Enter the project
+cd ~/dev/projects/company/active/<project>
+direnv allow        # activates nix develop or devenv automatically
+
+# 2. Run the agent (choose a tier — see sandbox section)
+claudebox           # Tier 1: sandboxed daily use
+
+# 3. Validate before committing
+./scripts/validate.sh L7V     # for this repo
+devenv tasks run validate      # for sub-projects
+
+# 4. Rollback if needed
+nh os switch --rollback
+```
+
+### Nix-Specific Rules for Agents
+
+- `git add <new-file>.nix` **before** `nh os switch` — flakes only see git-tracked files.
+- Use `nh os switch` instead of `sudo nixos-rebuild switch`.
+- systemd services require explicit `WorkingDirectory` and `Environment = ["PATH=..."]`.
+- `nixos-rebuild switch` does **not** restart running services — use `systemctl restart <svc>`.
+
+---
+
+## 🔒 Agent Sandbox Tiers
+
+| Tier | Tool | Risk Level | Persistence |
+|------|------|-----------|-------------|
+| **1** | `claudebox` | Low — trusted code | Host filesystem |
+| **2** | `microvm -r coding-agent` | High — untrusted/unknown | Ephemeral (VM) |
+| **3** | `claude-autonomous.sh` | Unattended | Isolated git worktree |
+
+Full details: `docs/runbooks/agent-operations.md`
+
+### Enable Tier 2 (microvm) on Workstation
+
+```nix
+# hosts/laptop/default.nix
+l7v.virtualisation = {
+  enable = true;
+  microvm.enable = true;   # adds microvm.host + boot kernel modules
+};
+```
+
+---
+
+## 🧰 AI Tools Installed
+
+Managed via `home/profiles/ai-tools.nix` — all sourced declaratively from nixpkgs or llm-agents.nix.
+
+| Tool | Source | Purpose |
+|------|--------|---------|
+| `claude-code` | nixpkgs | Anthropic Claude Code |
+| `aider-chat` | nixpkgs | Multi-model pair programmer |
+| `gemini-cli` | llm-agents.nix | Google Gemini CLI |
+| `codex` | llm-agents.nix | OpenAI Codex CLI |
+| `opencode` | llm-agents.nix | Multi-model terminal agent |
+| `goose-cli` | llm-agents.nix | Block/Square Goose agent |
+| `claudebox` | llm-agents.nix | Sandboxed Claude Code runner |
+| `cc-sdd` | llm-agents.nix | Spec-driven development harness |
+| `vibe-kanban` | llm-agents.nix | Multi-agent Kanban board |
+| `openskills` | llm-agents.nix | Universal skills loader |
+| `kiro-cli` | platform/pkgs/kiro-cli | Kiro IDE CLI |
+
+**Try without installing:**
+```bash
+nix run github:numtide/llm-agents.nix#<tool-name>
+```
+
+**Update AI tools only:**
+```bash
+nix flake update llm-agents && nh os switch
+```
+
+---
+
 ## 💡 Code & Script Guidelines
+
 - **Shell Scripts:** Use `#!/usr/bin/env bash` with `set -euo pipefail`. Use standard log prefixes `[INFO]`, `[WARN]`, `[ERROR]`, `[SUCCESS]`.
 - **Nix Expressions:** Format using `nixfmt-rfc-style` and pass `statix check`.
 - **Markdown:** Use concise headers, technical tables, and standard GitHub alert blocks.
+- **New Nix modules:** Must use `lib.mkEnableOption` or explicit `lib.mkOption` gate.
+- **SOPS secrets:** Must declare `owner` and `mode`.
