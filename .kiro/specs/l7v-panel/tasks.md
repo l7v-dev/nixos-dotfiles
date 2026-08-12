@@ -109,7 +109,7 @@ integration → validation.
       assert `cpu_pct` formula and clamping, assert `used_mib` formula
     - Place in `internal/metrics/procfs_property_test.go`
 
-- [ ] 4. Agent: D-Bus systemd interface + service management
+- [x] 4. Agent: D-Bus systemd interface + service management
   - [x] 4.1 Implement `SystemdClient` concrete implementation
     - Write `internal/dbus/systemd.go`: connect to the system D-Bus via
       `github.com/godbus/dbus/v5`; implement `ListUnits` by calling
@@ -394,7 +394,7 @@ integration → validation.
     - Run `pnpm typecheck`; zero TypeScript errors
     - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 19. Property-based tests: agent (pgregory.net/rapid)
+- [x] 19. Property-based tests: agent (pgregory.net/rapid)
   - [ ] 19.1 Add `pgregory.net/rapid` and write remaining agent property tests
     - Add `pgregory.net/rapid` to `go.mod` and `gomod2nix.toml`
     - Property tests 1, 2, 3, 7 are already scaffolded in tasks 2.5, 4.3, 7.3, 3.4; complete
@@ -406,7 +406,7 @@ integration → validation.
     - Use `net/http/httptest` with mock `Deps` implementing stub interfaces
     - _Requirements: NFR-3_
 
-- [ ] 20. Property-based tests: frontend (fast-check + Vitest)
+- [x] 20. Property-based tests: frontend (fast-check + Vitest)
   - [ ] 20.1 Configure Vitest and fast-check
     - Add `vitest`, `@testing-library/react`, `@testing-library/user-event`, `fast-check`,
       `jsdom`, `@vitejs/plugin-react` to `apps/web` dev dependencies
@@ -463,7 +463,7 @@ integration → validation.
     - Run `pnpm --filter @l7v-panel/web test` (`vitest --run`); all tests pass
     - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 21. NixOS module — `services/panel/default.nix`
+- [x] 21. NixOS module — `services/panel/default.nix`
   - [ ] 21.1 Write the NixOS module
     - Create `services/panel/default.nix` with the full option schema from the design:
       `l7v.services.panel.agent.*` options (enable, socketPath, managedHosts,
@@ -498,7 +498,7 @@ integration → validation.
     - Apply `services.grafana.settings.security.allow_embedding = true` conditionally
     - _Requirements: 6.2, 6.3, 9.4, 9.5, 9.7, 10.1, 10.3, 10.4, 10.5, 10.8_
 
-- [ ] 22. Nix derivations — `panel-agent` and `panel-frontend`
+- [x] 22. Nix derivations — `panel-agent` and `panel-frontend`
   - [ ] 22.1 Write the `panel-agent` buildGoModule derivation
     - Create `platform/pkgs/panel-agent/default.nix`: `buildGoModule` with `pname =
       "panel-agent"`, `version = "0.1.0"`, `src = lib.cleanSource
@@ -516,7 +516,7 @@ integration → validation.
     - Document the `prefetch-pnpm-deps` hash update workflow in a comment
     - _Requirements: 9.2, 9.10, NFR-4_
 
-- [ ] 23. NixOS integration — host configs, services index, Grafana patch, flake outputs
+- [x] 23. NixOS integration — host configs, services index, Grafana patch, flake outputs
   - [ ] 23.1 Wire the NixOS module into the repo infrastructure
     - Add `./panel` to the imports list in `services/default.nix` so the module is available
       to all hosts
@@ -534,7 +534,7 @@ integration → validation.
       integration notes); the NixOS module automatically applies `allow_embedding = true`
     - _Requirements: 9.4, 6.2, 6.3_
 
-- [ ] 24. Validation — nix build, validate.sh, and goroutine leak test
+- [x] 24. Validation — nix build, validate.sh, and goroutine leak test
   - [ ] 24.1 Run and fix `./scripts/validate.sh`
     - Run `./scripts/validate.sh L7V` from the repo root; fix any `nixfmt`, `statix`,
       `deadnix`, `shellcheck`, or `nix flake check` failures in the new Nix files
