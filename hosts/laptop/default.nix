@@ -42,25 +42,27 @@
 
     flatpak.enable = true;
 
-    # auto-cpufreq: performance-first tuning with no power restrictions.
+    # auto-cpufreq: adaptive CPU frequency management.
     # power-profiles-daemon is disabled to avoid conflicts with auto-cpufreq.
-    power-profiles-daemon.enable = lib.mkForce false;
+    # thermald is intentionally absent — it is Intel-only and exits immediately on AMD.
+    power-profiles-daemon.enable = lib.mkDefault false;
     auto-cpufreq = {
       enable = true;
       settings = {
+        # On battery: save power, let turbo kick in only when needed.
         battery = {
-          governor = "performance";
-          energy_performance_preference = "performance";
-          turbo = "always";
+          governor = "powersave";
+          energy_performance_preference = "power";
+          turbo = "auto";  # boost only under load
         };
+        # On charger: maximize responsiveness, still let auto-cpufreq manage turbo.
         charger = {
           governor = "performance";
           energy_performance_preference = "performance";
-          turbo = "always";
+          turbo = "auto";  # auto vs always: avoids unnecessary heat when idle
         };
       };
     };
-    thermald.enable = true;
 
     # Lid and power-button behaviour
     logind.settings.Login = {
@@ -99,8 +101,11 @@
     enable = true;
     enable32Bit = true;
     # Explicit Mesa drivers prevent fallback to software rendering under Wayland/Niri.
+    # libva + mesa.drivers enable VA-API hardware video decode (Firefox/mpv/vlc).
     extraPackages = with pkgs; [
-      mesa
+      mesa                 # includes radeonsi_drv_video.so — VA-API decode for AMD
+      libva                # Video Acceleration API runtime
+      libva-utils          # vainfo — debug VA-API support
       vulkan-loader
       vulkan-tools
     ];
@@ -110,6 +115,13 @@
     ];
   };
   hardware.amdgpu.initrd.enable = true;
+
+  # Firefox: enable VA-API hardware video decode (AMD GPU).
+  # Reduces CPU usage during video playback (YouTube etc.) by offloading to GPU.
+  programs.firefox.preferences = {
+    "media.ffmpeg.vaapi.enabled" = true;
+    "media.hardware-video-decoding.force-enabled" = true;
+  };
 
   # Laptop-specific session variables only.
   # Wayland backend vars (NIXOS_OZONE_WL, MOZ_ENABLE_WAYLAND, QT_QPA_PLATFORM,
