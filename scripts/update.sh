@@ -30,6 +30,7 @@ nix flake update home-manager-stable
 nix flake update sops-nix
 nix flake update niri-flake
 nix flake update noctalia
+nix flake update microvm
 echo "[INFO] Updating llm-agents.nix (separate nixpkgs, may take a moment)..."
 nix flake update llm-agents
 echo "[SUCCESS] All flake inputs updated."
@@ -40,9 +41,6 @@ if [[ "${SKIP_REBUILD:-0}" == "1" ]]; then
 fi
 
 echo "[INFO] Rebuilding ${HOST} (max-jobs=${MAX_JOBS}, cores=${CORES})..."
-sudo nixos-rebuild switch \
-  --flake ".#${HOST}" \
-  --max-jobs "${MAX_JOBS}" \
-  --cores "${CORES}"
+nh os switch . -- --max-jobs "${MAX_JOBS}" --cores "${CORES}"
 
 echo "[SUCCESS] System updated and switched to new generation."
