@@ -94,6 +94,8 @@
       documentation.enable = true;
       recovery.enable = true;
     };
+
+    services.panel.agent.enable = true;
   };
 
   # AMD GPU
