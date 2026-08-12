@@ -1,0 +1,15 @@
+schema = 3
+
+[mod]
+  [mod."github.com/coreos/go-systemd/v22"]
+    version = "v22.5.0"
+    hash = "sha256-TODO-run-gomod2nix-generate"
+  [mod."github.com/godbus/dbus/v5"]
+    version = "v5.1.0"
+    hash = "sha256-TODO-run-gomod2nix-generate"
+  [mod."github.com/prometheus/client_golang"]
+    version = "v1.20.5"
+    hash = "sha256-TODO-run-gomod2nix-generate"
+  [mod."pgregory.net/rapid"]
+    version = "v1.1.0"
+    hash = "sha256-TODO-run-gomod2nix-generate"

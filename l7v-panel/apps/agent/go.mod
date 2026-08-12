@@ -1,0 +1,11 @@
+module github.com/l7v/panel-agent
+
+go 1.22
+
+require (
+	github.com/coreos/go-systemd/v22 v22.5.0
+	github.com/godbus/dbus/v5 v5.1.0
+	github.com/google/uuid v1.6.0
+	github.com/prometheus/client_golang v1.20.5
+	pgregory.net/rapid v1.1.0
+)

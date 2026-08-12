@@ -89,6 +89,10 @@
     # age public key: age100fgm3zj79kwsw962f9ehw8s43llfk7z2tpsh2juy3platc99qcs7lj0yw
     secrets.enable = true;
 
+    # panel-agent: runs on the laptop and exposes the REST/SSE API
+    # to the panel-frontend on the server via nginx reverse proxy.
+    services.panel.agent.enable = true;
+
     platform = {
       deploy.enable = true;
       inventory.enable = true;

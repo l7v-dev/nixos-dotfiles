@@ -6,5 +6,6 @@
     ./grafana
     ./vaultwarden
     ./attic
+    ./panel
   ];
 }
