@@ -1,52 +1,69 @@
-# Nix build outputs
-result
-result-*
-
-# Nix direnv
-.direnv/
-
-# RPM packages (local builds)
-*.rpm
-
-# Node.js
+```
+# Dependencies
 node_modules/
+vendor/
 
-# Build outputs
+# Build artifacts
 dist/
 build/
-.next/
+target/
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+
+# Go specific
+*.mod
+*.sum
+go.work.sum
+
+# Node.js specific
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Environment variables
 .env
 .env.local
-*.env.*
+.env.*
+!.env.example
 
-# Python
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Python specific (if any Python files exist in the project)
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
-env/
-venv/
-.venv/
-.pytest_cache/
+*.egg-info/
+.eggs/
+
+# Cache directories
+.cache/
 .mypy_cache/
-.hypothesis/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-
-# Logs
-*.log
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+.pytest_cache/
+.gradle/
+```
