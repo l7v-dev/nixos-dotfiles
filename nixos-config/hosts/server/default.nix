@@ -10,6 +10,7 @@ _: {
       forgejo.enable = true;
       grafana.enable = true;
       vaultwarden.enable = true;
+      panel.frontend.enable = true;
     };
 
     # Local snapshots and restic repository verification. Root is mounted from the

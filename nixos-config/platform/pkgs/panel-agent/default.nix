@@ -4,7 +4,7 @@ pkgs.buildGoModule rec {
   pname = "panel-agent";
   version = "0.1.0";
 
-  src = ../../l7v-panel/agent;
+  src = ../../../control-panel/agent;
 
   vendorHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
 

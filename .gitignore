@@ -2,68 +2,63 @@
 # Dependencies
 node_modules/
 vendor/
+go.sum
+*.mod
 
 # Build artifacts
 dist/
 build/
 target/
-*.o
-*.obj
-*.a
-*.lib
-*.so
-*.dylib
-*.dll
-*.exe
-*.out
+coverage/
+htmlcov/
 
-# Go specific
-*.mod
-*.sum
-go.work.sum
-
-# Node.js specific
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Environment variables
+# Environment
 .env
 .env.local
 .env.*
 !.env.example
 
-# IDE and editor files
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*.tmp
 
-# OS generated files
+# OS
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
+# Temporary files
+*.tmp
+*.temp
+*~
 
-# Coverage
-coverage/
-htmlcov/
-.coverage
+# Go specific
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.prof
 
-# Python specific (if any Python files exist in the project)
+# Nix specific
+.result
+.nix-*
+!nixos-config/flake.lock
+!nixos-config/templates/aft/.env.example
+
+# Python (if any Python files exist in project)
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
 *.egg-info/
 .eggs/
-
-# Cache directories
-.cache/
-.mypy_cache/
-.pytest_cache/
-.gradle/
 ```

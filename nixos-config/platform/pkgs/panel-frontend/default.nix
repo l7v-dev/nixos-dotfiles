@@ -1,7 +1,7 @@
 { pkgs, ... }:
 
 let
-  panel-src = ../../l7v-panel;
+  panel-src = ../../../control-panel;
   
   node-env = pkgs.buildNpmPackage {
     pname = "panel-frontend";
