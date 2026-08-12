@@ -1,9 +1,10 @@
 # Boot: systemd-boot EFI loader.
-# Workstations default to the Zen kernel; servers override to linuxPackages_lts
-# inside lib/serverModules.nix via the isServer flag.
+# Workstations default to the Zen kernel; servers use the LTS kernel via
+# lib.mkIf isServer in infrastructure/boot/default.nix for stability.
 {
   lib,
   pkgs,
+  config,
   ...
 }:
 {
@@ -14,8 +15,11 @@
         efi.canTouchEfiVariables = true;
       };
 
-      # Zen kernel as the workstation default; overridable per-host.
-      kernelPackages = lib.mkDefault pkgs.linuxPackages_zen;
+      # Zen kernel for workstations: better latency, gaming, and desktop responsiveness.
+      # LTS kernel for servers: long-term stable ABI, predictable security backports.
+      kernelPackages = lib.mkDefault (
+        if config.l7v.infrastructure.isServer then pkgs.linuxPackages_lts else pkgs.linuxPackages_zen
+      );
 
       # Common initrd modules: NVMe, USB, SATA, Ethernet
       initrd.availableKernelModules = [

@@ -15,6 +15,11 @@
     };
   };
 
-  # Phase 4 implementation pending.
-  config = { };
+  # Phase 4 implementation pending. Emit a warning so the operator knows
+  # enable = true is a no-op until this module is implemented.
+  config = lib.mkIf config.l7v.services.attic.enable {
+    warnings = [
+      "l7v.services.attic is a phase-4 stub and has no effect. Use l7v.cache (nix-serve) for binary caching."
+    ];
+  };
 }

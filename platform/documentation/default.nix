@@ -31,6 +31,8 @@
         builtins.readFile ./../../docs/runbooks/service-operations.md;
       "l7v/runbooks/developer-workflows.md".text =
         builtins.readFile ./../../docs/runbooks/developer-workflows.md;
+      "l7v/runbooks/agent-operations.md".text =
+        builtins.readFile ./../../docs/runbooks/agent-operations.md;
     };
   };
 }

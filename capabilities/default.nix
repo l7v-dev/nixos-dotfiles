@@ -1,5 +1,5 @@
-# Capabilities: cross-cutting infrastructure capabilities
-# Her bir capability sadece enable=true olduğunda somut config üretir.
+# Capabilities: cross-cutting infrastructure capabilities.
+# Each capability only emits config when enable = true.
 { ... }:
 {
   imports = [
@@ -11,6 +11,6 @@
     ./backup
     ./cache
     ./messaging
-    ./virtualisation # BUG-003: duplicate import kaldırıldı
+    ./virtualisation
   ];
 }

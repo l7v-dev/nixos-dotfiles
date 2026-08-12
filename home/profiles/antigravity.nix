@@ -13,9 +13,9 @@
         [ ]
     )
     ++ (with pkgs; [
-      # Node.js & Package Managers (chrome-devtools-mcp, postman, context, visualization)
+      # Node.js runtime for MCP integrations (chrome-devtools-mcp, postman, context, visualization)
+      # bun is already provided by dev.nix
       nodejs_22
-      bun
 
       # Python Runtime & Notebook Support (notebooks MCP)
       python3

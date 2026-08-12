@@ -23,7 +23,7 @@ fi
 
 # --- Re-encrypt secrets.yaml ---
 echo "[INFO] Re-encrypting secrets.yaml with updated key set..."
-SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt \
+SOPS_AGE_KEY_FILE=/etc/age/key \
   sops updatekeys --yes "$sops_file"
 
 echo "[SUCCESS] Secrets rotation completed. Host '$host_name' can now decrypt secrets.yaml."

@@ -91,14 +91,8 @@
         exiftool
         poppler-utils # PDF preview
         mediainfo
-        jq
-        ripgrep
-        fd
 
         # System monitoring
-        btop
-        htop
-        fastfetch
         inxi
         powertop
 
@@ -112,8 +106,6 @@
         # Archive tools
         p7zip
         unrar
-        zip
-        unzip
         xz
         zstd
 
@@ -121,8 +113,6 @@
         nmap
         nettools
         iproute2
-        wget
-        curl
         ethtool
         whois
         bind
@@ -130,12 +120,9 @@
         rsync
 
         # Editors and IDEs
-        vscode
-        micro
-        git
+        # vscode managed via programs.vscode in home/profiles/vscode.nix
+        # git managed via programs.git in home/profiles/git.nix
         gcc
-        gnumake
-        pkg-config
         perl
         jetbrains.idea
         zed-editor

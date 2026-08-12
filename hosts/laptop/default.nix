@@ -80,6 +80,7 @@
       notifications = true;
       clipboard = true;
       screencast = true;
+      power = true;
     };
 
     virtualisation.enable = true;
