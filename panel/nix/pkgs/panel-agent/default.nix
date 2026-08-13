@@ -17,7 +17,7 @@ buildGoModule rec {
 
   # Source points to the local agent source tree.
   # nix build always uses the working-tree version.
-  src = lib.cleanSource ../../../l7v-panel/apps/agent;
+  src = lib.cleanSource ../../../apps/agent;
 
   # Populated after running: cd l7v-panel/apps/agent && gomod2nix generate
   # Set to null initially; replace with the sha256 from gomod2nix generate output.

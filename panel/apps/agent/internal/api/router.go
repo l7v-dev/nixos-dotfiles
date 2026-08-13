@@ -27,6 +27,15 @@ type Deps struct {
 func NewRouter(d Deps) http.Handler {
 	mux := http.NewServeMux()
 
+	// Catch-all for unknown paths → JSON 404.
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			writeError(w, http.StatusNotFound, map[string]string{"message": "not found"})
+			return
+		}
+		writeError(w, http.StatusNotFound, map[string]string{"message": "not found"})
+	})
+
 	// Health
 	mux.Handle("GET /api/v1/health", healthHandler(d))
 

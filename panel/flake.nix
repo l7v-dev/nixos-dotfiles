@@ -1,5 +1,5 @@
 # l7v-panel monorepo dev shell and build outputs.
-# Run `nix develop` to enter a shell with Go 1.22, Node.js 22, and pnpm 9.
+# Run `nix develop` to enter a shell with Go 1.25, Node.js 22, and pnpm 9.
 # Run `nix build .#panel-agent` or `nix build .#panel-frontend` to build derivations.
 {
   description = "l7v-panel — NixOS control panel";
@@ -25,10 +25,11 @@
     {
       devShells.${system}.default = pkgs.mkShell {
         buildInputs = with pkgs; [
-          go_1_22
+          go_1_25
           gomod2nix.packages.${system}.default
           nodejs_22
-          nodePackages.pnpm
+          pnpm
+          systemd.dev # CGO: sd-journal.h for panel-agent
           # Useful dev tools
           gopls
           golangci-lint
@@ -46,11 +47,11 @@
       packages.${system} = {
         # Panel agent Go binary — built from local source.
         # Update vendorHash after running: cd apps/agent && gomod2nix generate
-        panel-agent = pkgs.callPackage ../platform/pkgs/panel-agent { };
+        panel-agent = pkgs.callPackage ./nix/pkgs/panel-agent { };
 
         # Panel frontend Next.js app — built from local source.
         # Update pnpmDeps hash after: nix run nixpkgs#prefetch-pnpm-deps -- pnpm-lock.yaml
-        panel-frontend = pkgs.callPackage ../platform/pkgs/panel-frontend { };
+        panel-frontend = pkgs.callPackage ./nix/pkgs/panel-frontend { };
       };
     };
 }

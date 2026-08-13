@@ -22,11 +22,11 @@ lib.nixosSystem {
     homeManager
     inputs.niri-flake.nixosModules.niri
     inputs.microvm.nixosModules.host
-    ../infrastructure
-    ../experience
-    ../capabilities
-    ../services
-    ../platform
+    ../modules/infrastructure
+    ../modules/experience
+    ../modules/capabilities
+    ../modules/services
+    ../modules/platform
     (hostDir + "/default.nix")
     (hostDir + "/hardware.nix")
     {

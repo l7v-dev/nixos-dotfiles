@@ -5,7 +5,7 @@
 # Sources:
 #   nixpkgs (unstable)   → claude-code, aider-chat, kiro, kiro-cli
 #   llm-agents.nix input → all tools from github:numtide/llm-agents.nix
-#   platform/pkgs/       → qoder-cli (pinned — updated faster than llm-agents.nix)
+#   pkgs/                → qoder-cli (pinned — updated faster than llm-agents.nix)
 #
 # RAM note:
 #   llm-agents.nix carries its own nixpkgs instance (intentionally not following
@@ -17,7 +17,7 @@
 # Updating Qoder CLI:
 #   1. Check https://qoder-ide.oss-accelerate.aliyuncs.com/qodercli/channels/manifest.json
 #   2. nix-prefetch-url <linux-x64-url>
-#   3. Update version + sha256 in platform/pkgs/qoder-cli/default.nix
+#   3. Update version + sha256 in pkgs/qoder-cli/default.nix
 #
 # Updating other AI tools:
 #   nix flake update llm-agents   # bump AI tools lock only
@@ -33,7 +33,7 @@ let
 
   # Qoder CLI is pinned locally so we can track upstream releases without
   # waiting for llm-agents.nix to update.
-  qoderCli = pkgs.callPackage ../../platform/pkgs/qoder-cli { };
+  qoderCli = pkgs.callPackage ../../pkgs/qoder-cli { };
 in
 {
   home.packages =
@@ -233,7 +233,7 @@ in
       llmPkgs.terminal-use # headless virtual terminal for AI agents
       llmPkgs.toon # TOON — Token-Oriented Object Notation for LLM prompts
 
-      # ── Qoder CLI (platform/pkgs — pinned to latest upstream release) ─────
+      # ── Qoder CLI (pkgs/ — pinned to latest upstream release) ─────────────
       qoderCli # Qoder AI terminal coding assistant (v1.1.17)
     ];
 }

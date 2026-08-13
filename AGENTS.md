@@ -24,7 +24,7 @@
 ## 📂 Repository Layout
 
 ```text
-/home/l7v/dev/projects/company/active/nixos/
+/home/l7v/dev/projects/company/active/nixos/   (nixos-dotfiles)
 ├── AGENTS.md                     # Governance directives and system context
 ├── .mcp.json                     # Model Context Protocol access config
 ├── .pre-commit-config.yaml       # Linting and formatting hooks
@@ -41,15 +41,15 @@
 ├── scripts/                      # System administration and initializer tools
 │   ├── aft-init.sh               # Next.js 16 full-stack project initializer
 │   ├── bpt-init.sh               # Polyglot project initializer
-│   ├── agent-init.sh             # Agent-friendly project bootstrapper (NEW)
-│   ├── claude-autonomous.sh      # Autonomous agent loop via worktree + tmux (NEW)
+│   ├── agent-init.sh             # Agent-friendly project bootstrapper
+│   ├── claude-autonomous.sh      # Autonomous agent loop via worktree + tmux
 │   ├── adopt-repo.sh             # External repository adoption CLI
 │   ├── validate.sh               # System formatting, linting, and build validator
 │   ├── update.sh                 # Flake update and rebuild script
 │   ├── age-check.sh              # SOPS and Age key verification tool
 │   ├── bootstrap.sh              # Host key bootstrapper
 │   └── secrets-rotate.sh         # SOPS secret re-encryption script
-├── hosts/                        # Host configurations (L7V, server, builder)
+├── hosts/                        # Host configurations (laptop, server, builder, backup)
 ├── home/                         # Home-Manager user profiles
 │   ├── minimal/                  # Headless server home profile
 │   ├── workstation/              # Desktop workstation home coordinator
@@ -57,7 +57,60 @@
 │       ├── ai-tools.nix          # All AI agents (claudebox, cc-sdd, vibe-kanban…)
 │       ├── niri/                 # Modular Niri compositor config
 │       └── yazi.nix              # Independent Yazi file manager profile
-├── capabilities/
+├── modules/                      # All NixOS modules — consolidated
+│   ├── capabilities/             # Infrastructure building blocks
+│   │   ├── backup/               # Restic + rclone backup
+│   │   ├── cache/                # Nix binary cache (nix-serve)
+│   │   ├── database/             # PostgreSQL
+│   │   ├── logging/              # Loki + Promtail
+│   │   ├── messaging/            # Matrix (Conduit)
+│   │   ├── metrics/              # Prometheus + Grafana
+│   │   ├── reverse-proxy/        # nginx + ACME
+│   │   ├── secrets/              # SOPS + Age
+│   │   └── virtualisation/       # libvirt + microvm host support
+│   ├── experience/               # Desktop environment (workstation only)
+│   │   ├── desktop/              # (niri, hyprland, noctalia, greeter, common)
+│   │   └── capabilities/         # (audio, bluetooth, clipboard, power, screencast)
+│   ├── infrastructure/           # Server base infrastructure
+│   │   ├── identity/             # User accounts, sudo
+│   │   ├── network/              # Networking, firewall
+│   │   ├── security/             # SSH hardening, fail2ban
+│   │   └── storage/              # Filesystem, ZFS, mounts
+│   ├── platform/                 # Developer platform
+│   │   ├── ci/                   # Buildkite agent
+│   │   ├── deploy/               # Colmena deployment tools
+│   │   ├── documentation/        # mkdocs site
+│   │   ├── inventory/            # Asset inventory
+│   │   ├── recovery/             # Disaster recovery
+│   │   └── fhs.nix               # FHS compatibility layer
+│   └── services/                 # User-facing application services
+│       ├── attic/                # Nix cache (phase 4 stub)
+│       ├── forgejo/              # Git hosting
+│       ├── grafana/              # Observability dashboards
+│       ├── panel/                # → ../../panel/nix/module.nix (control panel)
+│       └── vaultwarden/          # Password manager
+├── pkgs/                         # Custom Nix derivations
+│   ├── qoder/                    # Qoder IDE
+│   └── qoder-cli/                # Qoder CLI (pinned, fast-release)
+├── panel/                        # NixOS control panel (was: l7v-panel)
+│   ├── apps/
+│   │   ├── agent/                # Go backend — REST/SSE API (systemd socket-activated)
+│   │   └── web/                  # Next.js 16 frontend
+│   ├── packages/ui/              # Shared UI component library
+│   ├── nix/                      # Panel-specific NixOS configuration
+│   │   ├── pkgs/
+│   │   │   ├── panel-agent/      # Go binary derivation
+│   │   │   └── panel-frontend/   # Next.js derivation
+│   │   └── module.nix            # NixOS service module (agent + nginx)
+│   └── flake.nix                 # Panel dev shell (Go 1.25 + Node 22 + pnpm)
+├── lib/                          # Nix utility functions
+│   ├── mkWorkstation.nix
+│   ├── mkServer.nix
+│   └── serverModules.nix
+└── secrets/                      # SOPS-encrypted secrets
+    └── sops/
+```
+
 │   └── virtualisation/           # libvirt + microvm host support
 ├── platform/                     # System platform modules
 └── services/                     # Managed NixOS services

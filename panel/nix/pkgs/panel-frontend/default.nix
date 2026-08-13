@@ -19,7 +19,7 @@ stdenv.mkDerivation rec {
   version = "0.1.0";
 
   # Source is the full monorepo root (needed for pnpm workspace resolution).
-  src = lib.cleanSource ../../../l7v-panel;
+  src = lib.cleanSource ../../..;
 
   nativeBuildInputs = [
     nodejs_22

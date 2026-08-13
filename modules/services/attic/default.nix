@@ -3,7 +3,7 @@
 # services.atticd is not yet stable in NixOS 25.05. The cache capability uses
 # nix-serve in the meantime. This module will be implemented when atticd reaches
 # production quality in a future stable channel.
-{ lib, ... }:
+{ lib, config, ... }:
 {
   options.l7v.services.attic = {
     enable = lib.mkEnableOption "attic nix cache service (phase 4)";

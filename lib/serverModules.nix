@@ -69,10 +69,10 @@ in
 [
   sops
   homeManager
-  ../infrastructure
-  ../capabilities
-  ../services
-  ../platform
+  ../modules/infrastructure
+  ../modules/capabilities
+  ../modules/services
+  ../modules/platform
   (hostDir + "/default.nix")
   (hostDir + "/hardware.nix")
   {

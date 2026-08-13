@@ -49,16 +49,7 @@ func (j *journalReader) Tail(ctx context.Context, opts TailOptions) {
 
 	for {
 		// Wait for new entries (100ms timeout to check ctx between waits).
-		status, err := jrnl.Wait(100 * time.Millisecond)
-		if err != nil {
-			select {
-			case <-ctx.Done():
-				return
-			case opts.Err <- fmt.Errorf("journal wait: %w", err):
-				return
-			}
-		}
-
+		status := jrnl.Wait(100 * time.Millisecond)
 		if status == sdjournal.SD_JOURNAL_NOP {
 			// No new entries — check for cancellation and loop.
 			select {

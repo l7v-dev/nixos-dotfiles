@@ -6,6 +6,6 @@
     ./grafana
     ./vaultwarden
     ./attic
-    ./panel
+    ../../panel/nix/module.nix
   ];
 }

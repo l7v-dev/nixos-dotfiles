@@ -38,12 +38,19 @@ func logsStreamHandler(d Deps) http.HandlerFunc {
 		w.Header().Set("Connection", "keep-alive")
 		// Disable nginx buffering so events reach the browser immediately.
 		w.Header().Set("X-Accel-Buffering", "no")
+		// Remove Content-Length so Go uses chunked transfer encoding (required for SSE).
+		w.Header().Del("Content-Length")
 		w.WriteHeader(http.StatusOK)
 
 		flusher, ok := w.(http.Flusher)
 		if !ok {
 			return
 		}
+
+		// Write an SSE comment immediately to establish chunked encoding
+		// and prevent Go from sending Content-Length: 0.
+		fmt.Fprint(w, ": connected\n\n")
+		flusher.Flush()
 
 		entries := make(chan journal.LogEntry, 64)
 		errCh := make(chan error, 1)

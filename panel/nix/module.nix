@@ -17,8 +17,8 @@ let
   agentCfg = config.l7v.services.panel.agent;
   frontendCfg = config.l7v.services.panel.frontend;
 
-  panelAgentPkg = pkgs.callPackage ../../platform/pkgs/panel-agent { };
-  panelFrontendPkg = pkgs.callPackage ../../platform/pkgs/panel-frontend { };
+  panelAgentPkg = pkgs.callPackage ./pkgs/panel-agent { };
+  panelFrontendPkg = pkgs.callPackage ./pkgs/panel-frontend { };
 in
 {
   # ── Options ────────────────────────────────────────────────────────────────

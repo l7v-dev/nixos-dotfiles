@@ -9,7 +9,7 @@
   ...
 }:
 let
-  qoderPkg = pkgs.callPackage ./pkgs/qoder { };
+  qoderPkg = pkgs.callPackage ../../pkgs/qoder { };
 in
 {
   imports = [
