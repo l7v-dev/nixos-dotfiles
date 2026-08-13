@@ -16,9 +16,10 @@
       };
 
       # Zen kernel for workstations: better latency, gaming, and desktop responsiveness.
-      # LTS kernel for servers: long-term stable ABI, predictable security backports.
+      # 6.6 LTS kernel for servers: long-term stable ABI, predictable security backports.
+      # Note: nixos-25.05 ships linuxPackages_6_6 as the LTS kernel (linuxPackages_lts removed).
       kernelPackages = lib.mkDefault (
-        if config.l7v.infrastructure.isServer then pkgs.linuxPackages_lts else pkgs.linuxPackages_zen
+        if config.l7v.infrastructure.isServer then pkgs.linuxPackages_6_6 else pkgs.linuxPackages_zen
       );
 
       # Common initrd modules: NVMe, USB, SATA, Ethernet

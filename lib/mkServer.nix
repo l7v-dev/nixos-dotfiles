@@ -13,6 +13,11 @@
   system ? "x86_64-linux",
   inputs,
   lib ? pkgs.lib,
+  extraOverlays ? [ ],
+  # Unstable nixpkgs instance passed as specialArgs so modules that require
+  # features not yet in stable (e.g. fetchPnpmDeps for panel-frontend) can
+  # reference it explicitly. Defaults to pkgs when omitted (workstation path).
+  unstablePkgs ? pkgs,
 }:
 lib.nixosSystem {
   inherit system;
@@ -23,6 +28,7 @@ lib.nixosSystem {
       host
       roles
       tags
+      unstablePkgs
       ;
   };
   modules =
@@ -47,6 +53,7 @@ lib.nixosSystem {
         nixpkgs.pkgs = import pkgs {
           inherit system;
           config.allowUnfree = true;
+          overlays = extraOverlays;
         };
       }
     ];

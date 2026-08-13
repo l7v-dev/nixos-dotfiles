@@ -27,7 +27,7 @@
 
   config = lib.mkIf config.l7v.secrets.enable {
     sops = {
-      defaultSopsFile = ../../secrets/sops/secrets.yaml;
+      defaultSopsFile = ../../../secrets/sops/secrets.yaml;
       age = {
         keyFile = "/etc/age/key";
         generateKey = false;

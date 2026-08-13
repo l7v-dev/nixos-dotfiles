@@ -4,9 +4,10 @@ import { useState } from "react";
 import {
     PowerOff, RotateCcw, Moon, BedDouble, Layers,
     Wifi, WifiOff, Bluetooth, BluetoothOff,
-    Zap, BatteryCharging, BatteryFull, BatteryLow,
+    Zap, BatteryCharging,
     Plug, Clock, X, ChevronDown, ChevronUp,
     AlertTriangle, Signal, Server,
+    Search, LockKeyhole, Gauge,
 } from "lucide-react";
 import {
     usePowerMutation,
@@ -18,6 +19,10 @@ import {
     useWifiConnect,
     useWifiDisconnect,
     useBluetooth,
+    useBluetoothScan,
+    useBluetoothConnect,
+    useBluetoothDisconnect,
+    useBluetoothRemove,
     useWoLHosts,
     useWoLMutation,
 } from "@/hooks/useMetrics";
@@ -794,8 +799,8 @@ function WifiCard() {
                                     <div className="flex items-end gap-0.5 h-4">
                                         {[1, 2, 3, 4].map((bar) => (
                                             <div key={bar} className={`w-1 rounded-sm ${bar <= signalBars(ap.signal_dbm)
-                                                    ? "bg-primary"
-                                                    : "bg-muted-foreground/30"
+                                                ? "bg-primary"
+                                                : "bg-muted-foreground/30"
                                                 }`} style={{ height: `${bar * 25}%` }} />
                                         ))}
                                     </div>
@@ -806,7 +811,7 @@ function WifiCard() {
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
                                     {ap.security !== "open"
-                                        ? <Lock className="h-3 w-3 text-muted-foreground" />
+                                        ? <LockKeyhole className="h-3 w-3 text-muted-foreground" />
                                         : <span className="text-[10px] text-green-600">Açık</span>}
                                     {ap.active ? (
                                         <span className="text-[10px] font-medium text-primary">Bağlı</span>
@@ -830,7 +835,7 @@ function WifiCard() {
             {passwordSSID && (
                 <div className="mt-3 rounded-lg border border-border p-3 space-y-2 bg-background/60">
                     <p className="text-xs font-medium">
-                        <Lock className="inline h-3 w-3 mr-1" />
+                        <LockKeyhole className="inline h-3 w-3 mr-1" />
                         {passwordSSID} için şifre
                     </p>
                     <input
@@ -877,25 +882,56 @@ function WifiCard() {
 
 function BluetoothCard() {
     const { data, isLoading, toggle } = useBluetooth();
+    const { data: scanned, isFetching: scanning, refetch: doScan } = useBluetoothScan();
+    const btConnect = useBluetoothConnect();
+    const btDisconnect = useBluetoothDisconnect();
+    const btRemove = useBluetoothRemove();
+
+    const [showScan, setShowScan] = useState(false);
+    const [actionAddr, setActionAddr] = useState<string | null>(null);
+    const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+
+    const handleScan = () => {
+        setShowScan(true);
+        doScan();
+    };
+
+    const deviceIcon = (icon?: string) => {
+        if (!icon) return "📱";
+        if (icon.includes("headset") || icon.includes("headphone") || icon.includes("audio")) return "🎧";
+        if (icon.includes("mouse")) return "🖱️";
+        if (icon.includes("keyboard")) return "⌨️";
+        if (icon.includes("phone")) return "📱";
+        if (icon.includes("computer")) return "💻";
+        if (icon.includes("speaker")) return "🔊";
+        return "📡";
+    };
+
+    const withFeedback = (promise: Promise<unknown>, ok: string, fail: string) => {
+        setActionAddr(null);
+        setFeedback(null);
+        promise
+            .then(() => setFeedback({ ok: true, msg: ok }))
+            .catch((err: unknown) =>
+                setFeedback({ ok: false, msg: (err as { message?: string })?.message ?? fail })
+            );
+    };
 
     return (
         <div className="rounded-xl border border-border bg-card p-5">
+            {/* Header */}
             <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                     <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${data?.enabled ? "bg-blue-500/10 text-blue-400" : "bg-muted text-muted-foreground"
                         }`}>
-                        {data?.enabled
-                            ? <Bluetooth className="h-4 w-4" />
-                            : <BluetoothOff className="h-4 w-4" />
-                        }
+                        {data?.enabled ? <Bluetooth className="h-4 w-4" /> : <BluetoothOff className="h-4 w-4" />}
                     </div>
                     <div>
                         <p className="text-sm font-semibold">Bluetooth</p>
                         <p className="text-[11px] text-muted-foreground">
                             {isLoading ? "Yükleniyor…" : data?.enabled
                                 ? `${data.devices?.filter((d) => d.connected).length ?? 0} bağlı cihaz`
-                                : "Kapalı"
-                            }
+                                : "Kapalı"}
                         </p>
                     </div>
                 </div>
@@ -906,20 +942,66 @@ function BluetoothCard() {
                 />
             </div>
 
+            {/* Paired device list */}
             {data?.enabled && data.devices && data.devices.length > 0 && (
-                <div className="space-y-1.5 rounded-lg border border-border/50 bg-background/40 p-3">
+                <div className="mb-3 rounded-lg border border-border/50 bg-background/40 divide-y divide-border/30">
                     {data.devices.map((d) => (
-                        <div key={d.address} className="flex items-center justify-between text-xs">
-                            <div className="flex items-center gap-2">
-                                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${d.connected ? "bg-primary" : "bg-muted-foreground/40"
-                                    }`} />
-                                <span className="font-medium">{d.name || d.address}</span>
+                        <div key={d.address} className="flex items-center justify-between px-3 py-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-base">{deviceIcon(d.icon)}</span>
+                                <div className="min-w-0">
+                                    <p className="text-xs font-medium truncate">{d.name || d.address}</p>
+                                    <p className="text-[10px] text-muted-foreground font-mono">{d.address}</p>
+                                </div>
+                                {d.battery_pct != null && (
+                                    <span className="text-[10px] text-muted-foreground ml-1">🔋{d.battery_pct}%</span>
+                                )}
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="font-mono text-muted-foreground">{d.address}</span>
-                                <span className={d.connected ? "text-primary" : "text-muted-foreground"}>
-                                    {d.connected ? "Bağlı" : "Eşleşik"}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                <span className={`text-[10px] font-medium ${d.connected ? "text-primary" : "text-muted-foreground"}`}>
+                                    {d.connected ? "Bağlı" : "Bağlı değil"}
                                 </span>
+                                {d.connected ? (
+                                    <button
+                                        onClick={() => {
+                                            setActionAddr(d.address);
+                                            withFeedback(
+                                                btDisconnect.mutateAsync(d.address),
+                                                `${d.name} bağlantısı kesildi`,
+                                                "Bağlantı kesilemedi"
+                                            );
+                                        }}
+                                        disabled={btDisconnect.isPending && actionAddr === d.address}
+                                        className="rounded px-1.5 py-0.5 text-[10px] bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50"
+                                    >
+                                        Kes
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => {
+                                            setActionAddr(d.address); withFeedback(
+                                                btConnect.mutateAsync(d.address),
+                                                `${d.name} bağlanıyor…`,
+                                                "Bağlanılamadı"
+                                            );
+                                        }}
+                                        disabled={btConnect.isPending && actionAddr === d.address}
+                                        className="rounded px-1.5 py-0.5 text-[10px] bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                                    >
+                                        Bağlan
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => withFeedback(
+                                        btRemove.mutateAsync(d.address),
+                                        `${d.name} kaldırıldı`,
+                                        "Kaldırılamadı"
+                                    )}
+                                    title="Eşleştirmeyi kaldır"
+                                    className="rounded p-0.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                >
+                                    <X className="h-3 w-3" />
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -927,7 +1009,65 @@ function BluetoothCard() {
             )}
 
             {data?.enabled && (!data.devices || data.devices.length === 0) && (
-                <p className="text-xs text-muted-foreground">Eşleştirilmiş cihaz yok.</p>
+                <p className="mb-3 text-xs text-muted-foreground">Eşleştirilmiş cihaz yok.</p>
+            )}
+
+            {/* Scan button */}
+            {data?.enabled && (
+                <button
+                    onClick={handleScan}
+                    disabled={scanning}
+                    className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 transition-colors"
+                >
+                    {scanning
+                        ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        : <Search className="h-3 w-3" />}
+                    Cihazları Tara
+                </button>
+            )}
+
+            {/* Scan results */}
+            {showScan && scanned && scanned.length > 0 && (
+                <div className="mt-3 rounded-lg border border-border overflow-hidden">
+                    <div className="bg-muted/50 px-3 py-1.5 text-xs font-medium text-muted-foreground flex items-center justify-between">
+                        <span>{scanned.length} cihaz</span>
+                        <button onClick={() => setShowScan(false)}><X className="h-3 w-3" /></button>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto divide-y divide-border/50">
+                        {scanned.filter((d) => !d.paired).map((d) => (
+                            <div key={d.address} className="flex items-center justify-between px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm">{deviceIcon(d.icon)}</span>
+                                    <div>
+                                        <p className="text-xs font-medium">{d.name || d.address}</p>
+                                        <p className="text-[10px] text-muted-foreground font-mono">{d.address}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setActionAddr(d.address); withFeedback(
+                                            btConnect.mutateAsync(d.address),
+                                            `${d.name || d.address} bağlanıyor…`,
+                                            "Bağlanılamadı"
+                                        ); setShowScan(false);
+                                    }}
+                                    disabled={btConnect.isPending && actionAddr === d.address}
+                                    className="rounded px-2 py-0.5 text-[10px] bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                                >
+                                    Bağlan
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Feedback */}
+            {feedback && (
+                <p className={`mt-2 rounded-md px-3 py-1.5 text-xs font-medium ${feedback.ok ? "bg-green-500/10 text-green-600" : "bg-destructive/10 text-destructive"
+                    }`}>
+                    {feedback.msg}
+                </p>
             )}
         </div>
     );
@@ -1038,8 +1178,7 @@ function StatusPill({ icon, label, color }: {
 
 function BatteryIcon({ pct, status }: { pct: number; status: string }) {
     if (status === "Charging") return <BatteryCharging className="h-3 w-3" />;
-    if (pct <= 20) return <BatteryLow className="h-3 w-3" />;
-    return <BatteryFull className="h-3 w-3" />;
+    return <BatteryCharging className={`h-3 w-3 ${pct <= 20 ? "text-destructive" : ""}`} />;
 }
 
 function InfoRow({ label, value, mono, icon }: {

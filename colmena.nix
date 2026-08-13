@@ -56,6 +56,13 @@ in
     nodeSpecialArgs = lib.mapAttrs (host: cfg: {
       inherit user inputs host;
       inherit (cfg) roles tags;
+      # Unstable pkgs (with gomod2nix overlay) for modules that require
+      # unstable-only features (e.g. fetchPnpmDeps in panel-frontend).
+      unstablePkgs = import inputs.nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+        overlays = [ inputs.gomod2nix.overlays.default ];
+      };
     }) servers;
   };
 }

@@ -52,7 +52,7 @@ in
         type = lib.types.attrsOf lib.types.str;
         default = { };
         example = {
-          server  = "aa:bb:cc:dd:ee:ff";
+          server = "aa:bb:cc:dd:ee:ff";
           builder = "11:22:33:44:55:66";
         };
         description = "Map of logical host names to MAC addresses for Wake-on-LAN.";

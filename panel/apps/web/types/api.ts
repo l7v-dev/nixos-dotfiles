@@ -79,6 +79,11 @@ export interface BluetoothDevice {
     name: string;
     address: string;
     connected: boolean;
+    paired: boolean;
+    trusted: boolean;
+    icon?: string;
+    battery_pct?: number;
+    rssi?: number;
 }
 
 export interface BluetoothStatus {

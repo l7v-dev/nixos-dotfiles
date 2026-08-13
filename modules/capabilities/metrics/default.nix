@@ -58,29 +58,28 @@
       # Previously nginx and postgres targets were unconditionally included,
       # which caused connection-refused errors on hosts without those roles
       # (e.g. the "observe" role has no reverseProxy or database capability).
-      scrapeConfigs =
-        [
-          {
-            job_name = "prometheus";
-            static_configs = [ { targets = [ "localhost:9090" ]; } ];
-          }
-          {
-            job_name = "node";
-            static_configs = [ { targets = [ "localhost:9100" ]; } ];
-          }
-          {
-            job_name = "systemd";
-            static_configs = [ { targets = [ "localhost:9558" ]; } ];
-          }
-        ]
-        ++ lib.optional config.l7v.reverseProxy.enable {
-          job_name = "nginx";
-          static_configs = [ { targets = [ "localhost:9113" ]; } ];
+      scrapeConfigs = [
+        {
+          job_name = "prometheus";
+          static_configs = [ { targets = [ "localhost:9090" ]; } ];
         }
-        ++ lib.optional config.l7v.database.enable {
-          job_name = "postgres";
-          static_configs = [ { targets = [ "localhost:9187" ]; } ];
-        };
+        {
+          job_name = "node";
+          static_configs = [ { targets = [ "localhost:9100" ]; } ];
+        }
+        {
+          job_name = "systemd";
+          static_configs = [ { targets = [ "localhost:9558" ]; } ];
+        }
+      ]
+      ++ lib.optional config.l7v.reverseProxy.enable {
+        job_name = "nginx";
+        static_configs = [ { targets = [ "localhost:9113" ]; } ];
+      }
+      ++ lib.optional config.l7v.database.enable {
+        job_name = "postgres";
+        static_configs = [ { targets = [ "localhost:9187" ]; } ];
+      };
     };
   };
 }

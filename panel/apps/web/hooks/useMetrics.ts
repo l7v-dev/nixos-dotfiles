@@ -130,6 +130,48 @@ export function useBluetooth() {
     return { ...query, toggle };
 }
 
+export function useBluetoothScan() {
+    const host = useHostStore((s) => s.selectedHost);
+    const queryClient = useQueryClient();
+    const query = useQuery<BluetoothStatus["devices"]>({
+        queryKey: ["bt-scan", host],
+        queryFn: () => fetchAgent<BluetoothStatus["devices"]>(host, "/api/v1/network/bluetooth/scan"),
+        enabled: false,
+        staleTime: 20_000,
+    });
+    return { ...query, scan: () => queryClient.invalidateQueries({ queryKey: ["bt-scan", host] }), refetch: query.refetch };
+}
+
+export function useBluetoothConnect() {
+    const host = useHostStore((s) => s.selectedHost);
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (address: string) =>
+            postAgent(host, `/api/v1/network/bluetooth/connect/${encodeURIComponent(address)}`),
+        onSettled: () => queryClient.invalidateQueries({ queryKey: ["bluetooth", host] }),
+    });
+}
+
+export function useBluetoothDisconnect() {
+    const host = useHostStore((s) => s.selectedHost);
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (address: string) =>
+            postAgent(host, `/api/v1/network/bluetooth/disconnect/${encodeURIComponent(address)}`),
+        onSettled: () => queryClient.invalidateQueries({ queryKey: ["bluetooth", host] }),
+    });
+}
+
+export function useBluetoothRemove() {
+    const host = useHostStore((s) => s.selectedHost);
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (address: string) =>
+            fetchAgent(host, `/api/v1/network/bluetooth/device/${encodeURIComponent(address)}`, { method: "DELETE" }),
+        onSettled: () => queryClient.invalidateQueries({ queryKey: ["bluetooth", host] }),
+    });
+}
+
 export function useWoLHosts() {
     const host = useHostStore((s) => s.selectedHost);
     return useQuery<WoLHost[]>({

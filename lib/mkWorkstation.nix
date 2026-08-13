@@ -9,6 +9,7 @@
   host,
   user,
   system ? "x86_64-linux",
+  extraOverlays ? [ ],
 }:
 let
   hostDir = ./../hosts/${host};
@@ -16,7 +17,14 @@ let
 in
 lib.nixosSystem {
   inherit system;
-  specialArgs = { inherit user inputs host; };
+  specialArgs = {
+    inherit user inputs host;
+    unstablePkgs = import pkgs {
+      inherit system;
+      config.allowUnfree = true;
+      overlays = extraOverlays;
+    };
+  };
   modules = [
     sops
     homeManager
@@ -33,6 +41,7 @@ lib.nixosSystem {
       nixpkgs.pkgs = import pkgs {
         inherit system;
         config.allowUnfree = true;
+        overlays = extraOverlays;
       };
     }
     (_: {

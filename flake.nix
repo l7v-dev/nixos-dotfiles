@@ -64,6 +64,13 @@
     llm-agents = {
       url = "github:numtide/llm-agents.nix";
     };
+
+    # gomod2nix: provides buildGoApplication for reproducible Go builds.
+    # Used by panel/nix/pkgs/panel-agent.
+    gomod2nix = {
+      url = "github:nix-community/gomod2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -109,6 +116,10 @@
       mkWorkstation = import ./lib/mkWorkstation.nix;
       mkServer = import ./lib/mkServer.nix;
 
+      # gomod2nix overlay: makes buildGoApplication available in pkgs.
+      # Required by panel/nix/module.nix → pkgs.callPackage ./pkgs/panel-agent { }.
+      gomod2nixOverlay = inputs.gomod2nix.overlays.default;
+
       commonArgs = {
         inherit lib inputs;
         pkgs = nixpkgs;
@@ -116,12 +127,21 @@
         sops = sops-nix.nixosModules.sops;
         user = "l7v";
         system = "x86_64-linux";
+        extraOverlays = [ gomod2nixOverlay ];
       };
 
       serverArgs = commonArgs // {
         inherit (nixpkgs-stable) lib;
         pkgs = nixpkgs-stable;
         homeManager = home-manager-stable.nixosModules.home-manager;
+        # Unstable pkgs (with gomod2nix overlay) passed so server modules that
+        # require unstable-only features (e.g. fetchPnpmDeps in panel-frontend)
+        # can use unstablePkgs instead of the stable pkgs set.
+        unstablePkgs = import nixpkgs {
+          system = "x86_64-linux";
+          config.allowUnfree = true;
+          overlays = [ gomod2nixOverlay ];
+        };
       };
     in
     {
@@ -145,9 +165,18 @@
 
       # Panel packages — exposed for standalone `nix build .#panel-agent` / `nix build .#panel-frontend`.
       # They are also pulled in via pkgs.callPackage in panel/nix/module.nix.
-      packages.x86_64-linux = {
-        panel-agent = (import nixpkgs { system = "x86_64-linux"; config.allowUnfree = true; }).callPackage ./panel/nix/pkgs/panel-agent { };
-        panel-frontend = (import nixpkgs { system = "x86_64-linux"; config.allowUnfree = true; }).callPackage ./panel/nix/pkgs/panel-frontend { };
-      };
+      packages.x86_64-linux =
+        let
+          pkgs = import nixpkgs {
+            system = "x86_64-linux";
+            config.allowUnfree = true;
+          };
+        in
+        {
+          panel-agent = pkgs.callPackage ./panel/nix/pkgs/panel-agent {
+            inherit (inputs.gomod2nix.legacyPackages.x86_64-linux) buildGoApplication;
+          };
+          panel-frontend = pkgs.callPackage ./panel/nix/pkgs/panel-frontend { };
+        };
     };
 }

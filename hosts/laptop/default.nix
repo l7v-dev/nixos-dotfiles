@@ -53,13 +53,13 @@
         battery = {
           governor = "powersave";
           energy_performance_preference = "power";
-          turbo = "auto";  # boost only under load
+          turbo = "auto"; # boost only under load
         };
         # On charger: maximize responsiveness, still let auto-cpufreq manage turbo.
         charger = {
           governor = "performance";
           energy_performance_preference = "performance";
-          turbo = "auto";  # auto vs always: avoids unnecessary heat when idle
+          turbo = "auto"; # auto vs always: avoids unnecessary heat when idle
         };
       };
     };
@@ -108,9 +108,9 @@
     # Explicit Mesa drivers prevent fallback to software rendering under Wayland/Niri.
     # libva + mesa.drivers enable VA-API hardware video decode (Firefox/mpv/vlc).
     extraPackages = with pkgs; [
-      mesa                 # includes radeonsi_drv_video.so — VA-API decode for AMD
-      libva                # Video Acceleration API runtime
-      libva-utils          # vainfo — debug VA-API support
+      mesa # includes radeonsi_drv_video.so — VA-API decode for AMD
+      libva # Video Acceleration API runtime
+      libva-utils # vainfo — debug VA-API support
       vulkan-loader
       vulkan-tools
     ];
@@ -123,9 +123,68 @@
 
   # Firefox: enable VA-API hardware video decode (AMD GPU).
   # Reduces CPU usage during video playback (YouTube etc.) by offloading to GPU.
-  programs.firefox.preferences = {
-    "media.ffmpeg.vaapi.enabled" = true;
-    "media.hardware-video-decoding.force-enabled" = true;
+  # nix-ld: provides a compatible dynamic linker for prebuilt binaries,
+  # distrobox-exported apps, and .deb extracts.
+  # GTK app settings storage
+  programs = {
+    firefox.preferences = {
+      "media.ffmpeg.vaapi.enabled" = true;
+      "media.hardware-video-decoding.force-enabled" = true;
+    };
+
+    nix-ld = {
+      enable = true;
+      libraries = with pkgs; [
+        stdenv.cc.cc
+        zlib
+        fuse3
+        alsa-lib
+        at-spi2-atk
+        at-spi2-core
+        cairo
+        cups
+        dbus
+        expat
+        fontconfig
+        freetype
+        gdk-pixbuf
+        glib
+        gtk3
+        gtk4
+        nspr
+        nss
+        openssl
+        pango
+        systemd
+        curl
+        icu
+        libxml2
+        libpng
+        libjpeg
+        libwebp
+        libvpx
+        libevdev
+        udev
+        mesa
+        vulkan-loader
+        libx11
+        libxcomposite
+        libxcursor
+        libxdamage
+        libxext
+        libxfixes
+        libxi
+        libxrandr
+        libxrender
+        libxtst
+        libxcb
+        libxkbfile
+        libxinerama
+        libxshmfence
+      ];
+    };
+
+    dconf.enable = true;
   };
 
   # Laptop-specific session variables only.
@@ -182,63 +241,6 @@
   # Docker
   virtualisation.docker.enable = true;
   # Note: the docker group is already added in infrastructure/identity/default.nix
-
-  # nix-ld: provides a compatible dynamic linker for prebuilt binaries,
-  # distrobox-exported apps, and .deb extracts.
-  programs.nix-ld = {
-    enable = true;
-    libraries = with pkgs; [
-      stdenv.cc.cc
-      zlib
-      fuse3
-      alsa-lib
-      at-spi2-atk
-      at-spi2-core
-      cairo
-      cups
-      dbus
-      expat
-      fontconfig
-      freetype
-      gdk-pixbuf
-      glib
-      gtk3
-      gtk4
-      nspr
-      nss
-      openssl
-      pango
-      systemd
-      curl
-      icu
-      libxml2
-      libpng
-      libjpeg
-      libwebp
-      libvpx
-      libevdev
-      udev
-      mesa
-      vulkan-loader
-      libx11
-      libxcomposite
-      libxcursor
-      libxdamage
-      libxext
-      libxfixes
-      libxi
-      libxrandr
-      libxrender
-      libxtst
-      libxcb
-      libxkbfile
-      libxinerama
-      libxshmfence
-    ];
-  };
-
-  # GTK app settings storage
-  programs.dconf.enable = true;
 
   environment.systemPackages = with pkgs; [
     manix # nixpkgs documentation search
