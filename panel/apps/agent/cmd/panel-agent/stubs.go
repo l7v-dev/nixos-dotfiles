@@ -39,6 +39,26 @@ type stubLogind struct{}
 func (s *stubLogind) PowerOff(_ context.Context) error    { return errors.New("stub: logind not implemented") }
 func (s *stubLogind) Reboot(_ context.Context) error      { return errors.New("stub: logind not implemented") }
 func (s *stubLogind) Suspend(_ context.Context) error     { return errors.New("stub: logind not implemented") }
+func (s *stubLogind) Hibernate(_ context.Context) error   { return errors.New("stub: logind not implemented") }
+func (s *stubLogind) HybridSleep(_ context.Context) error { return errors.New("stub: logind not implemented") }
+func (s *stubLogind) GetCapabilities(_ context.Context) (*dbus.PowerCapabilities, error) {
+	return &dbus.PowerCapabilities{
+		CanPowerOff:    true,
+		CanReboot:      true,
+		CanSuspend:     true,
+		CanHibernate:   false,
+		CanHybridSleep: false,
+	}, nil
+}
+func (s *stubLogind) ScheduleShutdown(_ context.Context, _ string, _ uint64) error {
+	return nil
+}
+func (s *stubLogind) CancelScheduledShutdown(_ context.Context) error {
+	return nil
+}
+func (s *stubLogind) GetScheduledShutdown(_ context.Context) (*dbus.ScheduledShutdownInfo, error) {
+	return &dbus.ScheduledShutdownInfo{Scheduled: false}, nil
+}
 func (s *stubLogind) HealthCheck(_ context.Context) error { return errors.New("stub: logind not implemented") }
 
 // --- Network stub ---
@@ -52,6 +72,18 @@ func (s *stubNetwork) GetWifiStatus(_ context.Context) (*dbus.WifiStatus, error)
 func (s *stubNetwork) ToggleWifi(_ context.Context) error {
 	return errors.New("stub: network not implemented")
 }
+func (s *stubNetwork) ScanWifi(_ context.Context) ([]dbus.AccessPoint, error) {
+	return []dbus.AccessPoint{}, nil
+}
+func (s *stubNetwork) ConnectWifi(_ context.Context, _, _ string) error {
+	return errors.New("stub: network not implemented")
+}
+func (s *stubNetwork) DisconnectWifi(_ context.Context) error {
+	return errors.New("stub: network not implemented")
+}
+func (s *stubNetwork) GetSavedConnections(_ context.Context) ([]dbus.SavedConnection, error) {
+	return []dbus.SavedConnection{}, nil
+}
 
 // --- Bluetooth stub ---
 
@@ -61,6 +93,18 @@ func (s *stubBluetooth) GetBluetoothStatus(_ context.Context) (*dbus.BluetoothSt
 	return &dbus.BluetoothStatus{Enabled: false, Devices: []dbus.BTDevice{}}, nil
 }
 func (s *stubBluetooth) ToggleBluetooth(_ context.Context) error {
+	return errors.New("stub: bluetooth not implemented")
+}
+func (s *stubBluetooth) ScanDevices(_ context.Context) ([]dbus.BTDevice, error) {
+	return []dbus.BTDevice{}, nil
+}
+func (s *stubBluetooth) ConnectDevice(_ context.Context, _ string) error {
+	return errors.New("stub: bluetooth not implemented")
+}
+func (s *stubBluetooth) DisconnectDevice(_ context.Context, _ string) error {
+	return errors.New("stub: bluetooth not implemented")
+}
+func (s *stubBluetooth) RemoveDevice(_ context.Context, _ string) error {
 	return errors.New("stub: bluetooth not implemented")
 }
 

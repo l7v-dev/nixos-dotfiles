@@ -10,7 +10,9 @@
   lib,
   stdenv,
   nodejs_22,
-  pnpm_9,
+  pnpm,
+  pnpmConfigHook,
+  fetchPnpmDeps,
   makeWrapper,
 }:
 
@@ -23,23 +25,20 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [
     nodejs_22
-    pnpm_9
+    pnpm
+    pnpmConfigHook
     makeWrapper
   ];
 
-  # Pre-fetch pnpm deps offline.
-  # Hash: run `nix run nixpkgs#prefetch-pnpm-deps -- l7v-panel/apps/web/pnpm-lock.yaml`
-  pnpmDeps = pnpm_9.fetchDeps {
+  pnpmDeps = fetchPnpmDeps {
     inherit pname version src;
-    # Set to null initially; replace after running prefetch-pnpm-deps.
-    hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    fetcherVersion = 4;
+    hash = "sha256-wSR9GwJH+1DNGJaDIenfRs1vzaBBYbmfRinflkMEnUs=";
   };
 
   buildPhase = ''
     runHook preBuild
     export HOME=$TMPDIR
-    # Install dependencies from the offline store.
-    pnpm install --frozen-lockfile --offline
     # Build only the web app workspace.
     pnpm --filter @l7v-panel/web run build
     runHook postBuild
@@ -60,6 +59,9 @@ stdenv.mkDerivation rec {
     if [ -d apps/web/public ]; then
       cp -r apps/web/public $out/apps/web/public
     fi
+
+    # Next.js emits server.js without execute bit; set it before wrapping.
+    chmod +x $out/apps/web/server.js
 
     # Wrap server.js so it can be executed directly with Node.js in PATH.
     wrapProgram $out/apps/web/server.js \

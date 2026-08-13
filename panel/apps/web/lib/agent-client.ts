@@ -36,9 +36,12 @@ export async function fetchAgent<T>(
 }
 
 /**
- * Posts to the agent without expecting a specific response body.
- * Used for fire-and-forget mutations (power control, toggles).
+ * Posts to the agent. Optionally accepts a JSON body.
+ * Used for mutations (power control, toggles, WoL).
  */
-export async function postAgent<T>(host: string, path: string): Promise<T> {
-    return fetchAgent<T>(host, path, { method: "POST" });
+export async function postAgent<T>(host: string, path: string, body?: unknown): Promise<T> {
+    return fetchAgent<T>(host, path, {
+        method: "POST",
+        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    });
 }

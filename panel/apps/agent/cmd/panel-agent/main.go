@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net"
 	"net/http"
@@ -91,6 +92,7 @@ func main() {
 		Logger:     logger,
 		Version:    version,
 		Thresholds: thresholds,
+		WoLHosts:   parseWoLHosts(os.Getenv("PANEL_WOL_HOSTS")),
 	}
 
 	srv := &http.Server{Handler: api.NewRouter(deps)}
@@ -129,4 +131,18 @@ func envInt(key string, defaultVal int) int {
 		return defaultVal
 	}
 	return n
+}
+
+// parseWoLHosts parses PANEL_WOL_HOSTS env var.
+// Expected format: JSON object {"server":"aa:bb:cc:dd:ee:ff","builder":"11:22:33:44:55:66"}
+// Returns an empty map on parse error or empty input.
+func parseWoLHosts(raw string) map[string]string {
+	hosts := make(map[string]string)
+	if raw == "" {
+		return hosts
+	}
+	if err := json.Unmarshal([]byte(raw), &hosts); err != nil {
+		return hosts
+	}
+	return hosts
 }

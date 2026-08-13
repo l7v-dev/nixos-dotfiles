@@ -14,9 +14,9 @@
 
   outputs =
     {
-      self,
       nixpkgs,
       gomod2nix,
+      ...
     }:
     let
       system = "x86_64-linux";
@@ -45,9 +45,11 @@
       };
 
       packages.${system} = {
-        # Panel agent Go binary — built from local source.
-        # Update vendorHash after running: cd apps/agent && gomod2nix generate
-        panel-agent = pkgs.callPackage ./nix/pkgs/panel-agent { };
+        # Panel agent Go binary — built with gomod2nix for reproducible builds.
+        # Regenerate lock after dep changes: cd apps/agent && gomod2nix generate
+        panel-agent = pkgs.callPackage ./nix/pkgs/panel-agent {
+          inherit (gomod2nix.legacyPackages.${system}) buildGoApplication;
+        };
 
         # Panel frontend Next.js app — built from local source.
         # Update pnpmDeps hash after: nix run nixpkgs#prefetch-pnpm-deps -- pnpm-lock.yaml

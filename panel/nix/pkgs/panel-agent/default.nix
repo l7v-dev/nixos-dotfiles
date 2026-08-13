@@ -5,13 +5,15 @@
 #   cd l7v-panel/apps/agent
 #   go mod tidy
 #   gomod2nix generate   # regenerates gomod2nix.toml
-#   Update vendorHash below with the output.
+#   nix build .#panel-agent  # verify build succeeds
 {
   lib,
-  buildGoModule,
+  buildGoApplication,
+  systemd,
+  pkg-config,
 }:
 
-buildGoModule rec {
+buildGoApplication rec {
   pname = "panel-agent";
   version = "0.1.0";
 
@@ -19,9 +21,13 @@ buildGoModule rec {
   # nix build always uses the working-tree version.
   src = lib.cleanSource ../../../apps/agent;
 
-  # Populated after running: cd l7v-panel/apps/agent && gomod2nix generate
-  # Set to null initially; replace with the sha256 from gomod2nix generate output.
-  vendorHash = null;
+  # gomod2nix.toml is read by buildGoApplication for reproducible Go builds.
+  # Regenerate with: cd apps/agent && gomod2nix generate
+  modules = ./gomod2nix.toml;
+
+  # CGO dependencies: go-systemd requires sd-journal.h from systemd dev headers.
+  nativeBuildInputs = [ pkg-config ];
+  buildInputs = [ systemd ];
 
   # Inject version at build time.
   ldflags = [

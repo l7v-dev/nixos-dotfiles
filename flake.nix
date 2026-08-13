@@ -142,5 +142,12 @@
       colmena = import ./colmena.nix { inherit inputs servers; };
 
       lib.l7v = { inherit mkWorkstation mkServer; };
+
+      # Panel packages — exposed for standalone `nix build .#panel-agent` / `nix build .#panel-frontend`.
+      # They are also pulled in via pkgs.callPackage in panel/nix/module.nix.
+      packages.x86_64-linux = {
+        panel-agent = (import nixpkgs { system = "x86_64-linux"; config.allowUnfree = true; }).callPackage ./panel/nix/pkgs/panel-agent { };
+        panel-frontend = (import nixpkgs { system = "x86_64-linux"; config.allowUnfree = true; }).callPackage ./panel/nix/pkgs/panel-frontend { };
+      };
     };
 }

@@ -59,6 +59,22 @@ export interface WifiStatus {
     ip_address: string | null;
 }
 
+export interface AccessPoint {
+    ssid: string;
+    bssid: string;
+    signal_dbm: number;
+    security: "open" | "wep" | "wpa2" | "wpa3";
+    freq_mhz: number;
+    band: "2.4GHz" | "5GHz" | "6GHz";
+    active: boolean;
+}
+
+export interface SavedConnection {
+    id: string;
+    uuid: string;
+    ssid: string;
+}
+
 export interface BluetoothDevice {
     name: string;
     address: string;
@@ -81,6 +97,48 @@ export interface HealthResponse {
     status: "ok" | "degraded";
     version?: string;
     message?: string;
+}
+
+export interface PowerCapabilities {
+    can_power_off: boolean;
+    can_reboot: boolean;
+    can_suspend: boolean;
+    can_hibernate: boolean;
+    can_hybrid_sleep: boolean;
+}
+
+export interface WoLHost {
+    name: string;
+    mac: string;
+}
+
+export interface WoLResponse {
+    mac: string;
+    broadcast: string;
+    port: number;
+    status: string;
+}
+
+export interface BatteryInfo {
+    name: string;
+    status: "Charging" | "Discharging" | "Full" | "Unknown" | string;
+    capacity_pct: number;
+    energy_now_uwh?: number;
+    energy_full_uwh?: number;
+    power_now_uw?: number;
+    time_remaining_min?: number;
+}
+
+export interface PowerStatus {
+    ac_online: boolean;
+    batteries: BatteryInfo[];
+}
+
+export interface ScheduledShutdownInfo {
+    scheduled: boolean;
+    action?: string;
+    execute_at?: string;   // RFC3339
+    remaining_min?: number;
 }
 
 export interface AgentError {

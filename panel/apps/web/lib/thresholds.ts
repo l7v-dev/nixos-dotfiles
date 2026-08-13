@@ -19,13 +19,14 @@ export function classifyThreshold(
 }
 
 export const THRESHOLD_COLORS: Record<ThresholdLevel, string> = {
-    green: "text-green-600 dark:text-green-400",
-    amber: "text-amber-500 dark:text-amber-400",
-    red: "text-red-600 dark:text-red-400",
+    green: "text-primary",
+    amber: "text-orange-400",
+    red: "text-destructive",
 };
 
 export const THRESHOLD_BG: Record<ThresholdLevel, string> = {
-    green: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-    amber: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300",
-    red: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+    green: "bg-primary/15 text-primary",
+    amber: "bg-orange-400/15 text-orange-400",
+    red: "bg-destructive/15 text-destructive",
 };
+

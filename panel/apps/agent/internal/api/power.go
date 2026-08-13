@@ -6,7 +6,7 @@ import (
 )
 
 // powerHandler handles POST /api/v1/power/{action}.
-// action is one of: shutdown, reboot, sleep.
+// action is one of: shutdown, reboot, sleep, hibernate, hybrid-sleep.
 func powerHandler(d Deps, action string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var err error
@@ -17,6 +17,10 @@ func powerHandler(d Deps, action string) http.HandlerFunc {
 			err = d.Logind.Reboot(r.Context())
 		case "sleep":
 			err = d.Logind.Suspend(r.Context())
+		case "hibernate":
+			err = d.Logind.Hibernate(r.Context())
+		case "hybrid-sleep":
+			err = d.Logind.HybridSleep(r.Context())
 		default:
 			writeError(w, http.StatusBadRequest, map[string]string{
 				"action":  action,
@@ -39,5 +43,22 @@ func powerHandler(d Deps, action string) http.HandlerFunc {
 			"action": action,
 			"status": "initiated",
 		})
+	}
+}
+
+// powerCapabilitiesHandler handles GET /api/v1/power/capabilities.
+// Returns which power actions are supported on this host.
+func powerCapabilitiesHandler(d Deps) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		caps, err := d.Logind.GetCapabilities(r.Context())
+		if err != nil {
+			writeError(w, http.StatusServiceUnavailable, map[string]string{
+				"message": err.Error(),
+			})
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(caps) //nolint:errcheck
 	}
 }

@@ -3,6 +3,7 @@ import {
     getForgejoStats,
     getVaultwardenHealth,
 } from "@/actions/forgejo";
+import { NtfyForm } from "@/components/integrations/NtfyForm";
 
 export default function IntegrationsPage() {
     return (
@@ -14,6 +15,9 @@ export default function IntegrationsPage() {
                 </Suspense>
                 <Suspense fallback={<SkeletonCard title="Vaultwarden" />}>
                     <VaultwardenCard />
+                </Suspense>
+                <Suspense fallback={<SkeletonCard title="ntfy" />}>
+                    <NtfyForm />
                 </Suspense>
             </div>
         </div>
