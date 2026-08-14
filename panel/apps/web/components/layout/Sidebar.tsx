@@ -1,63 +1,46 @@
 "use client";
 
+import React from "react";
 import {
-    LayoutDashboard,
-    List,
     ScrollText,
     BarChart2,
-    Plug,
     Gauge,
     Terminal,
     Boxes,
+    Server,
+    AppWindow,
     PanelLeftClose,
     PanelLeftOpen,
 } from "lucide-react";
 import { NavItem } from "@/components/layout/NavItem";
+import { NavDropdown } from "@/components/layout/NavDropdown";
 import { useSidebarStore } from "@/store/sidebar-store";
 
 const monitoringNav = [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/monitoring", label: "Monitoring", icon: BarChart2 },
     { href: "/logs", label: "Logs", icon: ScrollText },
 ];
 
-const managementNav = [
-    { href: "/apps", label: "Applications", icon: Boxes },
+const directManagementNav = [
+    { href: "/containers", label: "Containers", icon: Boxes },
     { href: "/cockpit", label: "Cockpit", icon: Gauge },
     { href: "/terminal", label: "Terminal", icon: Terminal },
-    { href: "/services", label: "Services", icon: List },
-    { href: "/integrations", label: "Integrations", icon: Plug },
 ];
 
-function NavGroup({
-    label,
-    items,
-    collapsed,
-}: {
-    label: string;
-    items: typeof monitoringNav;
-    collapsed: boolean;
-}) {
-    return (
-        <div className="space-y-0.5">
-            {!collapsed && (
-                <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-                    {label}
-                </p>
-            )}
-            {collapsed && <div className="mb-1 mx-3 h-px bg-border/50" />}
-            {items.map(({ href, label, icon: Icon }) => (
-                <NavItem
-                    key={href}
-                    href={href}
-                    label={label}
-                    icon={<Icon className="h-4 w-4" />}
-                    collapsed={collapsed}
-                />
-            ))}
-        </div>
-    );
-}
+const applicationSubItems = [
+    {
+        href: "/apps?tab=apps",
+        tab: "apps",
+        label: "Uygulamalar",
+        icon: <AppWindow className="h-3.5 w-3.5" />,
+    },
+    {
+        href: "/apps?tab=services",
+        tab: "services",
+        label: "Servisler",
+        icon: <Server className="h-3.5 w-3.5" />,
+    },
+];
 
 export function Sidebar() {
     const { collapsed, toggle } = useSidebarStore();
@@ -109,8 +92,54 @@ export function Sidebar() {
 
             {/* ── Navigation ── */}
             <nav className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-2 py-4">
-                <NavGroup label="Monitor" items={monitoringNav} collapsed={collapsed} />
-                <NavGroup label="Manage" items={managementNav} collapsed={collapsed} />
+                {/* Monitor Group */}
+                <div className="space-y-0.5">
+                    {!collapsed && (
+                        <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                            Monitor
+                        </p>
+                    )}
+                    {collapsed && <div className="mb-1 mx-3 h-px bg-border/50" />}
+                    {monitoringNav.map(({ href, label, icon: Icon }) => (
+                        <NavItem
+                            key={href}
+                            href={href}
+                            label={label}
+                            icon={<Icon className="h-4 w-4" />}
+                            collapsed={collapsed}
+                        />
+                    ))}
+                </div>
+
+                {/* Manage Group */}
+                <div className="space-y-0.5">
+                    {!collapsed && (
+                        <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                            Manage
+                        </p>
+                    )}
+                    {collapsed && <div className="mb-1 mx-3 h-px bg-border/50" />}
+
+                    {/* Applications Dropdown */}
+                    <NavDropdown
+                        label="Applications"
+                        baseHref="/apps"
+                        icon={<Boxes className="h-4 w-4" />}
+                        items={applicationSubItems}
+                        collapsed={collapsed}
+                    />
+
+                    {/* Cockpit & Terminal */}
+                    {directManagementNav.map(({ href, label, icon: Icon }) => (
+                        <NavItem
+                            key={href}
+                            href={href}
+                            label={label}
+                            icon={<Icon className="h-4 w-4" />}
+                            collapsed={collapsed}
+                        />
+                    ))}
+                </div>
             </nav>
 
             {/* ── Footer / expand button when collapsed ── */}

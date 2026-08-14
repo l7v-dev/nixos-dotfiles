@@ -9,13 +9,11 @@ import { usePathname } from "next/navigation";
 import { HostSelector } from "@/components/shared/HostSelector";
 
 const PAGE_LABELS: Record<string, string> = {
-    "/": "Dashboard",
+    "/monitoring": "Monitoring",
+    "/logs": "Logs",
+    "/apps": "Applications",
     "/cockpit": "Cockpit",
     "/terminal": "Terminal",
-    "/services": "Services",
-    "/logs": "Logs",
-    "/monitoring": "Monitoring",
-    "/integrations": "Integrations",
 };
 
 export function Header() {

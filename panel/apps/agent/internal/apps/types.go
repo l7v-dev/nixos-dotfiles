@@ -2,15 +2,26 @@ package apps
 
 import "time"
 
-// AppCategory classifies applications and workloads.
+// AppCategory classifies enterprise server applications and workloads.
 type AppCategory string
 
 const (
-	CategoryCoreService AppCategory = "core_service"
-	CategoryAIAgent     AppCategory = "ai_agent"
-	CategoryMicroVM     AppCategory = "microvm"
-	CategoryDevTool     AppCategory = "dev_tool"
-	CategoryDesktopCap  AppCategory = "desktop_capability"
+	CategoryIngressNetwork AppCategory = "ingress_network"
+	CategoryCorePlatform   AppCategory = "core_platform"
+	CategoryObservability  AppCategory = "observability"
+	CategoryDatabase       AppCategory = "database"
+	CategoryAIWorkload     AppCategory = "ai_workload"
+	CategoryCICDAuto       AppCategory = "cicd_automation"
+	CategoryBackupDR       AppCategory = "backup_dr"
+)
+
+// AccessLevel defines how the application or service is reached remotely.
+type AccessLevel string
+
+const (
+	AccessPublicHTTPS   AccessLevel = "public_https"   // Public SSL ingress via Nginx (FQDN)
+	AccessTailscaleMesh AccessLevel = "tailscale_mesh" // Zero-trust WireGuard mesh only
+	AccessInternalOnly  AccessLevel = "internal_only"  // Localhost / Unix socket only
 )
 
 // AppStatus describes the runtime health and activity of an application.
@@ -36,10 +47,11 @@ const (
 
 // AppEndpoint represents a network or web interface exposed by the application.
 type AppEndpoint struct {
-	Type     string `json:"type"`               // "http", "https", "tcp", "unix"
-	URL      string `json:"url,omitempty"`      // e.g. "https://git.l7v.dev"
-	Port     int    `json:"port,omitempty"`     // e.g. 3000
-	Internal bool   `json:"internal,omitempty"` // true if internal/local only
+	Type        string      `json:"type"`                   // "http", "https", "tcp", "unix"
+	URL         string      `json:"url,omitempty"`          // e.g. "https://git.l7v.dev"
+	Port        int         `json:"port,omitempty"`         // e.g. 3000
+	AccessLevel AccessLevel `json:"access_level,omitempty"` // "public_https", "tailscale_mesh", "internal_only"
+	Internal    bool        `json:"internal,omitempty"`     // true if internal/local only
 }
 
 // AppMetrics holds runtime cgroup v2 resource telemetry.
@@ -69,6 +81,7 @@ type Application struct {
 	Description  string        `json:"description"`
 	Category     AppCategory   `json:"category"`
 	Status       AppStatus     `json:"status"`
+	AccessLevel  AccessLevel   `json:"access_level"`
 	SystemdUnit  string        `json:"systemd_unit,omitempty"`
 	BinaryName   string        `json:"binary_name,omitempty"`
 	SandboxTier  SandboxTier   `json:"sandbox_tier"`
@@ -125,6 +138,7 @@ type DependencyNode struct {
 	Name        string      `json:"name"`
 	Category    AppCategory `json:"category"`
 	Status      AppStatus   `json:"status"`
+	AccessLevel AccessLevel `json:"access_level"`
 	SystemdUnit string      `json:"systemd_unit,omitempty"`
 }
 

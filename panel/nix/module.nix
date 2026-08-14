@@ -76,6 +76,21 @@ in
         description = "Enable the /api/v1/metrics/query Prometheus proxy endpoint.";
       };
 
+      containers = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          description = "Enable container management subsystem (Podman / Docker).";
+        };
+
+        socketPath = lib.mkOption {
+          type = lib.types.str;
+          default = "";
+          example = "/run/podman/podman.sock";
+          description = "Explicit container engine socket path (leave empty for auto-detection).";
+        };
+      };
+
       metricsThresholds = {
         cpuWarnPct = lib.mkOption {
           type = lib.types.int;
@@ -262,6 +277,7 @@ in
               "PANEL_DISK_CRIT=${toString agentCfg.metricsThresholds.diskCritPct}"
               "PANEL_PROMETHEUS_WIDGET=${if agentCfg.prometheusWidget then "1" else "0"}"
               "PANEL_WOL_HOSTS=${builtins.toJSON agentCfg.wolHosts}"
+              "PANEL_CONTAINER_SOCKET=${agentCfg.containers.socketPath}"
             ];
           };
         };

@@ -1,11 +1,18 @@
-// Application Manager Type Definitions matching Go agent internal/apps JSON output exactly.
+// Enterprise Application & Ingress Type Definitions matching Go agent internal/apps JSON output exactly.
 
 export type AppCategory =
-    | "core_service"
-    | "ai_agent"
-    | "microvm"
-    | "dev_tool"
-    | "desktop_capability";
+    | "ingress_network"
+    | "core_platform"
+    | "observability"
+    | "database"
+    | "ai_workload"
+    | "cicd_automation"
+    | "backup_dr";
+
+export type AccessLevel =
+    | "public_https"
+    | "tailscale_mesh"
+    | "internal_only";
 
 export type AppStatus =
     | "running"
@@ -17,9 +24,10 @@ export type AppStatus =
 export type SandboxTier = 0 | 1 | 2 | 3;
 
 export interface AppEndpoint {
-    type: "http" | "https" | "tcp" | "unix" | string;
+    type: "http" | "https" | "tcp" | "unix" | "ssh" | string;
     url?: string;
     port?: number;
+    access_level?: AccessLevel;
     internal?: boolean;
 }
 
@@ -47,6 +55,7 @@ export interface Application {
     description: string;
     category: AppCategory;
     status: AppStatus;
+    access_level: AccessLevel;
     systemd_unit?: string;
     binary_name?: string;
     sandbox_tier: SandboxTier;
@@ -98,6 +107,7 @@ export interface DependencyNode {
     name: string;
     category: AppCategory;
     status: AppStatus;
+    access_level: AccessLevel;
     systemd_unit?: string;
 }
 

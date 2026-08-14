@@ -25,9 +25,20 @@ buildGoApplication rec {
   # Regenerate with: cd apps/agent && gomod2nix generate
   modules = ./gomod2nix.toml;
 
-  # CGO dependencies: go-systemd requires sd-journal.h from systemd dev headers.
+  # CGO dependencies: go-systemd requires sd-journal.h from systemd dev headers and libsystemd.so.
   nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ systemd ];
+  buildInputs = [
+    (lib.getDev systemd)
+    (lib.getLib systemd)
+  ];
+
+  CGO_ENABLED = 1;
+  CGO_CFLAGS = "-I${lib.getDev systemd}/include";
+  CGO_LDFLAGS = "-L${lib.getLib systemd}/lib -Wl,-rpath,${lib.getLib systemd}/lib -lsystemd";
+
+  preCheck = ''
+    export LD_LIBRARY_PATH="${lib.getLib systemd}/lib''${LD_LIBRARY_PATH:+:$$LD_LIBRARY_PATH}"
+  '';
 
   # Inject version at build time.
   ldflags = [

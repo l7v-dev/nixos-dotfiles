@@ -6,6 +6,7 @@ import (
 
 	"github.com/l7v/panel-agent/internal/apps"
 	"github.com/l7v/panel-agent/internal/audio"
+	"github.com/l7v/panel-agent/internal/containers"
 	"github.com/l7v/panel-agent/internal/dbus"
 	"github.com/l7v/panel-agent/internal/display"
 	"github.com/l7v/panel-agent/internal/hardware"
@@ -40,6 +41,7 @@ type Deps struct {
 	TerminalManager  terminalManagerClient
 	AppsEngine       apps.Engine
 	AppsController   apps.LifecycleController
+	ContainerManager containers.Manager
 }
 
 // terminalManagerClient interface for dependency injection & testing
@@ -95,6 +97,38 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("GET /api/v1/apps/{id}", getAppHandler(d))
 	mux.Handle("POST /api/v1/apps/{id}/action", appActionHandler(d))
 	mux.Handle("GET /api/v1/apps/{id}/logs", appLogsStreamHandler(d))
+
+	// Container & OCI Management (Podman / Docker)
+	mux.Handle("GET /api/v1/containers", listContainersHandler(d))
+	mux.Handle("GET /api/v1/containers/summary", containerOverviewHandler(d))
+	mux.Handle("POST /api/v1/containers", createContainerHandler(d))
+	mux.Handle("POST /api/v1/containers/bulk-action", bulkContainerActionHandler(d))
+	mux.Handle("GET /api/v1/containers/stacks", listStacksHandler(d))
+	mux.Handle("GET /api/v1/containers/images", listImagesHandler(d))
+	mux.Handle("POST /api/v1/containers/images/pull", pullImageHandler(d))
+	mux.Handle("POST /api/v1/containers/images/prune", pruneImagesHandler(d))
+	mux.Handle("DELETE /api/v1/containers/images/{id}", removeImageHandler(d))
+	mux.Handle("GET /api/v1/containers/volumes", listVolumesHandler(d))
+	mux.Handle("POST /api/v1/containers/volumes", createVolumeHandler(d))
+	mux.Handle("POST /api/v1/containers/volumes/prune", pruneVolumesHandler(d))
+	mux.Handle("DELETE /api/v1/containers/volumes/{name}", removeVolumeHandler(d))
+	mux.Handle("GET /api/v1/containers/networks", listNetworksHandler(d))
+	mux.Handle("POST /api/v1/containers/networks", createNetworkHandler(d))
+	mux.Handle("DELETE /api/v1/containers/networks/{id}", removeNetworkHandler(d))
+	mux.Handle("POST /api/v1/containers/networks/{id}/connect", connectNetworkHandler(d))
+	mux.Handle("POST /api/v1/containers/networks/{id}/disconnect", disconnectNetworkHandler(d))
+	mux.Handle("GET /api/v1/containers/{id}", getContainerHandler(d))
+	mux.Handle("POST /api/v1/containers/{id}/start", containerActionHandler(d, "start"))
+	mux.Handle("POST /api/v1/containers/{id}/stop", containerActionHandler(d, "stop"))
+	mux.Handle("POST /api/v1/containers/{id}/restart", containerActionHandler(d, "restart"))
+	mux.Handle("POST /api/v1/containers/{id}/pause", containerActionHandler(d, "pause"))
+	mux.Handle("POST /api/v1/containers/{id}/unpause", containerActionHandler(d, "unpause"))
+	mux.Handle("POST /api/v1/containers/{id}/kill", containerActionHandler(d, "kill"))
+	mux.Handle("DELETE /api/v1/containers/{id}", removeContainerHandler(d))
+	mux.Handle("GET /api/v1/containers/{id}/stats", containerStatsStreamHandler(d))
+	mux.Handle("GET /api/v1/containers/{id}/logs", containerLogsStreamHandler(d))
+	mux.Handle("POST /api/v1/containers/{id}/exec", createContainerExecHandler(d))
+	mux.Handle("GET /api/v1/containers/exec/{execId}/ws", containerExecWSHandler(d))
 
 	// Power control (D-Bus logind)
 	mux.Handle("GET /api/v1/power/capabilities", powerCapabilitiesHandler(d))

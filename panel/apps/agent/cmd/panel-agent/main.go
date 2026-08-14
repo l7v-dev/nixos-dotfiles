@@ -17,6 +17,7 @@ import (
 	"github.com/coreos/go-systemd/v22/activation"
 	"github.com/l7v/panel-agent/internal/api"
 	"github.com/l7v/panel-agent/internal/audio"
+	"github.com/l7v/panel-agent/internal/containers"
 	agentdbus "github.com/l7v/panel-agent/internal/dbus"
 	"github.com/l7v/panel-agent/internal/display"
 	"github.com/l7v/panel-agent/internal/hardware"
@@ -120,6 +121,8 @@ func main() {
 
 	termManager := terminal.NewSessionManager(logger)
 
+	containerMgr := containers.NewManager(os.Getenv("PANEL_CONTAINER_SOCKET"), logger)
+
 	deps := api.Deps{
 		Systemd:          systemd,
 		Logind:           logind,
@@ -139,6 +142,7 @@ func main() {
 		WoLHosts:         parseWoLHosts(os.Getenv("PANEL_WOL_HOSTS")),
 		PrometheusWidget: os.Getenv("PANEL_PROMETHEUS_WIDGET") == "1",
 		TerminalManager:  termManager,
+		ContainerManager: containerMgr,
 	}
 
 	srv := &http.Server{Handler: api.NewRouter(deps)}

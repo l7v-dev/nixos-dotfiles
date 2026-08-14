@@ -25,10 +25,14 @@ type discoveryEngine struct {
 
 // NewEngine creates a new application discovery engine.
 func NewEngine(systemd dbus.SystemdClient) Engine {
+	cat := GetRegisteredCatalog()
+	if manifests, err := LoadManifestsFromDir(DefaultManifestDir); err == nil && len(manifests) > 0 {
+		cat = append(cat, manifests...)
+	}
 	return &discoveryEngine{
 		systemd:       systemd,
 		cgroups:       NewCgroupsReader(),
-		customCatalog: defaultCatalog,
+		customCatalog: cat,
 	}
 }
 
@@ -128,11 +132,13 @@ func (e *discoveryEngine) GetSummary(ctx context.Context) (*AppsSummary, error) 
 	}
 
 	// Ensure all standard categories exist in summary
-	initCat(CategoryCoreService)
-	initCat(CategoryAIAgent)
-	initCat(CategoryMicroVM)
-	initCat(CategoryDevTool)
-	initCat(CategoryDesktopCap)
+	initCat(CategoryIngressNetwork)
+	initCat(CategoryCorePlatform)
+	initCat(CategoryObservability)
+	initCat(CategoryDatabase)
+	initCat(CategoryAIWorkload)
+	initCat(CategoryCICDAuto)
+	initCat(CategoryBackupDR)
 
 	for _, a := range apps {
 		cs := initCat(a.Category)
@@ -186,6 +192,7 @@ func (e *discoveryEngine) GetDependencyGraph(ctx context.Context) (*DependencyGr
 			Name:        a.Name,
 			Category:    a.Category,
 			Status:      a.Status,
+			AccessLevel: a.AccessLevel,
 			SystemdUnit: a.SystemdUnit,
 		})
 		if a.SystemdUnit != "" {

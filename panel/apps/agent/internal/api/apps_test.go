@@ -64,15 +64,15 @@ func TestListAppsEndpoint(t *testing.T) {
 	}
 
 	// Test category filter
-	reqFilter := httptest.NewRequest("GET", "/api/v1/apps?category=core_service", nil)
+	reqFilter := httptest.NewRequest("GET", "/api/v1/apps?category=core_platform", nil)
 	recFilter := httptest.NewRecorder()
 	router.ServeHTTP(recFilter, reqFilter)
 
 	var filtered []apps.Application
 	json.Unmarshal(recFilter.Body.Bytes(), &filtered)
 	for _, a := range filtered {
-		if a.Category != apps.CategoryCoreService {
-			t.Errorf("Expected all to be core_service, got %s", a.Category)
+		if a.Category != apps.CategoryCorePlatform {
+			t.Errorf("Expected all to be core_platform, got %s", a.Category)
 		}
 	}
 }
