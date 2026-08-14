@@ -8,6 +8,7 @@ import {
     Plug,
     Gauge,
     Terminal,
+    Boxes,
     PanelLeftClose,
     PanelLeftOpen,
 } from "lucide-react";
@@ -21,6 +22,7 @@ const monitoringNav = [
 ];
 
 const managementNav = [
+    { href: "/apps", label: "Applications", icon: Boxes },
     { href: "/cockpit", label: "Cockpit", icon: Gauge },
     { href: "/terminal", label: "Terminal", icon: Terminal },
     { href: "/services", label: "Services", icon: List },

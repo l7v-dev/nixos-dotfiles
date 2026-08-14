@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/l7v/panel-agent/internal/apps"
 	"github.com/l7v/panel-agent/internal/audio"
 	"github.com/l7v/panel-agent/internal/dbus"
 	"github.com/l7v/panel-agent/internal/display"
@@ -37,6 +38,8 @@ type Deps struct {
 	WoLHosts         map[string]string
 	PrometheusWidget bool
 	TerminalManager  terminalManagerClient
+	AppsEngine       apps.Engine
+	AppsController   apps.LifecycleController
 }
 
 // terminalManagerClient interface for dependency injection & testing
@@ -83,6 +86,15 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("POST /api/v1/services/{unit}/restart", serviceActionHandler(d, "restart"))
 	mux.Handle("POST /api/v1/services/{unit}/enable", serviceActionHandler(d, "enable"))
 	mux.Handle("POST /api/v1/services/{unit}/disable", serviceActionHandler(d, "disable"))
+
+	// Application & Ecosystem Lifecycle Management
+	mux.Handle("GET /api/v1/apps", listAppsHandler(d))
+	mux.Handle("GET /api/v1/apps/summary", appsSummaryHandler(d))
+	mux.Handle("GET /api/v1/apps/dependencies", appsDependenciesHandler(d))
+	mux.Handle("GET /api/v1/apps/audit", appsAuditHandler(d))
+	mux.Handle("GET /api/v1/apps/{id}", getAppHandler(d))
+	mux.Handle("POST /api/v1/apps/{id}/action", appActionHandler(d))
+	mux.Handle("GET /api/v1/apps/{id}/logs", appLogsStreamHandler(d))
 
 	// Power control (D-Bus logind)
 	mux.Handle("GET /api/v1/power/capabilities", powerCapabilitiesHandler(d))
