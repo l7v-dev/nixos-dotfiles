@@ -1,0 +1,2 @@
+# Disable W04: manual_inherit_from — produces false positives for string literal assignments
+disabled = ["manual_inherit_from"]

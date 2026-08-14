@@ -48,7 +48,7 @@ run_step 1 7 "nixfmt formatting check" \
   nix_tool nixfmt --check "${nix_files[@]}"
 
 run_step 2 7 "statix lint" \
-  nix_tool statix check .
+  nix_tool statix check --config .statix.toml .
 
 run_step 3 7 "deadnix unused code detection" \
   nix_tool deadnix --fail .

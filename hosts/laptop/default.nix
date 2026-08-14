@@ -93,6 +93,13 @@
     # to the panel-frontend on the server via nginx reverse proxy.
     services.panel.agent.enable = true;
 
+    # Grafana: local mode — HTTP-only on 127.0.0.1:3001, no nginx, no SOPS required.
+    # adminPassword defaults to "admin"; override here if needed.
+    services.grafana = {
+      enable = true;
+      localMode = true;
+    };
+
     platform = {
       deploy.enable = true;
       inventory.enable = true;
