@@ -8,7 +8,6 @@ _: {
 
     services = {
       forgejo.enable = true;
-      grafana.enable = true;
       vaultwarden.enable = true;
 
       # panel-frontend: serves the web UI and proxies to panel-agent on laptop.

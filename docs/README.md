@@ -24,3 +24,4 @@ Centralized documentation index for L7V NixOS declarative infrastructure and dev
 
 ### 🏛️ 3. Infrastructure Architecture (`docs/architecture/`)
 - [System Architecture Overview](architecture/system-overview.md) — Flake architecture and module layout.
+- [Platform MVP Roadmap](platform-mvp-roadmap.md) — Architecture review, gap analysis, and 3-phase MVP implementation roadmap.
