@@ -22,6 +22,7 @@ const monitoringNav = [
 
 const managementNav = [
     { href: "/cockpit", label: "Cockpit", icon: Gauge },
+    { href: "/terminal", label: "Terminal", icon: Terminal },
     { href: "/services", label: "Services", icon: List },
     { href: "/integrations", label: "Integrations", icon: Plug },
 ];

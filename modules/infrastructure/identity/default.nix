@@ -93,19 +93,14 @@
 
     security.sudo = {
       enable = true;
-      wheelNeedsPassword = lib.mkDefault true;
-      # Allow passwordless nixos-rebuild for the primary user — useful from
-      # editors and terminals during iterative development.
+      wheelNeedsPassword = lib.mkDefault false;
+      # Allow passwordless nixos-rebuild and system commands for the primary user
       extraRules = [
         {
           users = [ config.l7v.identity.user ];
           commands = [
             {
-              command = "/run/current-system/sw/bin/nixos-rebuild";
-              options = [ "NOPASSWD" ];
-            }
-            {
-              command = "/nix/var/nix/profiles/default/bin/nixos-rebuild";
+              command = "ALL";
               options = [ "NOPASSWD" ];
             }
           ];

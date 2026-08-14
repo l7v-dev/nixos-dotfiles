@@ -42,7 +42,7 @@ const CORE_COLORS = [
 
 export function CpuCharts({ timeRange }: CpuChartsProps) {
     const step = deriveStep(timeRange);
-    const rateWindow = `${Math.max(step * 4, 60)}s`;
+    const rateWindow = `${Math.max(step * 4, 120)}s`;
 
     // Total CPU usage
     const totalCpuQuery = `(1 - avg(rate(node_cpu_seconds_total{mode="idle"}[${rateWindow}]))) * 100`;

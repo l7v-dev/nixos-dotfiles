@@ -22,7 +22,7 @@ interface DiskChartsProps {
 export function DiskCharts({ timeRange }: DiskChartsProps) {
     const step = deriveStep(timeRange);
 
-    const rateWindow = `${Math.max(step * 4, 60)}s`;
+    const rateWindow = `${Math.max(step * 4, 120)}s`;
 
     // IOPS
     const readIopsQuery = `sum(rate(node_disk_reads_completed_total[${rateWindow}]))`;

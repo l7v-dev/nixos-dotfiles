@@ -5,6 +5,7 @@
   # Cursor teması home/profiles/theme.nix'te tanımlı (tek otorite).
 
   home.packages = with pkgs; [
+    alacritty
     brightnessctl
     fuzzel
     grim

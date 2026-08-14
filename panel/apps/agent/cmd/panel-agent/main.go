@@ -19,6 +19,7 @@ import (
 	agentdbus "github.com/l7v/panel-agent/internal/dbus"
 	"github.com/l7v/panel-agent/internal/journal"
 	"github.com/l7v/panel-agent/internal/metrics"
+	"github.com/l7v/panel-agent/internal/terminal"
 )
 
 // version is injected at build time via -ldflags "-X main.version=<ver>"
@@ -40,23 +41,52 @@ func main() {
 	}
 
 	// Receive listener from systemd socket activation (sd_listen_fds).
-	// Falls back to a manual Unix socket for local development.
-	var ln net.Listener
-	listeners, err := activation.Listeners()
-	if err == nil && len(listeners) > 0 {
-		ln = listeners[0]
+	// Falls back to manual Unix socket and TCP for local development.
+	var listeners []net.Listener
+	sdListeners, err := activation.Listeners()
+	if err == nil && len(sdListeners) > 0 {
+		listeners = sdListeners
 		logger.Info("using systemd socket activation")
+	} else if devMode() {
+		// In dev mode, listen on BOTH Unix socket (for Next.js dev server proxy)
+		// AND TCP (for browser WebSockets)
+		sockPath := "/tmp/panel-agent-dev.sock"
+		_ = os.Remove(sockPath)
+		unixLn, err := net.Listen("unix", sockPath)
+		if err != nil {
+			logger.Error("listen unix failed", "path", sockPath, "err", err)
+			os.Exit(1)
+		}
+		listeners = append(listeners, unixLn)
+		logger.Info("listening on Unix socket", "path", sockPath)
+
+		tcpAddr := os.Getenv("PANEL_LISTEN_ADDR")
+		if tcpAddr == "" {
+			tcpAddr = "127.0.0.1:8080"
+		}
+		tcpLn, err := net.Listen("tcp", tcpAddr)
+		if err != nil {
+			logger.Warn("listen tcp failed in dev mode", "addr", tcpAddr, "err", err)
+		} else {
+			listeners = append(listeners, tcpLn)
+			logger.Info("listening on TCP", "addr", tcpAddr)
+		}
+	} else if tcpAddr := os.Getenv("PANEL_LISTEN_ADDR"); tcpAddr != "" {
+		tcpLn, err := net.Listen("tcp", tcpAddr)
+		if err != nil {
+			logger.Error("listen tcp failed", "addr", tcpAddr, "err", err)
+			os.Exit(1)
+		}
+		listeners = append(listeners, tcpLn)
+		logger.Info("listening on TCP", "addr", tcpAddr)
 	} else {
 		sockPath := "/run/panel-agent/panel-agent.sock"
-		if devMode() {
-			sockPath = "/tmp/panel-agent-dev.sock"
-			os.Remove(sockPath) //nolint:errcheck
-		}
-		ln, err = net.Listen("unix", sockPath)
+		ln, err := net.Listen("unix", sockPath)
 		if err != nil {
 			logger.Error("listen failed", "path", sockPath, "err", err)
 			os.Exit(1)
 		}
+		listeners = append(listeners, ln)
 		logger.Info("listening on Unix socket", "path", sockPath)
 	}
 
@@ -82,6 +112,8 @@ func main() {
 		bluetooth = &stubBluetooth{}
 	}
 
+	termManager := terminal.NewSessionManager(logger)
+
 	deps := api.Deps{
 		Systemd:          systemd,
 		Logind:           logind,
@@ -94,6 +126,7 @@ func main() {
 		Thresholds:       thresholds,
 		WoLHosts:         parseWoLHosts(os.Getenv("PANEL_WOL_HOSTS")),
 		PrometheusWidget: os.Getenv("PANEL_PROMETHEUS_WIDGET") == "1",
+		TerminalManager:  termManager,
 	}
 
 	srv := &http.Server{Handler: api.NewRouter(deps)}
@@ -101,15 +134,20 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-	go func() {
-		logger.Info("panel-agent started", "version", version)
-		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
-			logger.Error("server error", "err", err)
-		}
-	}()
+	logger.Info("panel-agent starting", "version", version)
+	for _, ln := range listeners {
+		listener := ln
+		go func() {
+			logger.Info("serving listener", "addr", listener.Addr().String())
+			if err := srv.Serve(listener); err != nil && err != http.ErrServerClosed {
+				logger.Error("server error", "addr", listener.Addr().String(), "err", err)
+			}
+		}()
+	}
 
 	<-ctx.Done()
 	logger.Info("shutting down")
+	termManager.CloseAll()
 	srv.Shutdown(context.Background()) //nolint:errcheck
 }
 

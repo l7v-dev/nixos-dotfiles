@@ -24,7 +24,7 @@ const NET_COLORS = ["hsl(var(--primary))", "#3b82f6", "#10b981", "#f59e0b", "#ec
 export function NetworkCharts({ timeRange }: NetworkChartsProps) {
     const step = deriveStep(timeRange);
 
-    const rateWindow = `${Math.max(step * 4, 60)}s`;
+    const rateWindow = `${Math.max(step * 4, 120)}s`;
 
     const rxQuery = `sum by (device) (rate(node_network_receive_bytes_total{device!="lo"}[${rateWindow}])) / 1024`;
     const txQuery = `sum by (device) (rate(node_network_transmit_bytes_total{device!="lo"}[${rateWindow}])) / 1024`;

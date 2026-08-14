@@ -1,8 +1,9 @@
 "use client";
 
-import { Moon, Sun, Monitor, PanelLeftOpen } from "lucide-react";
+import { Moon, Sun, Monitor, PanelLeftOpen, Terminal as TerminalIcon } from "lucide-react";
 import { useThemeStore } from "@/store/theme-store";
 import { useSidebarStore } from "@/store/sidebar-store";
+import { useTerminalStore } from "@/store/terminal-store";
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { HostSelector } from "@/components/shared/HostSelector";
@@ -10,6 +11,7 @@ import { HostSelector } from "@/components/shared/HostSelector";
 const PAGE_LABELS: Record<string, string> = {
     "/": "Dashboard",
     "/cockpit": "Cockpit",
+    "/terminal": "Terminal",
     "/services": "Services",
     "/logs": "Logs",
     "/monitoring": "Monitoring",
@@ -82,6 +84,16 @@ export function Header() {
                     <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                     <HostSelector />
                 </div>
+
+                {/* Quake Terminal Toggle */}
+                <button
+                    onClick={() => useTerminalStore.getState().toggleQuake()}
+                    title="Quake Terminal (Ctrl+`)"
+                    aria-label="Toggle Quake Terminal"
+                    className="flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:border-border/80 hover:bg-accent hover:text-foreground"
+                >
+                    <TerminalIcon className="h-3.5 w-3.5" />
+                </button>
 
                 {/* Theme toggle */}
                 <button

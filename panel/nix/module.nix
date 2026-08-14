@@ -39,6 +39,18 @@ in
         description = "Unix socket path the agent listens on.";
       };
 
+      user = lib.mkOption {
+        type = lib.types.str;
+        default = config.l7v.identity.user;
+        description = "User account to run panel-agent and interactive terminal sessions as.";
+      };
+
+      group = lib.mkOption {
+        type = lib.types.str;
+        default = "users";
+        description = "Group to run panel-agent as.";
+      };
+
       managedHosts = lib.mkOption {
         type = lib.types.attrsOf lib.types.str;
         default = { };
@@ -145,16 +157,20 @@ in
         }
       ];
 
-      # System user for the agent service.
-      users.users.panel-agent = {
-        isSystemUser = true;
-        group = "panel-agent";
-        description = "panel-agent service account";
-        extraGroups = [ "systemd-journal" ]; # journal read access for log streaming
+      # System user for the agent service if using dedicated account.
+      users.users = lib.mkIf (agentCfg.user == "panel-agent") {
+        panel-agent = {
+          isSystemUser = true;
+          group = agentCfg.group;
+          description = "panel-agent service account";
+          extraGroups = [ "systemd-journal" ]; # journal read access for log streaming
+        };
       };
-      users.groups.panel-agent = { };
+      users.groups = lib.mkIf (agentCfg.group == "panel-agent") {
+        panel-agent = { };
+      };
 
-      # Polkit rules: grant panel-agent D-Bus access for service management and power control.
+      # Polkit rules: grant panel-agent and the agent user D-Bus access for service management and power control.
       # Phase 2 will add scope restrictions per-action.
       security.polkit.extraConfig = ''
         // panel-agent: service control and power management
@@ -180,7 +196,7 @@ in
             // scheduled shutdown (ScheduleShutdown + CancelScheduledShutdown)
             "org.freedesktop.login1.set-wall-message",
           ];
-          if (allowed.indexOf(action.id) >= 0 && subject.user === "panel-agent") {
+          if (allowed.indexOf(action.id) >= 0 && (subject.user === "${agentCfg.user}" || subject.user === "panel-agent")) {
             return polkit.Result.YES;
           }
         });
@@ -189,7 +205,7 @@ in
       systemd = {
         # Ensure the socket directory exists with correct permissions.
         tmpfiles.rules = [
-          "d /run/panel-agent 0750 panel-agent panel-agent -"
+          "d /run/panel-agent 0755 ${agentCfg.user} ${agentCfg.group} -"
         ];
 
         # Systemd socket unit — activates the service on first connection.
@@ -198,13 +214,13 @@ in
           wantedBy = [ "sockets.target" ];
           socketConfig = {
             ListenStream = agentCfg.socketPath;
-            SocketUser = "panel-agent";
-            SocketGroup = "panel-agent";
-            SocketMode = "0600";
+            SocketUser = agentCfg.user;
+            SocketGroup = agentCfg.group;
+            SocketMode = "0660";
           };
         };
 
-        # Systemd service unit — socket-activated, hardened.
+        # Systemd service unit — socket-activated.
         services.panel-agent = {
           description = "panel-agent REST/SSE API for l7v-panel";
           after = [
@@ -215,22 +231,29 @@ in
           serviceConfig = {
             Type = "simple";
             ExecStart = "${panelAgentPkg}/bin/panel-agent";
-            User = "panel-agent";
-            Group = "panel-agent";
+            User = agentCfg.user;
+            Group = agentCfg.group;
+            SupplementaryGroups = [
+              "systemd-journal"
+              "wheel"
+            ];
             Restart = "on-failure";
             RestartSec = 5;
             StandardOutput = "journal";
             StandardError = "journal";
 
-            # Systemd hardening — minimal attack surface.
-            NoNewPrivileges = true;
-            ProtectSystem = "strict";
-            ProtectHome = true;
-            PrivateTmp = true;
-            ReadWritePaths = [ "/run/panel-agent" ];
+            # Allow interactive web terminal sessions to access user home and run sudo
+            NoNewPrivileges = false;
+            ProtectSystem = false;
+            ProtectHome = false;
+            PrivateTmp = false;
 
-            # Threshold values injected from NixOS module options.
+            # Threshold values and environment injected from NixOS module options.
             Environment = [
+              "HOME=/home/${agentCfg.user}"
+              "USER=${agentCfg.user}"
+              "SHELL=/run/current-system/sw/bin/zsh"
+              "PATH=/run/wrappers/bin:/run/current-system/sw/bin:/etc/profiles/per-user/${agentCfg.user}/bin"
               "PANEL_CPU_WARN=${toString agentCfg.metricsThresholds.cpuWarnPct}"
               "PANEL_CPU_CRIT=${toString agentCfg.metricsThresholds.cpuCritPct}"
               "PANEL_RAM_WARN=${toString agentCfg.metricsThresholds.ramWarnPct}"
@@ -303,7 +326,7 @@ in
             '';
           };
 
-          # Agent proxy — Unix socket upstream with SSE-compatible settings.
+          # Agent proxy — Unix socket upstream with SSE & WebSocket upgrade support.
           "/api/agent/" = {
             extraConfig = ''
               proxy_pass http://unix:${agentCfg.socketPath}:/;
@@ -311,8 +334,12 @@ in
               proxy_set_header Host $host;
               proxy_set_header X-Real-IP $remote_addr;
               proxy_set_header X-Forwarded-Proto $scheme;
-              # SSE requires no buffering and a long read timeout.
-              proxy_read_timeout 60s;
+              # WebSocket upgrade headers
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection $http_connection;
+              # SSE and WebSockets require no buffering and long timeouts.
+              proxy_read_timeout 86400s;
+              proxy_send_timeout 86400s;
               proxy_buffering off;
             '';
           };

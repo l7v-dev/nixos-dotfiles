@@ -13,6 +13,10 @@ schema = 3
     version = 'v22.5.0'
     hash = 'sha256-E2zXikbmIQImghstLUWuey1YgA0Folu3F+fi5k4hCxA='
 
+  [mod.'github.com/creack/pty']
+    version = 'v1.1.24'
+    hash = 'sha256-6oSurN/ZYr/KHxKKU6Qbw9w8CDKmPa8yL00pZ24H0AM='
+
   [mod.'github.com/godbus/dbus/v5']
     version = 'v5.1.0'
     hash = 'sha256-xOCMJpQK3KTmHTPn/CdqI4j0eENCtMmJDgAIoYqYOEY='
@@ -20,6 +24,10 @@ schema = 3
   [mod.'github.com/google/uuid']
     version = 'v1.6.0'
     hash = 'sha256-VWl9sqUzdOuhW0KzQlv0gwwUQClYkmZwSydHG2sALYw='
+
+  [mod.'github.com/gorilla/websocket']
+    version = 'v1.5.3'
+    hash = 'sha256-vTIGEFMEi+30ZdO6ffMNJ/kId6pZs5bbyqov8xe9BM0='
 
   [mod.'github.com/klauspost/compress']
     version = 'v1.17.9'

@@ -7,6 +7,7 @@ import (
 	"github.com/l7v/panel-agent/internal/dbus"
 	"github.com/l7v/panel-agent/internal/journal"
 	"github.com/l7v/panel-agent/internal/metrics"
+	"github.com/l7v/panel-agent/internal/terminal"
 )
 
 // Deps holds all dependencies injected into API handlers.
@@ -26,7 +27,18 @@ type Deps struct {
 	// Populated from PANEL_WOL_HOSTS env var (JSON) or left empty.
 	WoLHosts map[string]string
 	PrometheusWidget bool
+	TerminalManager  terminalManagerClient
 }
+
+// terminalManagerClient interface for dependency injection & testing
+type terminalManagerClient interface {
+	CreateSession(opts terminal.SessionOptions) (*terminal.Session, error)
+	GetSession(id string) (*terminal.Session, bool)
+	GetOrCreateDefaultSession(title string) (*terminal.Session, error)
+	ListSessions() []terminal.SessionInfo
+	KillSession(id string) error
+}
+
 
 // NewRouter wires all API routes and wraps the mux in logging middleware.
 func NewRouter(d Deps) http.Handler {
@@ -95,6 +107,15 @@ func NewRouter(d Deps) http.Handler {
 
 	// Log streaming (SSE)
 	mux.Handle("GET /api/v1/logs/stream", logsStreamHandler(d))
+
+	// Terminal Sessions & WebSocket
+	mux.Handle("GET /api/v1/terminal/sessions", listTerminalSessionsHandler(d))
+	mux.Handle("POST /api/v1/terminal/sessions", createTerminalSessionHandler(d))
+	mux.Handle("GET /api/v1/terminal/sessions/{id}", getTerminalSessionHandler(d))
+	mux.Handle("DELETE /api/v1/terminal/sessions/{id}", killTerminalSessionHandler(d))
+	mux.Handle("GET /api/v1/terminal/ws/{id}", terminalWSHandler(d))
+	mux.Handle("GET /api/v1/terminal/ws", terminalDefaultWSHandler(d))
+	mux.Handle("GET /api/v1/terminal/snippets", terminalSnippetsHandler(d))
 
 	// Prometheus metrics (not under /api/v1/)
 	mux.Handle("GET /metrics", prometheusHandler(d))

@@ -189,6 +189,26 @@
       themeFile = "Catppuccin-Mocha";
     };
 
+    alacritty = {
+      enable = true;
+      settings = {
+        window = {
+          opacity = 0.92;
+          padding = {
+            x = 12;
+            y = 12;
+          };
+        };
+        font = {
+          normal = {
+            family = "FiraCode Nerd Font";
+            style = "Regular";
+          };
+          size = 12;
+        };
+      };
+    };
+
     fzf = {
       enable = true;
       enableZshIntegration = true;
