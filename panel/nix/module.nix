@@ -254,16 +254,6 @@ in
         }
       ];
 
-      # Apply allow_embedding and sub-path support to Grafana when both services are enabled on the same host.
-      services.grafana.settings = lib.mkIf config.l7v.services.grafana.enable {
-        security.allow_embedding = true;
-        server = {
-          domain = frontendCfg.domain;
-          root_url = "https://${frontendCfg.domain}/grafana/";
-          serve_from_sub_path = true;
-        };
-      };
-
       # Next.js frontend systemd service.
       systemd.services.panel-frontend = {
         description = "panel-frontend Next.js web server";
@@ -324,20 +314,6 @@ in
               # SSE requires no buffering and a long read timeout.
               proxy_read_timeout 60s;
               proxy_buffering off;
-            '';
-          };
-
-          # Grafana embed proxy — shares the same IP allowlist as the parent vhost.
-          "/grafana/" = {
-            proxyPass = "http://127.0.0.1:3001/";
-            extraConfig = ''
-              proxy_set_header Host $host;
-              proxy_set_header X-Real-IP $remote_addr;
-              proxy_set_header X-Forwarded-Proto $scheme;
-              # Required for Grafana live (WebSocket) and SSE connections.
-              proxy_http_version 1.1;
-              proxy_set_header Upgrade $http_upgrade;
-              proxy_set_header Connection "upgrade";
             '';
           };
         };

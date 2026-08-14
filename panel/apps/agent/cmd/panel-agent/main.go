@@ -83,16 +83,17 @@ func main() {
 	}
 
 	deps := api.Deps{
-		Systemd:    systemd,
-		Logind:     logind,
-		Network:    network,
-		Bluetooth:  bluetooth,
-		Procfs:     metrics.NewProcfsReader(),
-		Journal:    journal.NewReader(),
-		Logger:     logger,
-		Version:    version,
-		Thresholds: thresholds,
-		WoLHosts:   parseWoLHosts(os.Getenv("PANEL_WOL_HOSTS")),
+		Systemd:          systemd,
+		Logind:           logind,
+		Network:          network,
+		Bluetooth:        bluetooth,
+		Procfs:           metrics.NewProcfsReader(),
+		Journal:          journal.NewReader(),
+		Logger:           logger,
+		Version:          version,
+		Thresholds:       thresholds,
+		WoLHosts:         parseWoLHosts(os.Getenv("PANEL_WOL_HOSTS")),
+		PrometheusWidget: os.Getenv("PANEL_PROMETHEUS_WIDGET") == "1",
 	}
 
 	srv := &http.Server{Handler: api.NewRouter(deps)}

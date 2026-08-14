@@ -13,7 +13,8 @@
   config = lib.mkIf config.l7v.experience.screencast {
     environment.systemPackages = with pkgs; [
       obs-studio # kayıt / streaming
-      wf-recorder # hafif Wayland ekran kaydı (CLI)
+      # wf-recorder -- devre dışı: 0.6.0 FFmpeg 7.x ile uyumsuz (AVCodec::sample_fmts kaldırıldı)
+      # upstream düzeltmesi gelince tekrar ekle: https://github.com/ammen99/wf-recorder/issues
     ];
   };
 }

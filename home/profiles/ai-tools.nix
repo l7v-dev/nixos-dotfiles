@@ -66,7 +66,7 @@ in
       llmPkgs.gitclaw # universal git-native multimodal AI agent (gitagent)
       llmPkgs.goose-cli # Block/Square Goose (Apache 2.0)
       llmPkgs.grok # xAI Grok agentic coding tool
-      llmPkgs.iflow-cli # AI coding agent with free model access via iFlow
+      # iflow-cli: removed from llm-agents.nix upstream
       llmPkgs.jules # Google async coding agent (terminal)
       llmPkgs.junie # JetBrains Junie CLI
       llmPkgs.kilocode-cli # open-source Roo Code terminal agent

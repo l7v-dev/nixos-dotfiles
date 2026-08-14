@@ -25,6 +25,7 @@ type Deps struct {
 	// Example: {"server": "aa:bb:cc:dd:ee:ff", "builder": "11:22:33:44:55:66"}
 	// Populated from PANEL_WOL_HOSTS env var (JSON) or left empty.
 	WoLHosts map[string]string
+	PrometheusWidget bool
 }
 
 // NewRouter wires all API routes and wraps the mux in logging middleware.
@@ -45,6 +46,16 @@ func NewRouter(d Deps) http.Handler {
 
 	// Metrics (procfs)
 	mux.Handle("GET /api/v1/metrics", metricsHandler(d))
+
+	// Prometheus proxy (conditional on PrometheusWidget)
+	if d.PrometheusWidget {
+		mux.Handle("GET /api/v1/metrics/query", prometheusProxyHandler("query"))
+		mux.Handle("GET /api/v1/metrics/query_range", prometheusProxyHandler("query_range"))
+		d.Logger.Info("prometheus proxy enabled",
+			"endpoints", []string{"/api/v1/metrics/query", "/api/v1/metrics/query_range"})
+	} else {
+		d.Logger.Info("prometheus proxy disabled (PANEL_PROMETHEUS_WIDGET != 1)")
+	}
 
 	// Service management (D-Bus systemd)
 	mux.Handle("GET /api/v1/services", listServicesHandler(d))

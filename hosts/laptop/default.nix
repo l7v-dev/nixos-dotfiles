@@ -89,15 +89,13 @@
     # age public key: age100fgm3zj79kwsw962f9ehw8s43llfk7z2tpsh2juy3platc99qcs7lj0yw
     secrets.enable = true;
 
+    metrics.enable = true;
+
     # panel-agent: runs on the laptop and exposes the REST/SSE API
     # to the panel-frontend on the server via nginx reverse proxy.
-    services.panel.agent.enable = true;
-
-    # Grafana: local mode — HTTP-only on 127.0.0.1:3001, no nginx, no SOPS required.
-    # adminPassword defaults to "admin"; override here if needed.
-    services.grafana = {
+    services.panel.agent = {
       enable = true;
-      localMode = true;
+      prometheusWidget = true;
     };
 
     platform = {

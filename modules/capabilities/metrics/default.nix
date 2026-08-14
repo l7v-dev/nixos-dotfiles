@@ -20,6 +20,9 @@
       enable = true;
       port = 9090;
       retentionTime = "30d";
+      globalConfig = {
+        scrape_interval = "15s";
+      };
 
       exporters = {
         node = {

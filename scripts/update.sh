@@ -15,8 +15,8 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 HOST="${1:-L7V}"
-MAX_JOBS="${MAX_JOBS:-1}"
-CORES="${CORES:-2}"
+MAX_JOBS="${MAX_JOBS:-3}"
+CORES="${CORES:-3}"
 
 cd "$REPO_ROOT"
 

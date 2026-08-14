@@ -503,7 +503,7 @@ function SchedulePanel() {
                             ))}
                         </div>
                         <p className="mt-1.5 text-[10px] text-muted-foreground">
-                            Chip'e tıklayınca otomatik planlanır
+                            Chip&apos;e tıklayınca otomatik planlanır
                         </p>
                     </div>
 

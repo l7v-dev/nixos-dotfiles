@@ -1,11 +1,11 @@
 # Service: Grafana (observability dashboard — grafana.l7v.dev)
-# Requires: metrics + reverseProxy + secrets (server mode); none (local mode)
+# Requires: metrics + reverseProxy + secrets
 # Port: 3001 (Forgejo occupies 3000)
 { lib, config, ... }:
 let
   cfg = config.l7v.services.grafana;
 
-  # Settings valid in both server mode and local mode.
+  # Common settings for Grafana service.
   commonConfig = {
     services.grafana.enable = true;
     services.grafana.settings = {
@@ -19,7 +19,7 @@ let
     };
   };
 
-  # Server-mode settings (localMode = false). Active when using the default server deployment.
+  # Server-mode settings. Active when using the default server deployment.
   serverConfig = {
     assertions = [
       {
@@ -83,74 +83,10 @@ let
       };
     };
   };
-
-  # Local-mode settings (localMode = true). Plain HTTP on localhost, no nginx, no SOPS.
-  localConfig = {
-    # Warn when local mode is accidentally enabled on a server host.
-    assertions = [
-      {
-        assertion = !config.l7v.infrastructure.isServer;
-        message = "l7v.services.grafana.localMode = true is intended for workstation hosts. Consider localMode = false for servers.";
-      }
-    ];
-
-    # Provision datasources conditionally — empty list when metrics are disabled.
-    services.grafana = {
-      settings = {
-        server = {
-          http_addr = "127.0.0.1";
-          http_port = 3001;
-          root_url = "http://127.0.0.1:3001";
-          protocol = "http";
-        };
-        security = {
-          admin_user = "admin";
-          admin_password = cfg.adminPassword;
-          # Local-mode only: a static secret key is acceptable because no
-          # production secrets are stored in the Grafana database on a workstation.
-          secret_key = "local-workstation-key-not-for-production";
-          cookie_secure = false;
-          cookie_samesite = "disabled";
-          allow_embedding = true;
-          disable_gravatar = true;
-        };
-      };
-      provision = {
-        enable = true;
-        datasources.settings.datasources = lib.optional config.l7v.metrics.enable {
-          name = "Prometheus";
-          type = "prometheus";
-          url = "http://127.0.0.1:9090";
-          isDefault = true;
-        };
-      };
-    };
-
-    # No nginx virtualHost — Grafana binds directly on plain HTTP.
-  };
 in
 {
   options.l7v.services.grafana = {
     enable = lib.mkEnableOption "grafana dashboard service";
-
-    localMode = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = ''
-        Enable workstation-compatible mode. When true, the SOPS secret,
-        nginx reverse proxy, and Prometheus assertions are removed; Grafana
-        listens on 127.0.0.1:3001 over plain HTTP instead.
-      '';
-    };
-
-    adminPassword = lib.mkOption {
-      type = lib.types.str;
-      default = "admin";
-      description = ''
-        Plain-text admin password used in local mode. Ignored when
-        localMode = false — the SOPS secret file reference is used instead.
-      '';
-    };
 
     domain = lib.mkOption {
       type = lib.types.str;
@@ -167,14 +103,8 @@ in
 
   config = lib.mkIf cfg.enable (
     lib.mkMerge [
-      # Common settings valid in both modes.
       commonConfig
-
-      # Server-mode settings — assertions, SOPS secret, nginx vhost (task 2.2).
-      (lib.mkIf (!cfg.localMode) serverConfig)
-
-      # Local-mode settings — plain HTTP, plain-text password (task 2.3).
-      (lib.mkIf cfg.localMode localConfig)
+      serverConfig
     ]
   );
 }
