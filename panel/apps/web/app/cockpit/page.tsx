@@ -29,7 +29,16 @@ import {
 import { useHostStore } from "@/store/host-store";
 import type { PowerCapabilities } from "@/types/api";
 
+import { QuickTogglesBar } from "@/components/cockpit/QuickTogglesBar";
+import { AudioCard } from "@/components/cockpit/AudioCard";
+import { DisplayCard } from "@/components/cockpit/DisplayCard";
+import { HardwareCard } from "@/components/cockpit/HardwareCard";
+import { NixOSCard } from "@/components/cockpit/NixOSCard";
+import { SecurityCard } from "@/components/cockpit/SecurityCard";
+import { StorageCard } from "@/components/cockpit/StorageCard";
+
 type PowerAction = "shutdown" | "reboot" | "sleep" | "hibernate" | "hybrid-sleep";
+type CockpitTab = "all" | "hardware" | "network" | "system";
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Root Page
@@ -37,26 +46,103 @@ type PowerAction = "shutdown" | "reboot" | "sleep" | "hibernate" | "hybrid-sleep
 
 export default function CockpitPage() {
     const host = useHostStore((s) => s.selectedHost);
+    const [tab, setTab] = useState<CockpitTab>("all");
 
     return (
-        <div className="mx-auto max-w-3xl space-y-5">
-            {/* Page title */}
-            <div>
-                <h1 className="text-lg font-semibold">Cockpit</h1>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                    Sistem kontrolü —{" "}
-                    <span className="font-mono text-foreground">{host}</span>
-                </p>
+        <div className="mx-auto max-w-5xl space-y-5">
+            {/* Page title and filter tabs */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h1 className="text-lg font-semibold">Cockpit</h1>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                        Sistem kontrol merkezi —{" "}
+                        <span className="font-mono text-foreground font-medium">{host}</span>
+                    </p>
+                </div>
+
+                {/* Filter Tabs */}
+                <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1 text-xs">
+                    {[
+                        { id: "all", label: "Tüm Kontroller" },
+                        { id: "hardware", label: "Donanım & Güç" },
+                        { id: "network", label: "Ağ & Güvenlik" },
+                        { id: "system", label: "NixOS & Bakım" },
+                    ].map((t) => (
+                        <button
+                            key={t.id}
+                            onClick={() => setTab(t.id as CockpitTab)}
+                            className={`rounded-md px-3 py-1.5 font-medium transition-all ${
+                                tab === t.id
+                                    ? "bg-primary text-primary-foreground shadow-xs"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                            }`}
+                        >
+                            {t.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
-            {/* ── Power Control (all-in-one) ── */}
-            <PowerControlCard />
+            {/* ── Quick Toggles Bar (Always visible at top) ── */}
+            <QuickTogglesBar />
 
-            {/* ── Network ── */}
-            <div className="grid gap-4 sm:grid-cols-2">
-                <WifiCard />
-                <BluetoothCard />
-            </div>
+            {/* ── Tabbed / Grid Layout ── */}
+            {tab === "all" && (
+                <div className="grid gap-5 lg:grid-cols-2">
+                    {/* Left Column: Power, Audio, Display, Hardware */}
+                    <div className="space-y-5">
+                        <PowerControlCard />
+                        <AudioCard />
+                        <DisplayCard />
+                        <HardwareCard />
+                    </div>
+
+                    {/* Right Column: Wifi, Bluetooth, NixOS, Security, Storage */}
+                    <div className="space-y-5">
+                        <WifiCard />
+                        <BluetoothCard />
+                        <NixOSCard />
+                        <SecurityCard />
+                        <StorageCard />
+                    </div>
+                </div>
+            )}
+
+            {tab === "hardware" && (
+                <div className="grid gap-5 lg:grid-cols-2">
+                    <div className="space-y-5">
+                        <PowerControlCard />
+                        <HardwareCard />
+                    </div>
+                    <div className="space-y-5">
+                        <AudioCard />
+                        <DisplayCard />
+                    </div>
+                </div>
+            )}
+
+            {tab === "network" && (
+                <div className="grid gap-5 lg:grid-cols-2">
+                    <div className="space-y-5">
+                        <WifiCard />
+                        <SecurityCard />
+                    </div>
+                    <div className="space-y-5">
+                        <BluetoothCard />
+                    </div>
+                </div>
+            )}
+
+            {tab === "system" && (
+                <div className="grid gap-5 lg:grid-cols-2">
+                    <div className="space-y-5">
+                        <NixOSCard />
+                    </div>
+                    <div className="space-y-5">
+                        <StorageCard />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

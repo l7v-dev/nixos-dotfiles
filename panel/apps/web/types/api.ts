@@ -109,6 +109,115 @@ export interface BluetoothStatus {
     devices: BluetoothDevice[];
 }
 
+export interface AudioDevice {
+    id: string;
+    name: string;
+    description: string;
+    is_default: boolean;
+    type: "sink" | "source";
+}
+
+export interface AudioStatus {
+    output_volume: number;
+    output_muted: boolean;
+    input_volume: number;
+    input_muted: boolean;
+    default_sink: string;
+    default_source: string;
+    sinks: AudioDevice[];
+    sources: AudioDevice[];
+}
+
+export interface NightLightStatus {
+    enabled: boolean;
+    temperature: number;
+}
+
+export interface DisplayStatus {
+    brightness_pct: number;
+    can_brightness: boolean;
+    device_name?: string;
+    night_light: NightLightStatus;
+}
+
+export interface ThermalSensor {
+    name: string;
+    temp_c: number;
+    critical?: number;
+}
+
+export interface FanSensor {
+    name: string;
+    rpm: number;
+}
+
+export interface HardwareStatus {
+    cpu_temp_c: number;
+    gpu_temp_c?: number;
+    sensors: ThermalSensor[];
+    fans: FanSensor[];
+    power_profile: string;
+    cpu_governor: string;
+    available_profiles: string[];
+}
+
+export interface NixOSStatus {
+    current_generation: number;
+    version: string;
+    kernel_version: string;
+    uptime_seconds: number;
+    nix_store_size_mb?: number;
+    recent_generations?: string[];
+}
+
+export interface MaintenanceResult {
+    action: string;
+    status: string;
+    output: string;
+    freed_mb?: number;
+}
+
+export interface VPNTunnel {
+    type: "tailscale" | "wireguard" | string;
+    active: boolean;
+    ip_address?: string;
+    status: "connected" | "stopped" | "not_installed" | string;
+    peers_count?: number;
+}
+
+export interface OpenPort {
+    protocol: "tcp" | "udp" | string;
+    port: number;
+    address: string;
+    process?: string;
+}
+
+export interface UserSession {
+    id: string;
+    user: string;
+    seat?: string;
+    tty?: string;
+    type?: string;
+}
+
+export interface SecurityStatus {
+    vpn: VPNTunnel;
+    open_ports: OpenPort[];
+    sessions: UserSession[];
+    firewall_on: boolean;
+}
+
+export interface RemovableDisk {
+    name: string;
+    device: string;
+    label: string;
+    mount_point: string;
+    size_gib: number;
+    used_gib?: number;
+    fs_type: string;
+    is_mounted: boolean;
+}
+
 export interface LogEntry {
     timestamp: string;
     unit: string;

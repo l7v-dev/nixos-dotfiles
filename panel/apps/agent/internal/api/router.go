@@ -4,28 +4,37 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/l7v/panel-agent/internal/audio"
 	"github.com/l7v/panel-agent/internal/dbus"
+	"github.com/l7v/panel-agent/internal/display"
+	"github.com/l7v/panel-agent/internal/hardware"
 	"github.com/l7v/panel-agent/internal/journal"
 	"github.com/l7v/panel-agent/internal/metrics"
+	"github.com/l7v/panel-agent/internal/nixos"
+	"github.com/l7v/panel-agent/internal/security"
+	"github.com/l7v/panel-agent/internal/storage"
 	"github.com/l7v/panel-agent/internal/terminal"
 )
 
 // Deps holds all dependencies injected into API handlers.
-// D-Bus clients are behind interfaces so unit tests can inject mocks.
+// Clients are behind interfaces so unit tests can inject mocks.
 type Deps struct {
-	Systemd    dbus.SystemdClient
-	Logind     dbus.LogindClient
-	Network    dbus.NetworkClient
-	Bluetooth  dbus.BluetoothClient
-	Procfs     metrics.ProcfsReader
-	Journal    journal.Reader
-	Logger     *slog.Logger
-	Version    string
-	Thresholds metrics.Thresholds
-	// WoLHosts maps logical host names to their MAC addresses for Wake-on-LAN.
-	// Example: {"server": "aa:bb:cc:dd:ee:ff", "builder": "11:22:33:44:55:66"}
-	// Populated from PANEL_WOL_HOSTS env var (JSON) or left empty.
-	WoLHosts map[string]string
+	Systemd          dbus.SystemdClient
+	Logind           dbus.LogindClient
+	Network          dbus.NetworkClient
+	Bluetooth        dbus.BluetoothClient
+	Audio            audio.Client
+	Display          display.Client
+	Hardware         hardware.Client
+	NixOS            nixos.Client
+	Security         security.Client
+	Storage          storage.Client
+	Procfs           metrics.ProcfsReader
+	Journal          journal.Reader
+	Logger           *slog.Logger
+	Version          string
+	Thresholds       metrics.Thresholds
+	WoLHosts         map[string]string
 	PrometheusWidget bool
 	TerminalManager  terminalManagerClient
 }
@@ -39,7 +48,6 @@ type terminalManagerClient interface {
 	KillSession(id string) error
 }
 
-
 // NewRouter wires all API routes and wraps the mux in logging middleware.
 func NewRouter(d Deps) http.Handler {
 	if d.Logger == nil {
@@ -49,10 +57,6 @@ func NewRouter(d Deps) http.Handler {
 
 	// Catch-all for unknown paths → JSON 404.
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			writeError(w, http.StatusNotFound, map[string]string{"message": "not found"})
-			return
-		}
 		writeError(w, http.StatusNotFound, map[string]string{"message": "not found"})
 	})
 
@@ -107,6 +111,48 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("POST /api/v1/network/bluetooth/connect/{address}", bluetoothConnectHandler(d))
 	mux.Handle("POST /api/v1/network/bluetooth/disconnect/{address}", bluetoothDisconnectHandler(d))
 	mux.Handle("DELETE /api/v1/network/bluetooth/device/{address}", bluetoothRemoveHandler(d))
+
+	// Audio controls (PipeWire / WirePlumber)
+	if d.Audio != nil {
+		mux.Handle("GET /api/v1/audio/status", audioStatusHandler(d))
+		mux.Handle("POST /api/v1/audio/volume", audioVolumeHandler(d))
+		mux.Handle("POST /api/v1/audio/mute", audioMuteHandler(d))
+		mux.Handle("POST /api/v1/audio/default", audioDefaultDeviceHandler(d))
+	}
+
+	// Display & Brightness
+	if d.Display != nil {
+		mux.Handle("GET /api/v1/display/status", displayStatusHandler(d))
+		mux.Handle("POST /api/v1/display/brightness", displayBrightnessHandler(d))
+		mux.Handle("POST /api/v1/display/nightlight", displayNightLightHandler(d))
+		mux.Handle("POST /api/v1/display/lock", displayLockHandler(d))
+	}
+
+	// Hardware & Thermals
+	if d.Hardware != nil {
+		mux.Handle("GET /api/v1/hardware/status", hardwareStatusHandler(d))
+		mux.Handle("GET /api/v1/hardware/thermals", hardwareStatusHandler(d))
+		mux.Handle("POST /api/v1/hardware/power-profile", hardwarePowerProfileHandler(d))
+	}
+
+	// NixOS Maintenance & Generations
+	if d.NixOS != nil {
+		mux.Handle("GET /api/v1/nixos/status", nixosStatusHandler(d))
+		mux.Handle("POST /api/v1/nixos/gc", nixosGCHandler(d))
+		mux.Handle("POST /api/v1/nixos/optimise", nixosOptimiseHandler(d))
+	}
+
+	// Security & VPN
+	if d.Security != nil {
+		mux.Handle("GET /api/v1/security/status", securityStatusHandler(d))
+		mux.Handle("POST /api/v1/security/vpn/toggle", securityVPNToggleHandler(d))
+	}
+
+	// Storage & Removable Media
+	if d.Storage != nil {
+		mux.Handle("GET /api/v1/storage/removable", storageRemovableHandler(d))
+		mux.Handle("POST /api/v1/storage/unmount", storageUnmountHandler(d))
+	}
 
 	// Log streaming & querying
 	mux.Handle("GET /api/v1/logs/stream", logsStreamHandler(d))

@@ -16,9 +16,15 @@ import (
 
 	"github.com/coreos/go-systemd/v22/activation"
 	"github.com/l7v/panel-agent/internal/api"
+	"github.com/l7v/panel-agent/internal/audio"
 	agentdbus "github.com/l7v/panel-agent/internal/dbus"
+	"github.com/l7v/panel-agent/internal/display"
+	"github.com/l7v/panel-agent/internal/hardware"
 	"github.com/l7v/panel-agent/internal/journal"
 	"github.com/l7v/panel-agent/internal/metrics"
+	"github.com/l7v/panel-agent/internal/nixos"
+	"github.com/l7v/panel-agent/internal/security"
+	"github.com/l7v/panel-agent/internal/storage"
 	"github.com/l7v/panel-agent/internal/terminal"
 )
 
@@ -119,6 +125,12 @@ func main() {
 		Logind:           logind,
 		Network:          network,
 		Bluetooth:        bluetooth,
+		Audio:            audio.NewClient(),
+		Display:          display.NewClient(),
+		Hardware:         hardware.NewClient(),
+		NixOS:            nixos.NewClient(),
+		Security:         security.NewClient(),
+		Storage:          storage.NewClient(),
 		Procfs:           metrics.NewProcfsReader(),
 		Journal:          journal.NewReader(),
 		Logger:           logger,
