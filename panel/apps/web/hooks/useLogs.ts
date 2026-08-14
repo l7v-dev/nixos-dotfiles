@@ -13,6 +13,7 @@ interface UseLogsResult {
     isConnected: boolean;
     error: string | null;
     retryCount: number;
+    clear: () => void;
 }
 
 export function useLogs(unit?: string, minPriority?: number): UseLogsResult {
@@ -27,7 +28,7 @@ export function useLogs(unit?: string, minPriority?: number): UseLogsResult {
     const connect = useCallback(
         (attempt: number) => {
             if (attempt > MAX_RETRIES) {
-                setError(`Connection failed after ${MAX_RETRIES} attempts`);
+                setError(`${MAX_RETRIES} denemeden sonra bağlantı kurulamadı`);
                 setIsConnected(false);
                 return;
             }
@@ -35,8 +36,9 @@ export function useLogs(unit?: string, minPriority?: number): UseLogsResult {
             const params = new URLSearchParams();
             if (unit) params.set("unit", unit);
             if (minPriority !== undefined) params.set("priority", String(minPriority));
+            const qs = params.toString();
 
-            const path = `/api/agent/${encodeURIComponent(host)}/api/v1/logs/stream?${params}`;
+            const path = `/api/agent/${encodeURIComponent(host)}/api/v1/logs/stream${qs ? `?${qs}` : ""}`;
             const es = new EventSource(path);
             esRef.current = es;
 
@@ -51,7 +53,6 @@ export function useLogs(unit?: string, minPriority?: number): UseLogsResult {
                     const entry: LogEntry = JSON.parse(ev.data);
                     setEntries((prev) => {
                         const next = [...prev, entry];
-                        // Keep only the most recent MAX_BUFFER entries.
                         return next.length > MAX_BUFFER ? next.slice(next.length - MAX_BUFFER) : next;
                     });
                 } catch {
@@ -59,20 +60,29 @@ export function useLogs(unit?: string, minPriority?: number): UseLogsResult {
                 }
             };
 
+            // Named "error" event — sent intentionally by the backend when the journal
+            // fails to open. This is a permanent failure, not a reconnectable network drop.
             es.addEventListener("error", (ev) => {
                 const data = (ev as MessageEvent).data;
-                let msg = "Stream error";
+                let msg = "Journal akışı hatası";
                 try {
-                    msg = JSON.parse(data).message ?? msg;
+                    const parsed = JSON.parse(data);
+                    msg = parsed.message ?? msg;
                 } catch {
                     // use default
                 }
                 setError(msg);
                 es.close();
                 setIsConnected(false);
+                // No retry — this is a server-side permanent error.
             });
 
+            // Generic onerror — network drop, agent restart, proxy disconnect.
+            // Do NOT set error state here; just schedule a reconnect so transient
+            // failures recover silently.
             es.onerror = () => {
+                // Avoid double-firing if the named "error" listener already closed.
+                if (es.readyState === EventSource.CLOSED) return;
                 es.close();
                 setIsConnected(false);
                 const nextAttempt = attempt + 1;
@@ -96,5 +106,5 @@ export function useLogs(unit?: string, minPriority?: number): UseLogsResult {
         };
     }, [connect]);
 
-    return { entries, isConnected, error, retryCount };
+    return { entries, isConnected, error, retryCount, clear: () => setEntries([]) };
 }

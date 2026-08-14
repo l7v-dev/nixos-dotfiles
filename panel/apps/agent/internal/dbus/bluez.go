@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/godbus/dbus/v5"
 )
@@ -78,16 +79,36 @@ func (b *bluetoothClient) ToggleBluetooth(_ context.Context) error {
 	return nil
 }
 
-// ScanDevices starts discovery and returns visible + paired devices.
-func (b *bluetoothClient) ScanDevices(_ context.Context) ([]BTDevice, error) {
+// scanTimeout is how long we let BlueZ discover before stopping and reading results.
+const scanTimeout = 5 * time.Second
+
+// ScanDevices starts discovery, waits for results, stops discovery, then returns
+// all visible + paired devices. Using a short sleep is the pragmatic approach
+// because BlueZ discovery is asynchronous and emits results via PropertiesChanged
+// signals rather than a synchronous return value.
+func (b *bluetoothClient) ScanDevices(ctx context.Context) ([]BTDevice, error) {
 	adapter, err := b.findAdapter()
 	if err != nil {
 		return nil, fmt.Errorf("no Bluetooth adapter: %w", err)
 	}
 	adapterObj := b.conn.Object(bluezBus, adapter)
-	// Start discovery (fire-and-forget; BlueZ handles timing).
-	_ = adapterObj.Call(bluezAdapter1+".StartDiscovery", 0).Err
-	// Return all known devices (paired + recently discovered).
+
+	if err := adapterObj.Call(bluezAdapter1+".StartDiscovery", 0).Err; err != nil {
+		// "Already discovering" is not a real error — continue to the wait.
+		if !strings.Contains(err.Error(), "Already") {
+			return nil, fmt.Errorf("StartDiscovery: %w", err)
+		}
+	}
+
+	// Wait up to scanTimeout, but respect context cancellation.
+	select {
+	case <-ctx.Done():
+	case <-time.After(scanTimeout):
+	}
+
+	// Always attempt to stop discovery, even on context cancellation.
+	_ = adapterObj.Call(bluezAdapter1+".StopDiscovery", 0).Err
+
 	return b.getAllDevices()
 }
 

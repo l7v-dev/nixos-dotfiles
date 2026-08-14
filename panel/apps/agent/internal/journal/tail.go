@@ -3,7 +3,6 @@ package journal
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -88,7 +87,10 @@ func (j *journalReader) Tail(ctx context.Context, opts TailOptions) {
 				}
 			}
 
-			// Apply minimum priority filter (lower number = higher severity).
+			// Apply minimum priority filter.
+			// journald priority: 0 = emergency (most severe), 7 = debug (least severe).
+			// MinPriority = 3 means "show only errors and above" → keep entries where priority <= 3.
+			// MinPriority = 0 means "show everything".
 			if opts.MinPriority > 0 && priority > opts.MinPriority {
 				continue
 			}
@@ -117,14 +119,4 @@ func (j *journalReader) Tail(ctx context.Context, opts TailOptions) {
 			}
 		}
 	}
-}
-
-// mustJSON encodes v to JSON, panicking only on programmer error (non-serialisable types).
-// Used in the SSE handler for LogEntry encoding.
-func mustJSON(v any) string {
-	b, err := json.Marshal(v)
-	if err != nil {
-		panic("mustJSON: " + err.Error())
-	}
-	return string(b)
 }

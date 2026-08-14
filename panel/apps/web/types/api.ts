@@ -43,13 +43,23 @@ export interface MetricsSnapshot {
     thresholds: Thresholds;
 }
 
+export type ActiveState = "active" | "inactive" | "failed" | "activating" | "deactivating" | "reloading" | string;
+export type SubState = "running" | "exited" | "waiting" | "dead" | "failed" | "plugged" | "mounted" | string;
+export type LoadState = "loaded" | "not-found" | "masked" | "error" | string;
+export type UnitFileState = "enabled" | "enabled-runtime" | "disabled" | "static" | "masked" | "indirect" | "generated" | "transient" | string;
+
 export interface ServiceUnit {
     name: string;
     description: string;
-    load_state: string;
-    active_state: string;
-    sub_state: string;
-    unit_file_state: string;
+    load_state: LoadState;
+    active_state: ActiveState;
+    sub_state: SubState;
+    unit_file_state: UnitFileState;
+}
+
+export interface ServiceActionResponse {
+    unit: string;
+    status: string;
 }
 
 export interface WifiStatus {
@@ -57,6 +67,14 @@ export interface WifiStatus {
     ssid: string | null;
     signal_dbm: number | null;
     ip_address: string | null;
+    gateway?: string | null;
+    dns?: string[];
+    freq_mhz?: number | null;
+    band?: "2.4GHz" | "5GHz" | "6GHz" | null;
+    rx_bytes?: number | null;
+    tx_bytes?: number | null;
+    rx_kbps?: number | null;
+    tx_kbps?: number | null;
 }
 
 export interface AccessPoint {

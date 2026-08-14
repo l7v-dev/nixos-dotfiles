@@ -50,6 +50,7 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("GET /api/v1/services", listServicesHandler(d))
 	mux.Handle("POST /api/v1/services/{unit}/start", serviceActionHandler(d, "start"))
 	mux.Handle("POST /api/v1/services/{unit}/stop", serviceActionHandler(d, "stop"))
+	mux.Handle("POST /api/v1/services/{unit}/restart", serviceActionHandler(d, "restart"))
 	mux.Handle("POST /api/v1/services/{unit}/enable", serviceActionHandler(d, "enable"))
 	mux.Handle("POST /api/v1/services/{unit}/disable", serviceActionHandler(d, "disable"))
 

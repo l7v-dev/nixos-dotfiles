@@ -22,6 +22,9 @@ func (s *stubSystemd) StartUnit(_ context.Context, _ string) error {
 func (s *stubSystemd) StopUnit(_ context.Context, _ string) error {
 	return errors.New("stub: systemd not implemented")
 }
+func (s *stubSystemd) RestartUnit(_ context.Context, _ string) error {
+	return errors.New("stub: systemd not implemented")
+}
 func (s *stubSystemd) EnableUnit(_ context.Context, _ string) error {
 	return errors.New("stub: systemd not implemented")
 }

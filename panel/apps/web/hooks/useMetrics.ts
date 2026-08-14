@@ -33,10 +33,30 @@ export function useServices() {
         queryFn: () => fetchAgent<ServiceUnit[]>(host, "/api/v1/services"),
         refetchInterval: 2_000,
         staleTime: 1_500,
+        refetchOnWindowFocus: false,
     });
 }
 
-export function useServiceAction(unit: string, action: "start" | "stop" | "enable" | "disable") {
+// useServiceActions returns all four mutations for a single unit in one call,
+// avoiding the previous pattern of calling useServiceAction four times per row
+// (which created N_units × 4 mutation objects in memory).
+export function useServiceActions(unit: string) {
+    const host = useHostStore((s) => s.selectedHost);
+    const queryClient = useQueryClient();
+
+    const invalidate = () =>
+        queryClient.invalidateQueries({ queryKey: ["services", host] });
+
+    const start = useMutation({ mutationFn: () => postAgent(host, `/api/v1/services/${encodeURIComponent(unit)}/start`), onSettled: invalidate });
+    const stop = useMutation({ mutationFn: () => postAgent(host, `/api/v1/services/${encodeURIComponent(unit)}/stop`), onSettled: invalidate });
+    const restart = useMutation({ mutationFn: () => postAgent(host, `/api/v1/services/${encodeURIComponent(unit)}/restart`), onSettled: invalidate });
+    const enable = useMutation({ mutationFn: () => postAgent(host, `/api/v1/services/${encodeURIComponent(unit)}/enable`), onSettled: invalidate });
+    const disable = useMutation({ mutationFn: () => postAgent(host, `/api/v1/services/${encodeURIComponent(unit)}/disable`), onSettled: invalidate });
+
+    return { start, stop, restart, enable, disable };
+}
+
+export function useServiceAction(unit: string, action: "start" | "stop" | "restart" | "enable" | "disable") {
     const host = useHostStore((s) => s.selectedHost);
     const queryClient = useQueryClient();
     return useMutation({

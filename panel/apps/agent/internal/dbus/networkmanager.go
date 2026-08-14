@@ -166,8 +166,7 @@ func (n *networkClient) ScanWifi(_ context.Context) ([]AccessPoint, error) {
 		return nil, fmt.Errorf("GetAllAccessPoints: %w", err)
 	}
 
-	seen := map[string]bool{}
-	var aps []AccessPoint
+	seen := map[string]AccessPoint{}
 	for _, apPath := range apPaths {
 		apObj := n.conn.Object(nmBus, apPath)
 
@@ -177,11 +176,6 @@ func (n *networkClient) ScanWifi(_ context.Context) ([]AccessPoint, error) {
 		if ssid == "" {
 			continue
 		}
-		// Deduplicate by SSID (keep strongest signal).
-		if seen[ssid] {
-			continue
-		}
-		seen[ssid] = true
 
 		bssidV, _ := apObj.GetProperty(nmAccessPoint + ".HwAddress")
 		bssid, _ := bssidV.Value().(string)
@@ -203,7 +197,7 @@ func (n *networkClient) ScanWifi(_ context.Context) ([]AccessPoint, error) {
 		security := classifySecurity(flags, wpaFlags, rsnFlags)
 		band := classifyBand(freq)
 
-		aps = append(aps, AccessPoint{
+		ap := AccessPoint{
 			SSID:      ssid,
 			BSSID:     bssid,
 			SignalDBm: dbm,
@@ -211,7 +205,17 @@ func (n *networkClient) ScanWifi(_ context.Context) ([]AccessPoint, error) {
 			FreqMHz:   freq,
 			Band:      band,
 			Active:    apPath == activeAPPath,
-		})
+		}
+
+		// Keep the strongest signal per SSID (handles mesh networks and dual-band APs).
+		if existing, dup := seen[ssid]; !dup || dbm > existing.SignalDBm {
+			seen[ssid] = ap
+		}
+	}
+
+	var aps []AccessPoint
+	for _, ap := range seen {
+		aps = append(aps, ap)
 	}
 	return aps, nil
 }

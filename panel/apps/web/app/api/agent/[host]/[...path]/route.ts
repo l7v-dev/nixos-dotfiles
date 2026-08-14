@@ -21,9 +21,13 @@ function parseAgentBase(base: string): {
     tcpBase: string | null;
 } {
     // http+unix:///path/to.sock  →  socketPath = /path/to.sock
-    const unixMatch = base.match(/^http\+unix:\/\/(\/[^?#]*)/);
+    // Also handles URL-encoded form: http+unix://%2Fpath%2Fto.sock
+    const unixMatch = base.match(/^http\+unix:\/\/(\/[^?#]*|%2F[^?#]*)/i);
     if (unixMatch) {
-        return { socketPath: unixMatch[1], tcpBase: null };
+        // Decode percent-encoded path separators so Node's http module receives a real path.
+        const socketPath = decodeURIComponent(unixMatch[1]);
+        // Strip a trailing slash that NixOS appends (http+unix:///run/...sock/)
+        return { socketPath: socketPath.replace(/\/$/, ""), tcpBase: null };
     }
     // Legacy: http://unix:/path/to.sock:  →  socketPath = /path/to.sock
     const legacyMatch = base.match(/^http:\/\/unix:(\/[^:]+):/);
@@ -134,6 +138,14 @@ export async function POST(
     return proxyToAgent(request, params.path, "POST");
 }
 
+export async function DELETE(
+    request: NextRequest,
+    context: { params: Promise<{ host: string; path: string[] }> }
+) {
+    const params = await context.params;
+    return proxyToAgent(request, params.path, "DELETE");
+}
+
 async function proxyToAgent(
     request: NextRequest,
     pathSegments: string[],
@@ -172,6 +184,12 @@ async function proxyToAgent(
                 (result.headers["cache-control"] as string) ?? "no-cache",
             "X-Request-ID":
                 (result.headers["x-request-id"] as string) ?? reqId,
+            // Forward SSE-required headers so Next.js doesn't buffer the stream.
+            ...(result.headers["transfer-encoding"]
+                ? { "Transfer-Encoding": result.headers["transfer-encoding"] as string }
+                : {}),
+            // Tell nginx / Vercel not to buffer SSE responses.
+            "X-Accel-Buffering": "no",
         },
     });
 }

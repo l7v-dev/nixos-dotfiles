@@ -28,6 +28,8 @@ func NewSystemdClient() (SystemdClient, error) {
 }
 
 // ListUnits calls org.freedesktop.systemd1.Manager.ListUnits and returns all units.
+// Unit file states are fetched in a single batch call (GetUnitFileStates) instead of
+// one D-Bus round-trip per unit, avoiding the previous N+1 performance problem.
 func (s *systemdClient) ListUnits(_ context.Context) ([]ServiceUnit, error) {
 	obj := s.conn.Object(systemdBus, dbus.ObjectPath(systemdPath))
 
@@ -35,55 +37,75 @@ func (s *systemdClient) ListUnits(_ context.Context) ([]ServiceUnit, error) {
 	// (name, description, load_state, active_state, sub_state,
 	//  followed_unit, object_path, job_id, job_type, job_object_path)
 	var raw []struct {
-		Name            string
-		Description     string
-		LoadState       string
-		ActiveState     string
-		SubState        string
-		FollowedUnit    string
-		ObjectPath      dbus.ObjectPath
-		JobID           uint32
-		JobType         string
-		JobObjectPath   dbus.ObjectPath
+		Name          string
+		Description   string
+		LoadState     string
+		ActiveState   string
+		SubState      string
+		FollowedUnit  string
+		ObjectPath    dbus.ObjectPath
+		JobID         uint32
+		JobType       string
+		JobObjectPath dbus.ObjectPath
 	}
 
-	err := obj.Call(systemdManager+".ListUnits", 0).Store(&raw)
-	if err != nil {
+	if err := obj.Call(systemdManager+".ListUnits", 0).Store(&raw); err != nil {
 		return nil, fmt.Errorf("ListUnits D-Bus call: %w", err)
 	}
 
+	// Batch-fetch unit file states in a single D-Bus call.
+	// GetUnitFileStates returns []struct{Name, State, Destination} — we only need Name→State.
+	fileStates := batchUnitFileStates(s.conn, raw)
+
 	units := make([]ServiceUnit, 0, len(raw))
 	for _, r := range raw {
-		// Fetch unit file state separately (not in ListUnits result).
-		unitFileState := unitFileStateFor(s.conn, r.Name)
 		units = append(units, ServiceUnit{
 			Name:          r.Name,
 			Description:   r.Description,
 			LoadState:     r.LoadState,
 			ActiveState:   r.ActiveState,
 			SubState:      r.SubState,
-			UnitFileState: unitFileState,
+			UnitFileState: fileStates[r.Name],
 		})
 	}
 	return units, nil
 }
 
-// unitFileStateFor queries the UnitFileState property for a given unit name.
-// Returns an empty string on error — non-fatal, some units have no file state.
-func unitFileStateFor(conn *dbus.Conn, name string) string {
+// batchUnitFileStates calls GetUnitFileStates once with all unit names and returns
+// a name→state map. Falls back to an empty map on any D-Bus error — non-fatal.
+func batchUnitFileStates(conn *dbus.Conn, units []struct {
+	Name          string
+	Description   string
+	LoadState     string
+	ActiveState   string
+	SubState      string
+	FollowedUnit  string
+	ObjectPath    dbus.ObjectPath
+	JobID         uint32
+	JobType       string
+	JobObjectPath dbus.ObjectPath
+}) map[string]string {
+	result := make(map[string]string, len(units))
+
+	names := make([]string, len(units))
+	for i, u := range units {
+		names[i] = u.Name
+	}
+
 	obj := conn.Object(systemdBus, dbus.ObjectPath(systemdPath))
-	var paths []dbus.ObjectPath
-	err := obj.Call(systemdManager+".LoadUnit", 0, name).Store(&paths)
-	if err != nil || len(paths) == 0 {
-		return ""
+	var states []struct {
+		Name        string
+		State       string
+		Destination string
 	}
-	unitObj := conn.Object(systemdBus, paths[0])
-	v, err := unitObj.GetProperty("org.freedesktop.systemd1.Unit.UnitFileState")
-	if err != nil {
-		return ""
+	if err := obj.Call(systemdManager+".GetUnitFileStates", 0, names).Store(&states); err != nil {
+		// Not all unit files have file states (e.g. transient units) — return empty map.
+		return result
 	}
-	s, _ := v.Value().(string)
-	return s
+	for _, s := range states {
+		result[s.Name] = s.State
+	}
+	return result
 }
 
 // StartUnit starts the given unit via D-Bus.
@@ -94,6 +116,11 @@ func (s *systemdClient) StartUnit(_ context.Context, unit string) error {
 // StopUnit stops the given unit via D-Bus.
 func (s *systemdClient) StopUnit(_ context.Context, unit string) error {
 	return s.managerCall("StopUnit", unit, "replace")
+}
+
+// RestartUnit restarts the given unit via D-Bus.
+func (s *systemdClient) RestartUnit(_ context.Context, unit string) error {
+	return s.managerCall("RestartUnit", unit, "replace")
 }
 
 // EnableUnit enables the given unit file.

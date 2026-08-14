@@ -41,6 +41,8 @@ func serviceActionHandler(d Deps, action string) http.HandlerFunc {
 			err = d.Systemd.StartUnit(r.Context(), unit)
 		case "stop":
 			err = d.Systemd.StopUnit(r.Context(), unit)
+		case "restart":
+			err = d.Systemd.RestartUnit(r.Context(), unit)
 		case "enable":
 			err = d.Systemd.EnableUnit(r.Context(), unit)
 		case "disable":

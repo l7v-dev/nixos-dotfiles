@@ -121,6 +121,9 @@ func (s *alwaysErrSystemd) StartUnit(_ context.Context, _ string) error {
 func (s *alwaysErrSystemd) StopUnit(_ context.Context, _ string) error {
 	return errors.New("systemd unavailable")
 }
+func (s *alwaysErrSystemd) RestartUnit(_ context.Context, _ string) error {
+	return errors.New("systemd unavailable")
+}
 func (s *alwaysErrSystemd) EnableUnit(_ context.Context, _ string) error {
 	return errors.New("systemd unavailable")
 }
@@ -133,9 +136,23 @@ func (s *alwaysErrSystemd) HealthCheck(_ context.Context) error {
 
 type alwaysErrLogind struct{}
 
-func (l *alwaysErrLogind) PowerOff(_ context.Context) error    { return errors.New("logind unavailable") }
-func (l *alwaysErrLogind) Reboot(_ context.Context) error      { return errors.New("logind unavailable") }
-func (l *alwaysErrLogind) Suspend(_ context.Context) error     { return errors.New("logind unavailable") }
+func (l *alwaysErrLogind) PowerOff(_ context.Context) error      { return errors.New("logind unavailable") }
+func (l *alwaysErrLogind) Reboot(_ context.Context) error        { return errors.New("logind unavailable") }
+func (l *alwaysErrLogind) Suspend(_ context.Context) error       { return errors.New("logind unavailable") }
+func (l *alwaysErrLogind) Hibernate(_ context.Context) error     { return errors.New("logind unavailable") }
+func (l *alwaysErrLogind) HybridSleep(_ context.Context) error   { return errors.New("logind unavailable") }
+func (l *alwaysErrLogind) GetCapabilities(_ context.Context) (*dbus.PowerCapabilities, error) {
+	return nil, errors.New("logind unavailable")
+}
+func (l *alwaysErrLogind) ScheduleShutdown(_ context.Context, _ string, _ uint64) error {
+	return errors.New("logind unavailable")
+}
+func (l *alwaysErrLogind) CancelScheduledShutdown(_ context.Context) error {
+	return errors.New("logind unavailable")
+}
+func (l *alwaysErrLogind) GetScheduledShutdown(_ context.Context) (*dbus.ScheduledShutdownInfo, error) {
+	return nil, errors.New("logind unavailable")
+}
 func (l *alwaysErrLogind) HealthCheck(_ context.Context) error { return errors.New("logind unavailable") }
 
 type alwaysErrNetwork struct{}
@@ -144,6 +161,16 @@ func (n *alwaysErrNetwork) GetWifiStatus(_ context.Context) (*dbus.WifiStatus, e
 	return nil, errors.New("nm unavailable")
 }
 func (n *alwaysErrNetwork) ToggleWifi(_ context.Context) error { return errors.New("nm unavailable") }
+func (n *alwaysErrNetwork) ScanWifi(_ context.Context) ([]dbus.AccessPoint, error) {
+	return nil, errors.New("nm unavailable")
+}
+func (n *alwaysErrNetwork) ConnectWifi(_ context.Context, _, _ string) error {
+	return errors.New("nm unavailable")
+}
+func (n *alwaysErrNetwork) DisconnectWifi(_ context.Context) error { return errors.New("nm unavailable") }
+func (n *alwaysErrNetwork) GetSavedConnections(_ context.Context) ([]dbus.SavedConnection, error) {
+	return nil, errors.New("nm unavailable")
+}
 
 type alwaysErrBluetooth struct{}
 
@@ -151,6 +178,18 @@ func (b *alwaysErrBluetooth) GetBluetoothStatus(_ context.Context) (*dbus.Blueto
 	return nil, errors.New("bluez unavailable")
 }
 func (b *alwaysErrBluetooth) ToggleBluetooth(_ context.Context) error {
+	return errors.New("bluez unavailable")
+}
+func (b *alwaysErrBluetooth) ScanDevices(_ context.Context) ([]dbus.BTDevice, error) {
+	return nil, errors.New("bluez unavailable")
+}
+func (b *alwaysErrBluetooth) ConnectDevice(_ context.Context, _ string) error {
+	return errors.New("bluez unavailable")
+}
+func (b *alwaysErrBluetooth) DisconnectDevice(_ context.Context, _ string) error {
+	return errors.New("bluez unavailable")
+}
+func (b *alwaysErrBluetooth) RemoveDevice(_ context.Context, _ string) error {
 	return errors.New("bluez unavailable")
 }
 

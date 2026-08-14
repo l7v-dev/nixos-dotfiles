@@ -30,6 +30,7 @@ type mockSystemd struct {
 func (m *mockSystemd) ListUnits(_ context.Context) ([]dbus.ServiceUnit, error) { return m.units, nil }
 func (m *mockSystemd) StartUnit(_ context.Context, _ string) error              { return nil }
 func (m *mockSystemd) StopUnit(_ context.Context, _ string) error               { return nil }
+func (m *mockSystemd) RestartUnit(_ context.Context, _ string) error            { return nil }
 func (m *mockSystemd) EnableUnit(_ context.Context, _ string) error             { return nil }
 func (m *mockSystemd) DisableUnit(_ context.Context, _ string) error            { return nil }
 func (m *mockSystemd) HealthCheck(_ context.Context) error                      { return nil }

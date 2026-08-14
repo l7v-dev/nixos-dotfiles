@@ -7,7 +7,7 @@ import {
     Zap, BatteryCharging,
     Plug, Clock, X, ChevronDown, ChevronUp,
     AlertTriangle, Signal, Server,
-    Search, LockKeyhole, Gauge,
+    Search, LockKeyhole,
 } from "lucide-react";
 import {
     usePowerMutation,
@@ -74,7 +74,7 @@ function PowerControlCard() {
 
     const { data: caps } = usePowerCapabilities();
     const { data: powerStatus } = usePowerStatus();
-    const { data: scheduled } = useScheduledShutdown();
+    const { data: scheduled, cancel: cancelSchedule } = useScheduledShutdown();
 
     const shutdown = usePowerMutation("shutdown");
     const reboot = usePowerMutation("reboot");
@@ -100,6 +100,13 @@ function PowerControlCard() {
     const batPct = bat?.capacity_pct ?? null;
     const batStatus = bat?.status ?? null;
     const acOnline = powerStatus?.ac_online ?? null;
+
+    const actionLabel = (a?: string) => {
+        if (a === "poweroff" || a === "shutdown") return "Kapat";
+        if (a === "reboot") return "Yeniden Başlat";
+        if (a === "halt") return "Durdur";
+        return a ?? "";
+    };
 
     return (
         <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -142,6 +149,41 @@ function PowerControlCard() {
                     )}
                 </div>
             </div>
+
+            {/* ── Active schedule banner — always visible when a shutdown is scheduled ── */}
+            {scheduled?.scheduled && (
+                <div className="mx-5 mt-4 flex items-center justify-between rounded-lg border border-orange-500/30 bg-orange-500/10 px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-3.5 w-3.5 text-orange-400 shrink-0" />
+                        <div className="text-xs">
+                            <span className="font-medium text-orange-400">
+                                {actionLabel(scheduled.action)} planlandı
+                            </span>
+                            {scheduled.execute_at && (
+                                <span className="ml-2 text-muted-foreground">
+                                    {new Date(scheduled.execute_at).toLocaleString("tr-TR")}
+                                </span>
+                            )}
+                            {scheduled.remaining_min != null && (
+                                <span className="ml-2 font-medium text-orange-400">
+                                    ~{scheduled.remaining_min} dk kaldı
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => cancelSchedule.mutate(undefined)}
+                        disabled={cancelSchedule.isPending}
+                        title="Zamanlamayı iptal et"
+                        className="ml-3 flex items-center gap-1 rounded-md border border-orange-500/30 px-2 py-1 text-[11px] font-medium text-orange-400 hover:bg-orange-500/20 disabled:opacity-50 transition-colors"
+                    >
+                        {cancelSchedule.isPending
+                            ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            : <X className="h-3 w-3" />}
+                        İptal et
+                    </button>
+                </div>
+            )}
 
             {/* ── Primary actions ── */}
             <div className="px-5 py-5">
@@ -352,18 +394,17 @@ function PrimaryActions({
    ───────────────────────────────────────────────────────────────────────────── */
 
 function SchedulePanel() {
-    const { data, schedule, cancel } = useScheduledShutdown();
+    const { schedule } = useScheduledShutdown();
     const [action, setAction] = useState("shutdown");
     const [mode, setMode] = useState<"delay" | "time">("delay");
     const [delayMin, setDelayMin] = useState("30");
     const [atTime, setAtTime] = useState("");
     const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
-    const actionLabel = (a?: string) => {
-        if (a === "poweroff" || a === "shutdown") return "Kapat";
-        if (a === "reboot") return "Yeniden Başlat";
-        if (a === "halt") return "Durdur";
-        return a ?? "";
+    const fmtSuccess = (res: { action?: string; execute_at?: string }) => {
+        const label = res.action === "reboot" ? "Yeniden Başlat" : res.action === "halt" ? "Durdur" : "Kapat";
+        const time = res.execute_at ? ` — ${new Date(res.execute_at).toLocaleTimeString("tr-TR")}` : "";
+        return `Planlandı: ${label}${time}`;
     };
 
     const handleSchedule = () => {
@@ -373,10 +414,7 @@ function SchedulePanel() {
             : { action, at_time: new Date(atTime).toISOString() };
 
         schedule.mutate(body, {
-            onSuccess: (res) => setFeedback({
-                ok: true,
-                msg: `Planlandı: ${actionLabel(res.action ?? action)}${res.execute_at ? ` — ${new Date(res.execute_at).toLocaleTimeString("tr-TR")}` : ""}`,
-            }),
+            onSuccess: (res) => setFeedback({ ok: true, msg: fmtSuccess(res) }),
             onError: (err: unknown) => setFeedback({
                 ok: false,
                 msg: (err as { message?: string })?.message ?? "Hata",
@@ -384,47 +422,8 @@ function SchedulePanel() {
         });
     };
 
-    const handleCancel = () => {
-        setFeedback(null);
-        cancel.mutate(undefined, {
-            onSuccess: () => setFeedback({ ok: true, msg: "İptal edildi." }),
-            onError: (err: unknown) => setFeedback({
-                ok: false,
-                msg: (err as { message?: string })?.message ?? "İptal başarısız",
-            }),
-        });
-    };
-
     return (
         <div className="space-y-4">
-            {/* Active banner */}
-            {data?.scheduled && (
-                <div className="flex items-center justify-between rounded-lg border border-orange-500/30 bg-orange-500/10 px-3 py-2.5">
-                    <div className="flex items-center gap-2">
-                        <AlertTriangle className="h-3.5 w-3.5 text-orange-400 shrink-0" />
-                        <div className="text-xs">
-                            <span className="font-medium text-orange-400">{actionLabel(data.action)}</span>
-                            {data.execute_at && (
-                                <span className="ml-2 text-muted-foreground">
-                                    {new Date(data.execute_at).toLocaleString("tr-TR")}
-                                </span>
-                            )}
-                            {data.remaining_min != null && (
-                                <span className="ml-2 font-medium text-orange-400">
-                                    ~{data.remaining_min}dk kaldı
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                    <button
-                        onClick={handleCancel}
-                        disabled={cancel.isPending}
-                        className="ml-2 rounded p-1 text-orange-400 hover:bg-orange-500/20 transition-colors disabled:opacity-50"
-                    >
-                        <X className="h-3.5 w-3.5" />
-                    </button>
-                </div>
-            )}
 
             <div className="grid gap-3 sm:grid-cols-2">
                 {/* Action */}
@@ -485,10 +484,7 @@ function SchedulePanel() {
                                         schedule.mutate(
                                             { action, delay_minutes: min },
                                             {
-                                                onSuccess: (res) => setFeedback({
-                                                    ok: true,
-                                                    msg: `Planlandı: ${actionLabel(res.action ?? action)}${res.execute_at ? ` — ${new Date(res.execute_at).toLocaleTimeString("tr-TR")}` : ""}`,
-                                                }),
+                                                onSuccess: (res) => setFeedback({ ok: true, msg: fmtSuccess(res) }),
                                                 onError: (err: unknown) => setFeedback({
                                                     ok: false,
                                                     msg: (err as { message?: string })?.message ?? "Hata",
@@ -1020,9 +1016,11 @@ function BluetoothCard() {
                     className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 transition-colors"
                 >
                     {scanning
-                        ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        : <Search className="h-3 w-3" />}
-                    Cihazları Tara
+                        ? <>
+                            <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                            Taranıyor (~5s)…
+                        </>
+                        : <><Search className="h-3 w-3" />Cihazları Tara</>}
                 </button>
             )}
 

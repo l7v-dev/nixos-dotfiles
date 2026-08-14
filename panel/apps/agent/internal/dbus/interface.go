@@ -10,6 +10,7 @@ type SystemdClient interface {
 	ListUnits(ctx context.Context) ([]ServiceUnit, error)
 	StartUnit(ctx context.Context, unit string) error
 	StopUnit(ctx context.Context, unit string) error
+	RestartUnit(ctx context.Context, unit string) error
 	EnableUnit(ctx context.Context, unit string) error
 	DisableUnit(ctx context.Context, unit string) error
 	HealthCheck(ctx context.Context) error
