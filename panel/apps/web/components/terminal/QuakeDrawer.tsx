@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useTerminalStore, dispatchTerminalInput } from "@/store/terminal-store";
+import { useTerminalStore, dispatchTerminalInput, type TerminalTab } from "@/store/terminal-store";
 import { SplitPaneLayout } from "@/components/terminal/SplitPaneLayout";
 import { TerminalTabs } from "@/components/terminal/TerminalTabs";
 import { BroadcastBar } from "@/components/terminal/BroadcastBar";

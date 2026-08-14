@@ -5,7 +5,7 @@ import { computeBackoff } from "@/lib/backoff";
 import { useHostStore } from "@/store/host-store";
 import type { LogEntry } from "@/types/api";
 
-const MAX_BUFFER = 1000;
+const MAX_BUFFER = 5000;
 const MAX_RETRIES = 5;
 
 interface UseLogsResult {
@@ -14,14 +14,28 @@ interface UseLogsResult {
     error: string | null;
     retryCount: number;
     clear: () => void;
+    isPaused: boolean;
+    togglePause: () => void;
+    setPaused: (paused: boolean) => void;
 }
 
-export function useLogs(unit?: string, minPriority?: number): UseLogsResult {
+export function useLogs(
+    unit?: string,
+    minPriority?: number,
+    priorities?: number[],
+    search?: string,
+    backlog: number = 200
+): UseLogsResult {
     const host = useHostStore((s) => s.selectedHost);
     const [entries, setEntries] = useState<LogEntry[]>([]);
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [retryCount, setRetryCount] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
+
+    const isPausedRef = useRef(isPaused);
+    isPausedRef.current = isPaused;
+
     const esRef = useRef<EventSource | null>(null);
     const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -35,9 +49,12 @@ export function useLogs(unit?: string, minPriority?: number): UseLogsResult {
 
             const params = new URLSearchParams();
             if (unit) params.set("unit", unit);
-            if (minPriority !== undefined) params.set("priority", String(minPriority));
-            const qs = params.toString();
+            if (minPriority !== undefined && minPriority > 0) params.set("priority", String(minPriority));
+            if (priorities && priorities.length > 0) params.set("priorities", priorities.join(","));
+            if (search) params.set("search", search);
+            if (backlog > 0) params.set("backlog", String(backlog));
 
+            const qs = params.toString();
             const path = `/api/agent/${encodeURIComponent(host)}/api/v1/logs/stream${qs ? `?${qs}` : ""}`;
             const es = new EventSource(path);
             esRef.current = es;
@@ -49,6 +66,9 @@ export function useLogs(unit?: string, minPriority?: number): UseLogsResult {
             };
 
             es.onmessage = (ev) => {
+                // If paused, skip appending to state buffer
+                if (isPausedRef.current) return;
+
                 try {
                     const entry: LogEntry = JSON.parse(ev.data);
                     setEntries((prev) => {
@@ -56,32 +76,29 @@ export function useLogs(unit?: string, minPriority?: number): UseLogsResult {
                         return next.length > MAX_BUFFER ? next.slice(next.length - MAX_BUFFER) : next;
                     });
                 } catch {
-                    // skip malformed event
+                    // skip malformed event or keepalive comments
                 }
             };
 
-            // Named "error" event — sent intentionally by the backend when the journal
-            // fails to open. This is a permanent failure, not a reconnectable network drop.
+            // Named "error" event from server
             es.addEventListener("error", (ev) => {
                 const data = (ev as MessageEvent).data;
                 let msg = "Journal akışı hatası";
-                try {
-                    const parsed = JSON.parse(data);
-                    msg = parsed.message ?? msg;
-                } catch {
-                    // use default
+                if (data) {
+                    try {
+                        const parsed = JSON.parse(data);
+                        msg = parsed.message ?? msg;
+                    } catch {
+                        // use default
+                    }
                 }
                 setError(msg);
                 es.close();
                 setIsConnected(false);
-                // No retry — this is a server-side permanent error.
             });
 
-            // Generic onerror — network drop, agent restart, proxy disconnect.
-            // Do NOT set error state here; just schedule a reconnect so transient
-            // failures recover silently.
+            // Network drops or reconnection
             es.onerror = () => {
-                // Avoid double-firing if the named "error" listener already closed.
                 if (es.readyState === EventSource.CLOSED) return;
                 es.close();
                 setIsConnected(false);
@@ -91,7 +108,7 @@ export function useLogs(unit?: string, minPriority?: number): UseLogsResult {
                 retryTimerRef.current = setTimeout(() => connect(nextAttempt), delay);
             };
         },
-        [host, unit, minPriority]
+        [host, unit, minPriority, priorities, search, backlog]
     );
 
     useEffect(() => {
@@ -106,5 +123,18 @@ export function useLogs(unit?: string, minPriority?: number): UseLogsResult {
         };
     }, [connect]);
 
-    return { entries, isConnected, error, retryCount, clear: () => setEntries([]) };
+    const clear = useCallback(() => setEntries([]), []);
+    const togglePause = useCallback(() => setIsPaused((p) => !p), []);
+    const setPaused = useCallback((p: boolean) => setIsPaused(p), []);
+
+    return {
+        entries,
+        isConnected,
+        error,
+        retryCount,
+        clear,
+        isPaused,
+        togglePause,
+        setPaused,
+    };
 }

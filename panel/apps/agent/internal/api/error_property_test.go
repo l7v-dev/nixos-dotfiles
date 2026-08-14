@@ -16,6 +16,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/l7v/panel-agent/internal/api"
 	"github.com/l7v/panel-agent/internal/dbus"
@@ -204,3 +205,16 @@ type alwaysErrJournal struct{}
 func (j *alwaysErrJournal) Tail(_ context.Context, opts journal.TailOptions) {
 	opts.Err <- errors.New("journal unavailable")
 }
+
+func (j *alwaysErrJournal) Query(_ context.Context, _ journal.QueryOptions) (journal.QueryResult, error) {
+	return journal.QueryResult{}, errors.New("journal unavailable")
+}
+
+func (j *alwaysErrJournal) ListUnits(_ context.Context) ([]string, error) {
+	return nil, errors.New("journal unavailable")
+}
+
+func (j *alwaysErrJournal) GetStats(_ context.Context, _, _ time.Time, _ time.Duration) ([]journal.LogStatsBucket, error) {
+	return nil, errors.New("journal unavailable")
+}
+

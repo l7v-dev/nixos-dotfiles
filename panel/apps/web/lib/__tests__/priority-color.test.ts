@@ -3,7 +3,7 @@
 // Validates: Requirements 5.9
 import { describe, expect, test } from "vitest";
 import fc from "fast-check";
-import { priorityToColor } from "../priority-color";
+import { priorityToColor, priorityToBadgeClass } from "../priority-color";
 
 describe("priorityToColor", () => {
     test("Property 10 — returns non-empty string for all valid priorities (100 runs)", () => {
@@ -37,3 +37,23 @@ describe("priorityToColor", () => {
         expect(priorityToColor(7)).toContain("slate");
     });
 });
+
+describe("priorityToBadgeClass and priorityToCategory", () => {
+    test("maps emergency/crit (0-2) to rose badge and critical category", () => {
+        expect(priorityToBadgeClass(0)).toContain("rose");
+        expect(priorityToBadgeClass(2)).toContain("rose");
+    });
+
+    test("maps error (3) to red badge", () => {
+        expect(priorityToBadgeClass(3)).toContain("red");
+    });
+
+    test("maps warning (4) to amber badge", () => {
+        expect(priorityToBadgeClass(4)).toContain("amber");
+    });
+
+    test("maps info (6) to emerald badge", () => {
+        expect(priorityToBadgeClass(6)).toContain("emerald");
+    });
+});
+

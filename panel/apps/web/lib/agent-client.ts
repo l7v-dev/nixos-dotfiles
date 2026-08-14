@@ -45,3 +45,5 @@ export async function postAgent<T>(host: string, path: string, body?: unknown): 
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
 }
+
+export const agentFetch = fetchAgent;

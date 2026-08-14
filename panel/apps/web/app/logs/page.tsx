@@ -1,167 +1,248 @@
 "use client";
 
-import { useState, useRef, useEffect, useDeferredValue } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { useHostStore } from "@/store/host-store";
 import { useLogs } from "@/hooks/useLogs";
-import { priorityToColor, PRIORITY_LABELS } from "@/lib/priority-color";
-import { Search, Trash2 } from "lucide-react";
+import { useLogQuery } from "@/hooks/useLogQuery";
+import { useLogUnits } from "@/hooks/useLogUnits";
+import { useLogStats } from "@/hooks/useLogStats";
+import { LogHistogram } from "@/components/logs/LogHistogram";
+import { LogToolbar } from "@/components/logs/LogToolbar";
+import { LogViewer } from "@/components/logs/LogViewer";
+import { LogDetailDrawer } from "@/components/logs/LogDetailDrawer";
+import type { LogEntry, TimeRangePreset } from "@/types/api";
+import { ScrollText, Server, Wifi, WifiOff } from "lucide-react";
 
 export default function LogsPage() {
+    const host = useHostStore((s) => s.selectedHost);
+
+    // Filter & Mode state
+    const [mode, setMode] = useState<"live" | "historical">("live");
+    const [timeRange, setTimeRange] = useState<TimeRangePreset>("live");
     const [unit, setUnit] = useState("");
-    const [priority, setPriority] = useState<number>(0);
-    const [search, setSearch] = useState("");
-    const [paused, setPaused] = useState(false);
     const [debouncedUnit, setDebouncedUnit] = useState("");
-    const bottomRef = useRef<HTMLDivElement>(null);
+    const [selectedPriorities, setSelectedPriorities] = useState<number[]>([0, 1, 2, 3, 4, 5, 6, 7]);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const [density, setDensity] = useState<"compact" | "normal">("compact");
+    const [selectedEntry, setSelectedEntry] = useState<LogEntry | null>(null);
 
-    const deferredSearch = useDeferredValue(search);
-
-    // Debounce unit filter to avoid reconnecting on every keystroke.
+    // Debounce unit and search to avoid reconnecting SSE on every keypress
     useEffect(() => {
-        const t = setTimeout(() => setDebouncedUnit(unit), 400);
+        const t = setTimeout(() => setDebouncedUnit(unit), 300);
         return () => clearTimeout(t);
     }, [unit]);
 
-    const { entries, isConnected, error, retryCount, clear } = useLogs(
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+        return () => clearTimeout(t);
+    }, [searchQuery]);
+
+    // Active units list
+    const { data: availableUnits = [] } = useLogUnits();
+
+    // Time window calculation for historical mode and stats
+    const { sinceStr, untilStr } = useMemo(() => {
+        if (mode === "live" || timeRange === "live") {
+            return { sinceStr: "1h", untilStr: undefined };
+        }
+        return { sinceStr: timeRange, untilStr: undefined };
+    }, [mode, timeRange]);
+
+    // Live Stream Hook
+    const liveLogs = useLogs(
         debouncedUnit || undefined,
-        // Send priority only when a real filter is selected (0 = all).
-        priority > 0 ? priority : undefined
+        undefined,
+        selectedPriorities.length < 8 ? selectedPriorities : undefined,
+        debouncedSearch || undefined,
+        250 // initial backlog
     );
 
-    // Auto-scroll to bottom unless paused.
-    useEffect(() => {
-        if (!paused) {
-            bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-        }
-    }, [entries, paused]);
+    // Historical Query Hook
+    const historicalQuery = useLogQuery(
+        {
+            unit: debouncedUnit || undefined,
+            priorities: selectedPriorities.length < 8 ? selectedPriorities : undefined,
+            since: sinceStr,
+            search: debouncedSearch || undefined,
+            limit: 500,
+            reverse: true,
+        },
+        mode === "historical"
+    );
 
-    // Client-side message text filter (runs after SSE filter).
-    const q = deferredSearch.toLowerCase();
-    const visible = q
-        ? entries.filter(
+    // Histogram Stats Hook
+    const { data: statsBuckets = [], isLoading: isStatsLoading } = useLogStats(
+        sinceStr,
+        untilStr,
+        timeRange === "24h" || timeRange === "7d" ? "15m" : "1m",
+        true
+    );
+
+    // Active entries selection
+    const rawEntries = useMemo(() => {
+        if (mode === "live") {
+            return liveLogs.entries;
+        }
+        return historicalQuery.data?.entries ?? [];
+    }, [mode, liveLogs.entries, historicalQuery.data?.entries]);
+
+    // Client-side filtering if search is typed without waiting for reconnect
+    const displayEntries = useMemo(() => {
+        if (!debouncedSearch.trim()) return rawEntries;
+        const q = debouncedSearch.toLowerCase();
+        return rawEntries.filter(
             (e) =>
                 e.message.toLowerCase().includes(q) ||
-                e.unit.toLowerCase().includes(q)
-        )
-        : entries;
+                (e.unit && e.unit.toLowerCase().includes(q)) ||
+                (e.comm && e.comm.toLowerCase().includes(q))
+        );
+    }, [rawEntries, debouncedSearch]);
+
+    // Toggle single priority
+    const handleTogglePriority = useCallback((priority: number) => {
+        setSelectedPriorities((prev) => {
+            if (prev.includes(priority)) {
+                return prev.filter((p) => p !== priority);
+            } else {
+                return [...prev, priority].sort((a, b) => a - b);
+            }
+        });
+    }, []);
+
+    // Export handler
+    const handleExport = useCallback(
+        (format: "json" | "csv" | "ndjson" | "raw") => {
+            const params = new URLSearchParams();
+            params.set("format", format);
+            if (debouncedUnit) params.set("unit", debouncedUnit);
+            if (selectedPriorities.length < 8) {
+                params.set("priorities", selectedPriorities.join(","));
+            }
+            if (debouncedSearch) params.set("search", debouncedSearch);
+            if (sinceStr) params.set("since", sinceStr);
+            params.set("limit", "2000");
+
+            const url = `/api/agent/${encodeURIComponent(host)}/api/v1/logs/export?${params.toString()}`;
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", `logs-${host}-${format}.${format === "raw" ? "log" : format}`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        },
+        [host, debouncedUnit, selectedPriorities, debouncedSearch, sinceStr]
+    );
 
     return (
-        <div className="flex flex-col h-full gap-3">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-lg font-semibold">Loglar</h1>
-                    <p className="mt-0.5 text-xs text-muted-foreground">systemd journal akışı</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    {error ? (
-                        <span className="text-xs text-destructive">{error}</span>
-                    ) : retryCount > 0 ? (
-                        <span className="text-xs text-amber-500">
-                            Yeniden bağlanıyor… ({retryCount}/5)
-                        </span>
-                    ) : (
-                        <span className={`flex items-center gap-1 text-xs ${isConnected ? "text-green-600" : "text-muted-foreground"}`}>
-                            <span className={`inline-block h-2 w-2 rounded-full ${isConnected ? "bg-green-500 animate-pulse" : "bg-muted-foreground"}`} />
-                            {isConnected ? "Canlı" : "Bağlantı kesik"}
-                        </span>
-                    )}
-                </div>
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-wrap gap-2">
-                {/* Unit filter (reconnects) */}
-                <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                        type="search"
-                        placeholder="Unit filtrele…"
-                        value={unit}
-                        onChange={(e) => setUnit(e.target.value)}
-                        className="rounded-md border border-border bg-background py-1.5 pl-7 pr-3 text-sm w-44 focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                </div>
-
-                {/* Priority filter (reconnects) */}
-                <select
-                    value={priority}
-                    onChange={(e) => setPriority(Number(e.target.value))}
-                    className="rounded-md border border-border bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                >
-                    <option value={0}>Tüm öncelikler</option>
-                    {[3, 4, 5, 6, 7].map((p) => (
-                        <option key={p} value={p}>
-                            {PRIORITY_LABELS[p]} ve üstü
-                        </option>
-                    ))}
-                </select>
-
-                {/* Message text search (client-side, no reconnect) */}
-                <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                        type="search"
-                        placeholder="Mesaj ara…"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="rounded-md border border-border bg-background py-1.5 pl-7 pr-3 text-sm w-44 focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                </div>
-
-                {/* Pause / Resume */}
-                <button
-                    onClick={() => setPaused((v) => !v)}
-                    className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${paused
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border text-muted-foreground hover:bg-accent"
-                        }`}
-                >
-                    {paused ? "▶ Devam" : "⏸ Duraklat"}
-                </button>
-
-                {/* Clear buffer */}
-                <button
-                    onClick={clear}
-                    className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:border-destructive/50 hover:text-destructive transition-colors"
-                >
-                    <Trash2 className="h-3 w-3" />
-                    Temizle
-                </button>
-
-                {/* Entry count */}
-                <span className="ml-auto self-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                    {visible.length}{entries.length !== visible.length && `/${entries.length}`}
-                </span>
-            </div>
-
-            {/* Log viewer */}
-            <div className="flex-1 overflow-auto rounded-lg border border-border bg-card font-mono text-xs">
-                <div className="p-2 space-y-0.5">
-                    {visible.length === 0 && (
-                        <p className="text-muted-foreground text-center py-8">
-                            {isConnected ? "Log bekleniyor…" : "Bağlı değil"}
-                        </p>
-                    )}
-                    {visible.map((entry, i) => (
-                        <div
-                            key={i}
-                            className="flex gap-2 py-0.5 hover:bg-accent/30 rounded px-1"
-                        >
-                            <span className="text-muted-foreground shrink-0 w-20 tabular-nums">
-                                {new Date(entry.timestamp).toLocaleTimeString("tr-TR")}
+        <div className="flex flex-col h-[calc(100vh-4.5rem)] gap-2.5 p-1">
+            {/* Page Header */}
+            <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
+                <div className="flex items-center gap-2.5">
+                    <div className="rounded-lg bg-primary/10 p-2 border border-primary/20 text-primary">
+                        <ScrollText className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-base font-bold tracking-tight text-foreground">Sistem & Servis Logları</h1>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground border border-border/50">
+                                <Server className="h-3 w-3" /> {host}
                             </span>
-                            <span className="text-muted-foreground shrink-0 w-36 truncate" title={entry.unit}>
-                                {entry.unit || "—"}
-                            </span>
-                            <span className={`shrink-0 w-14 font-medium ${priorityToColor(entry.priority)}`}>
-                                {PRIORITY_LABELS[entry.priority] ?? String(entry.priority)}
-                            </span>
-                            <span className="break-all min-w-0">{entry.message}</span>
                         </div>
-                    ))}
-                    <div ref={bottomRef} />
+                        <p className="text-xs text-muted-foreground">
+                            systemd journald ve servis çıktı akışı & analitiği
+                        </p>
+                    </div>
+                </div>
+
+                {/* Connection Status indicator */}
+                <div className="flex items-center gap-2 text-xs">
+                    {mode === "live" ? (
+                        liveLogs.error ? (
+                            <span className="inline-flex items-center gap-1 text-destructive font-medium bg-destructive/10 px-2 py-1 rounded border border-destructive/20">
+                                <WifiOff className="h-3 w-3" /> {liveLogs.error}
+                            </span>
+                        ) : liveLogs.retryCount > 0 ? (
+                            <span className="inline-flex items-center gap-1 text-amber-400 font-medium bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20">
+                                Yeniden bağlanıyor ({liveLogs.retryCount}/5)…
+                            </span>
+                        ) : (
+                            <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-medium border text-xs ${
+                                    liveLogs.isConnected
+                                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                        : "bg-muted text-muted-foreground border-border"
+                                }`}
+                            >
+                                <span
+                                    className={`h-2 w-2 rounded-full ${
+                                        liveLogs.isConnected ? "bg-emerald-400 animate-pulse" : "bg-muted-foreground"
+                                    }`}
+                                />
+                                {liveLogs.isConnected ? "Canlı Akış Aktif" : "Bağlantı Kesik"}
+                            </span>
+                        )
+                    ) : (
+                        <span className="inline-flex items-center gap-1 text-muted-foreground bg-muted/60 px-2.5 py-1 rounded-full text-xs border border-border">
+                            Geçmiş Kayıt Modu
+                        </span>
+                    )}
                 </div>
             </div>
+
+            {/* Log Rate / Volume Histogram */}
+            <LogHistogram
+                buckets={statsBuckets}
+                isLoading={isStatsLoading}
+                onSelectBucket={(b) => {
+                    // Zoom into bucket time range
+                    setMode("historical");
+                }}
+            />
+
+            {/* Log Toolbar */}
+            <LogToolbar
+                mode={mode}
+                onModeChange={setMode}
+                timeRange={timeRange}
+                onTimeRangeChange={setTimeRange}
+                unit={unit}
+                onUnitChange={setUnit}
+                availableUnits={availableUnits}
+                selectedPriorities={selectedPriorities}
+                onTogglePriority={handleTogglePriority}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                isPaused={liveLogs.isPaused}
+                onTogglePause={liveLogs.togglePause}
+                onClear={liveLogs.clear}
+                onRefresh={historicalQuery.refetch}
+                onExport={handleExport}
+                density={density}
+                onToggleDensity={() => setDensity((d) => (d === "compact" ? "normal" : "compact"))}
+                totalLogs={rawEntries.length}
+                filteredLogs={displayEntries.length}
+            />
+
+            {/* Virtualized Log Viewer */}
+            <LogViewer
+                entries={displayEntries}
+                isConnected={liveLogs.isConnected}
+                isLoading={mode === "historical" && historicalQuery.isLoading}
+                error={mode === "live" ? liveLogs.error : historicalQuery.error?.message}
+                searchQuery={debouncedSearch}
+                density={density}
+                isLiveMode={mode === "live"}
+                onSelectEntry={setSelectedEntry}
+                onRetry={mode === "live" ? () => liveLogs.clear() : () => historicalQuery.refetch()}
+            />
+
+            {/* Structured Log Detail Drawer */}
+            <LogDetailDrawer
+                entry={selectedEntry}
+                onClose={() => setSelectedEntry(null)}
+                onFilterUnit={(u) => setUnit(u)}
+            />
         </div>
     );
 }

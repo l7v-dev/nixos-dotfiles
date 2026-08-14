@@ -42,6 +42,9 @@ type terminalManagerClient interface {
 
 // NewRouter wires all API routes and wraps the mux in logging middleware.
 func NewRouter(d Deps) http.Handler {
+	if d.Logger == nil {
+		d.Logger = slog.Default()
+	}
 	mux := http.NewServeMux()
 
 	// Catch-all for unknown paths → JSON 404.
@@ -105,8 +108,12 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("POST /api/v1/network/bluetooth/disconnect/{address}", bluetoothDisconnectHandler(d))
 	mux.Handle("DELETE /api/v1/network/bluetooth/device/{address}", bluetoothRemoveHandler(d))
 
-	// Log streaming (SSE)
+	// Log streaming & querying
 	mux.Handle("GET /api/v1/logs/stream", logsStreamHandler(d))
+	mux.Handle("GET /api/v1/logs/query", logsQueryHandler(d))
+	mux.Handle("GET /api/v1/logs/units", logsUnitsHandler(d))
+	mux.Handle("GET /api/v1/logs/stats", logsStatsHandler(d))
+	mux.Handle("GET /api/v1/logs/export", logsExportHandler(d))
 
 	// Terminal Sessions & WebSocket
 	mux.Handle("GET /api/v1/terminal/sessions", listTerminalSessionsHandler(d))

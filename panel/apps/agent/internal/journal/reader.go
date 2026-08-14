@@ -1,9 +1,14 @@
 package journal
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
-// Reader tails the systemd journal and emits LogEntry values.
-// The concrete implementation is in tail.go (Task 7.1).
+// Reader provides live streaming and historical queries against the systemd journal.
 type Reader interface {
 	Tail(ctx context.Context, opts TailOptions)
+	Query(ctx context.Context, opts QueryOptions) (QueryResult, error)
+	ListUnits(ctx context.Context) ([]string, error)
+	GetStats(ctx context.Context, since, until time.Time, bucketDuration time.Duration) ([]LogStatsBucket, error)
 }

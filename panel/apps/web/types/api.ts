@@ -114,7 +114,41 @@ export interface LogEntry {
     unit: string;
     priority: number;
     message: string;
+    pid?: number;
+    uid?: number;
+    comm?: string;
+    syslog_id?: string;
+    hostname?: string;
+    transport?: string;
+    cursor?: string;
+    fields?: Record<string, string>;
 }
+
+export interface LogStatsBucket {
+    timestamp: string;
+    counts: Record<string, number>;
+    total: number;
+}
+
+export interface LogQueryResult {
+    entries: LogEntry[];
+    next_cursor?: string;
+    total: number;
+}
+
+export interface LogQueryParams {
+    since?: string;
+    until?: string;
+    unit?: string;
+    priority?: number;
+    priorities?: number[];
+    search?: string;
+    limit?: number;
+    cursor?: string;
+    reverse?: boolean;
+}
+
+export type TimeRangePreset = "live" | "5m" | "15m" | "1h" | "6h" | "24h" | "7d" | "custom";
 
 export interface HealthResponse {
     status: "ok" | "degraded";

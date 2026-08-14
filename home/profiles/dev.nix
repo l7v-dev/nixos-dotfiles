@@ -63,7 +63,10 @@
     cargo-watch
 
     # ── Go tooling ────────────────────────────────────────────────────────
+    go
     gopls
+    golangci-lint
+    delve
 
     # ── Build tooling ─────────────────────────────────────────────────────
     gnumake
