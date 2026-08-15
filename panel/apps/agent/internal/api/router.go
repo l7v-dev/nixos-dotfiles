@@ -4,8 +4,10 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/l7v/panel-agent/internal/ai"
 	"github.com/l7v/panel-agent/internal/apps"
 	"github.com/l7v/panel-agent/internal/audio"
+	"github.com/l7v/panel-agent/internal/auth"
 	"github.com/l7v/panel-agent/internal/containers"
 	"github.com/l7v/panel-agent/internal/dbus"
 	"github.com/l7v/panel-agent/internal/display"
@@ -33,6 +35,8 @@ type Deps struct {
 	Fleet            fleet.Client
 	Security         security.Client
 	Storage          storage.Client
+	AI               ai.Client
+	Auth             auth.Manager
 	Procfs           metrics.ProcfsReader
 	Journal          journal.Reader
 	Logger           *slog.Logger
@@ -211,11 +215,22 @@ func NewRouter(d Deps) http.Handler {
 		mux.Handle("GET /api/v1/fleet/deploy/stream", fleetDeployStreamHandler(d))
 	}
 
-	// Security & VPN
+	// Security, SOPS Audit & Fail2ban
 	if d.Security != nil {
 		mux.Handle("GET /api/v1/security/status", securityStatusHandler(d))
+		mux.Handle("GET /api/v1/security/audit", securityAuditHandler(d))
+		mux.Handle("GET /api/v1/security/sops", securitySOPSHandler(d))
+		mux.Handle("POST /api/v1/security/sops/verify", securitySOPSVerifyHandler(d))
+		mux.Handle("GET /api/v1/security/fail2ban", securityFail2banHandler(d))
+		mux.Handle("POST /api/v1/security/fail2ban/unban", securityFail2banUnbanHandler(d))
 		mux.Handle("POST /api/v1/security/vpn/toggle", securityVPNToggleHandler(d))
 	}
+
+	// Web Authentication & PIN Lock
+	mux.Handle("GET /api/v1/auth/status", authStatusHandler(d))
+	mux.Handle("POST /api/v1/auth/login", authLoginHandler(d))
+	mux.Handle("POST /api/v1/auth/logout", authLogoutHandler(d))
+	mux.Handle("POST /api/v1/auth/verify", authVerifyHandler(d))
 
 	// Storage, Snapper & Restic Backups
 	if d.Storage != nil {
@@ -227,6 +242,21 @@ func NewRouter(d Deps) http.Handler {
 		mux.Handle("GET /api/v1/storage/restic/status", storageResticStatusHandler(d))
 		mux.Handle("GET /api/v1/storage/restic/snapshots", storageResticSnapshotsHandler(d))
 		mux.Handle("POST /api/v1/storage/restic/backup", storageResticBackupHandler(d))
+	}
+
+	// AI Agents, Autonomous Loops & MicroVM Sandboxes
+	if d.AI != nil {
+		mux.Handle("GET /api/v1/ai/tasks", aiTasksListHandler(d))
+		mux.Handle("POST /api/v1/ai/tasks", aiTaskCreateHandler(d))
+		mux.Handle("GET /api/v1/ai/tasks/{id}", aiTaskGetHandler(d))
+		mux.Handle("POST /api/v1/ai/tasks/{id}/cancel", aiTaskCancelHandler(d))
+		mux.Handle("GET /api/v1/ai/tasks/{id}/stream", aiTaskStreamHandler(d))
+		mux.Handle("GET /api/v1/ai/tools", aiToolsListHandler(d))
+		mux.Handle("GET /api/v1/ai/microvms", aiMicroVMListHandler(d))
+		mux.Handle("GET /api/v1/ai/microvms/host-status", aiMicroVMHostStatusHandler(d))
+		mux.Handle("POST /api/v1/ai/microvms/{name}/start", aiMicroVMActionHandler(d, "start"))
+		mux.Handle("POST /api/v1/ai/microvms/{name}/stop", aiMicroVMActionHandler(d, "stop"))
+		mux.Handle("POST /api/v1/ai/microvms/{name}/restart", aiMicroVMActionHandler(d, "restart"))
 	}
 
 	// Log streaming & querying

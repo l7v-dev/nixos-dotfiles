@@ -15,8 +15,10 @@ import (
 	"syscall"
 
 	"github.com/coreos/go-systemd/v22/activation"
+	"github.com/l7v/panel-agent/internal/ai"
 	"github.com/l7v/panel-agent/internal/api"
 	"github.com/l7v/panel-agent/internal/audio"
+	"github.com/l7v/panel-agent/internal/auth"
 	"github.com/l7v/panel-agent/internal/containers"
 	agentdbus "github.com/l7v/panel-agent/internal/dbus"
 	"github.com/l7v/panel-agent/internal/display"
@@ -136,6 +138,8 @@ func main() {
 		Fleet:            fleet.NewClient(),
 		Security:         security.NewClient(),
 		Storage:          storage.NewClient(),
+		AI:               ai.NewClient(),
+		Auth:             auth.NewManager(),
 		Procfs:           metrics.NewProcfsReader(),
 		Journal:          journal.NewReader(),
 		Logger:           logger,

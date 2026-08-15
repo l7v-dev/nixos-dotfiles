@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 // VPNTunnel represents Tailscale or WireGuard VPN state.
@@ -45,19 +46,30 @@ type Status struct {
 	FirewallOn bool          `json:"firewall_on"`
 }
 
-// Client defines the interface for security and VPN operations.
+// Client defines the interface for security, SOPS audit, fail2ban and VPN operations.
 type Client interface {
 	GetStatus(ctx context.Context) (*Status, error)
 	ToggleVPN(ctx context.Context) error
+	GetAuditReport(ctx context.Context) (*SecurityAuditReport, error)
+	VerifySOPS(ctx context.Context) (*SOPSAuditReport, error)
+	GetFail2ban(ctx context.Context) (*Fail2banStatus, error)
+	UnbanIP(ctx context.Context, jail string, ip string) error
 }
 
 type systemSecurityClient struct {
-	mu sync.Mutex
+	mu        sync.Mutex
+	flakeRoot string
 }
 
 // NewClient creates a new security client.
 func NewClient() Client {
-	return &systemSecurityClient{}
+	root := os.Getenv("FLAKE_ROOT")
+	if root == "" {
+		root = "/home/l7v/dev/projects/company/active/nixos"
+	}
+	return &systemSecurityClient{
+		flakeRoot: root,
+	}
 }
 
 // GetStatus checks Tailscale/VPN status, open listening ports, and active user sessions.
@@ -102,7 +114,7 @@ func (c *systemSecurityClient) GetStatus(ctx context.Context) (*Status, error) {
 		}
 	}
 
-	// 2. Open listening ports (via /proc/net/tcp and /proc/net/tcp6 or ss fallback)
+	// 2. Open listening ports
 	c.readListeningPorts(ctx, status)
 
 	// 3. Active user sessions via loginctl
@@ -132,7 +144,6 @@ func (c *systemSecurityClient) GetStatus(ctx context.Context) (*Status, error) {
 }
 
 func (c *systemSecurityClient) readListeningPorts(ctx context.Context, status *Status) {
-	// Try parsing /proc/net/tcp
 	parseProcTCP := func(path string, isV6 bool) {
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -141,14 +152,14 @@ func (c *systemSecurityClient) readListeningPorts(ctx context.Context, status *S
 		lines := strings.Split(string(data), "\n")
 		for i, line := range lines {
 			if i == 0 {
-				continue // header
+				continue
 			}
 			fields := strings.Fields(line)
 			if len(fields) < 4 {
 				continue
 			}
 			state := fields[3]
-			if state != "0A" { // 0A = TCP_LISTEN
+			if state != "0A" {
 				continue
 			}
 			localAddr := fields[1]
@@ -160,6 +171,7 @@ func (c *systemSecurityClient) readListeningPorts(ctx context.Context, status *S
 						Protocol: "tcp",
 						Port:     int(portNum),
 						Address:  "0.0.0.0",
+						Process:  mapPortToProcess(int(portNum)),
 					})
 				}
 			}
@@ -169,7 +181,6 @@ func (c *systemSecurityClient) readListeningPorts(ctx context.Context, status *S
 	parseProcTCP("/proc/net/tcp", false)
 	parseProcTCP("/proc/net/tcp6", true)
 
-	// Deduplicate ports
 	seen := make(map[int]bool)
 	unique := make([]OpenPort, 0, len(status.OpenPorts))
 	for _, p := range status.OpenPorts {
@@ -205,4 +216,103 @@ func (c *systemSecurityClient) ToggleVPN(ctx context.Context) error {
 		return exec.CommandContext(ctx, "tailscale", "down").Run()
 	}
 	return exec.CommandContext(ctx, "tailscale", "up", "--accept-routes").Run()
+}
+
+// GetAuditReport executes a complete security audit, calculating health score, ports, SOPS and fail2ban.
+func (c *systemSecurityClient) GetAuditReport(ctx context.Context) (*SecurityAuditReport, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	status, _ := c.getStatusInternal(ctx)
+	sops := CheckSOPSIntegrity(ctx, c.flakeRoot, false)
+	f2b := GetFail2banStatus(ctx)
+	ports := ListDetailedPorts(ctx)
+
+	publicCount := 0
+	for _, p := range ports {
+		if p.Exposure == ExposurePublic && p.Port != 80 && p.Port != 443 {
+			publicCount++
+		}
+	}
+
+	score, grade, recs := CalculateSecurityScore(status.FirewallOn, status.VPN.Active, sops, f2b, ports)
+
+	return &SecurityAuditReport{
+		Score:           score,
+		Grade:           grade,
+		FirewallActive:  status.FirewallOn,
+		VPNActive:       status.VPN.Active,
+		SOPSReport:      sops,
+		Fail2ban:        f2b,
+		OpenPorts:       ports,
+		TotalListening:  len(ports),
+		PublicListening: publicCount,
+		SysctlHardened:  true,
+		Recommendations: recs,
+		AuditedAt:       time.Now(),
+	}, nil
+}
+
+func (c *systemSecurityClient) getStatusInternal(ctx context.Context) (*Status, error) {
+	status := &Status{
+		VPN: VPNTunnel{
+			Type:   "tailscale",
+			Active: false,
+			Status: "not_installed",
+		},
+		OpenPorts:  make([]OpenPort, 0),
+		Sessions:   make([]UserSession, 0),
+		FirewallOn: true,
+	}
+
+	if _, err := exec.LookPath("tailscale"); err == nil {
+		status.VPN.Status = "stopped"
+		out, err := exec.CommandContext(ctx, "tailscale", "status", "--json").Output()
+		if err == nil {
+			var tsData struct {
+				BackendState string `json:"BackendState"`
+				Self         struct {
+					TailscaleIPs []string `json:"TailscaleIPs"`
+					Online       bool     `json:"Online"`
+				} `json:"Self"`
+				Peer map[string]any `json:"Peer"`
+			}
+			if err := json.Unmarshal(out, &tsData); err == nil && tsData.BackendState == "Running" {
+				status.VPN.Active = true
+				status.VPN.Status = "connected"
+				if len(tsData.Self.TailscaleIPs) > 0 {
+					status.VPN.IPAddress = tsData.Self.TailscaleIPs[0]
+				}
+				status.VPN.PeersCount = len(tsData.Peer)
+			}
+		}
+	}
+
+	return status, nil
+}
+
+// VerifySOPS performs an active decryption test on secrets.yaml using Age.
+func (c *systemSecurityClient) VerifySOPS(ctx context.Context) (*SOPSAuditReport, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	sops := CheckSOPSIntegrity(ctx, c.flakeRoot, true)
+	return &sops, nil
+}
+
+// GetFail2ban queries the fail2ban service for active jails and banned IPs.
+func (c *systemSecurityClient) GetFail2ban(ctx context.Context) (*Fail2banStatus, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	st := GetFail2banStatus(ctx)
+	return &st, nil
+}
+
+// UnbanIP unbans an IP address from a fail2ban jail.
+func (c *systemSecurityClient) UnbanIP(ctx context.Context, jail string, ip string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return UnbanFail2banIP(ctx, jail, ip)
 }

@@ -379,6 +379,71 @@ export interface VPNTunnel {
     peers_count?: number;
 }
 
+export type ExposureType = "localhost" | "mesh" | "public";
+
+export interface PortAuditItem {
+    protocol: string;
+    port: number;
+    address: string;
+    process?: string;
+    pid?: number;
+    exposure: ExposureType;
+    is_protected: boolean;
+}
+
+export interface SOPSAuditReport {
+    key_file_exists: boolean;
+    key_file_path: string;
+    public_key?: string;
+    registered_in_sops: boolean;
+    decryption_ok: boolean;
+    status_message: string;
+    last_tested_at: string;
+}
+
+export interface Fail2banJailInfo {
+    name: string;
+    currently_banned: number;
+    total_banned: number;
+    banned_ips: string[];
+}
+
+export interface Fail2banStatus {
+    enabled: boolean;
+    active_jails: number;
+    total_banned_ip: number;
+    jails: Fail2banJailInfo[];
+}
+
+export interface SecurityAuditReport {
+    score: number;
+    grade: "A+" | "A" | "B" | "C" | "F" | string;
+    firewall_active: boolean;
+    vpn_active: boolean;
+    sops_report: SOPSAuditReport;
+    fail2ban: Fail2banStatus;
+    open_ports: PortAuditItem[];
+    total_listening: number;
+    public_listening: number;
+    sysctl_hardened: boolean;
+    recommendations: string[];
+    audited_at: string;
+}
+
+export interface AuthStatus {
+    auth_enabled: boolean;
+    auth_method: "pin" | "password" | "none" | string;
+    active_session: boolean;
+    expires_at?: string;
+}
+
+export interface Session {
+    token: string;
+    created_at: string;
+    expires_at: string;
+    client_ip?: string;
+}
+
 export interface OpenPort {
     protocol: "tcp" | "udp" | string;
     port: number;
@@ -510,3 +575,89 @@ export interface AgentError {
 }
 
 export type ThresholdLevel = "green" | "amber" | "red";
+
+// ---------------------------------------------------------------------------
+// AI Agents, Autonomous Loops & MicroVM Sandboxes (Section D)
+// ---------------------------------------------------------------------------
+
+export type AgentTaskStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
+export type SandboxTier = 0 | 1 | 2 | 3;
+
+export interface AgentTask {
+    id: string;
+    task_slug: string;
+    prompt: string;
+    agent_engine: string;
+    max_iterations: number;
+    current_iteration: number;
+    status: AgentTaskStatus;
+    working_dir: string;
+    worktree_path?: string;
+    branch?: string;
+    session_name?: string;
+    pid?: number;
+    cpu_percent: number;
+    memory_mb: number;
+    start_time: string;
+    end_time?: string;
+    duration_ms: number;
+    exit_code: number;
+    logs: string[];
+    is_external: boolean;
+}
+
+export interface StartTaskRequest {
+    task_slug: string;
+    prompt: string;
+    max_iterations: number;
+    agent_engine: string;
+    working_dir?: string;
+    sandbox_tier?: SandboxTier;
+}
+
+export type AIToolCategory =
+    | "coding_agent"
+    | "assistant"
+    | "code_review"
+    | "memory_intelligence"
+    | "workflow_management"
+    | "sandboxing_isolation";
+
+export interface AIToolInfo {
+    name: string;
+    binary_name: string;
+    description: string;
+    category: AIToolCategory;
+    sandbox_tier: SandboxTier;
+    installed: boolean;
+    version?: string;
+    source: string;
+    path?: string;
+}
+
+export interface VirtioShare {
+    tag: string;
+    source: string;
+    mount_point: string;
+    proto: string;
+}
+
+export interface MicroVMInfo {
+    name: string;
+    status: "running" | "stopped" | "failed" | "unknown" | string;
+    vcpu: number;
+    memory_mb: number;
+    shares: VirtioShare[];
+    ssh_command: string;
+    socket_path?: string;
+    systemd_unit: string;
+    uptime_seconds: number;
+}
+
+export interface MicroVMHostStatus {
+    supported: boolean;
+    kvm_enabled: boolean;
+    virtiofsd_running: boolean;
+    available_vms: string[];
+    hypervisor: string;
+}

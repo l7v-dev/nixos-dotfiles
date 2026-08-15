@@ -125,10 +125,23 @@ graph LR
   - `GetResticStatus()`, `ListResticSnapshots()`, `TriggerResticBackup()`.
 - [x] **Frontend:** `StorageCard` ve 2 sekmeli `SnapshotDrawer` (Btrfs Snapper Zaman Çizelgesi + Restic Uzak Yedekler) bileşenleri.
 
-### 4. SOPS & Güvenlik Audit Kartı
-- [ ] **Agent Backend:** `internal/security/audit.go`
-  - Age anahtarı varlık kontrolü (`/etc/age/key`), dinlenen portlar listesi (`/proc/net/tcp`), fail2ban durumu.
-- [ ] **Frontend:** `SecurityCard` bileşeni üzerinde gerçek zamanlı güvenlik skoru ve açık portlar listesi.
+### 4. AI Agent & Sandbox Yönetim Merkezi (Agent Hub — Task D)
+- [x] **Agent Backend:** `internal/ai/types.go`, `tasks.go`, `tools.go`, `microvm.go`, `client.go`, `internal/api/ai.go`
+  - `ListTasks()`, `StartTask()`, `CancelTask()`, `GetTask()`, harici `agent-*` tmux oturumlarını ve `/tmp/agent-worktree-*` dizinlerini otomatik keşfetme.
+  - SSE Canlı Log Akışı: `/api/v1/ai/tasks/{id}/stream`
+  - `ListTools()`: `ai-tools.nix` içindeki 40+ deklaratif aracın canlı PATH ve versiyon kontrolü.
+  - `ListMicroVMs()`, `StartMicroVM()`, `StopMicroVM()`, `RestartMicroVM()`, `GetHostStatus()` ile Tier 2 sanal makine denetimi.
+- [x] **Frontend:** Cockpit içinde `AIAgentCard`, 3 sekmeli `AgentHubDrawer` (Aktif Görevler, MicroVM Ephemeral Sandbox, AI Araç Envanteri) ve `AITaskConsoleModal` canlı SSE terminal log konsolu.
+- [x] **Host Virtualisation:** `hosts/laptop/default.nix` üzerinde `l7v.virtualisation.microvm.enable = true` bildirimsel aktivasyonu.
+
+### 5. SOPS & Güvenlik Audit Kartı (Security & Auth Hub — Task E)
+- [x] **Agent Backend:** `internal/auth/auth.go`, `internal/security/audit.go`, `internal/security/security.go`, `internal/api/security.go`
+  - Age anahtarı varlık kontrolü (`/etc/age/key`), `.sops.yaml` eşleşmesi ve canlı deşifre testi (`sops --decrypt`).
+  - Dinlenen portlar analizi (`/proc/net/tcp`, `/proc/net/tcp6`, `ss`, servis eşleştirmesi, dinlenen IP ve exposure seviyesi: Localhost, Mesh, Public).
+  - Fail2ban durumu (aktif jail'ler, banlanan zararlı IP listesi, unban tetikleme).
+  - Sistem Güvenlik Skoru (0-100% / A+ Derecesi) ve güvenlik önerileri.
+  - Web Kimlik Doğrulama Katmanı (PIN/Parola, oturum token üretimi, oturum doğrulama ve sonlandırma).
+- [x] **Frontend:** Cockpit içinde `SecurityCard`, 3 sekmeli `SecurityDrawer` (Güvenlik Skoru & Denetim, SOPS & Age Şifreleme, Dinlenen Portlar & Fail2ban) ve `PINLockModal` hızlı kilit/oturum arayüzü.
 
 ---
 

@@ -83,7 +83,10 @@
       power = true;
     };
 
-    virtualisation.enable = true;
+    virtualisation = {
+      enable = true;
+      microvm.enable = true;
+    };
 
     # Secrets decrypted via /etc/age/key.
     # age public key: age100fgm3zj79kwsw962f9ehw8s43llfk7z2tpsh2juy3platc99qcs7lj0yw

@@ -36,9 +36,10 @@ import { HardwareCard } from "@/components/cockpit/HardwareCard";
 import { NixOSCard } from "@/components/cockpit/NixOSCard";
 import { SecurityCard } from "@/components/cockpit/SecurityCard";
 import { StorageCard } from "@/components/cockpit/StorageCard";
+import { AIAgentCard } from "@/components/cockpit/AIAgentCard";
 
 type PowerAction = "shutdown" | "reboot" | "sleep" | "hibernate" | "hybrid-sleep";
-type CockpitTab = "all" | "hardware" | "network" | "system";
+type CockpitTab = "all" | "hardware" | "network" | "system" | "ai";
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Root Page
@@ -67,6 +68,7 @@ export default function CockpitPage() {
                         { id: "hardware", label: "Donanım & Güç" },
                         { id: "network", label: "Ağ & Güvenlik" },
                         { id: "system", label: "NixOS & Bakım" },
+                        { id: "ai", label: "AI & Sandbox" },
                     ].map((t) => (
                         <button
                             key={t.id}
@@ -97,10 +99,11 @@ export default function CockpitPage() {
                         <HardwareCard />
                     </div>
 
-                    {/* Right Column: Wifi, Bluetooth, NixOS, Security, Storage */}
+                    {/* Right Column: Wifi, Bluetooth, NixOS, AI Agents, Security, Storage */}
                     <div className="space-y-5">
                         <WifiCard />
                         <BluetoothCard />
+                        <AIAgentCard />
                         <NixOSCard />
                         <SecurityCard />
                         <StorageCard />
@@ -137,9 +140,21 @@ export default function CockpitPage() {
                 <div className="grid gap-5 lg:grid-cols-2">
                     <div className="space-y-5">
                         <NixOSCard />
+                        <AIAgentCard />
                     </div>
                     <div className="space-y-5">
                         <StorageCard />
+                    </div>
+                </div>
+            )}
+
+            {tab === "ai" && (
+                <div className="grid gap-5 lg:grid-cols-2">
+                    <div className="space-y-5">
+                        <AIAgentCard />
+                    </div>
+                    <div className="space-y-5">
+                        <HardwareCard />
                     </div>
                 </div>
             )}
