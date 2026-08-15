@@ -70,16 +70,21 @@
       memoryPercent = 50;
     };
 
-    # Bounded persistent journal
-    services.journald.extraConfig = ''
-      Storage=persistent
-      SystemMaxUse=2G
-      MaxRetentionSec=2week
-    '';
+    # Storage services
+    services = {
+      journald.extraConfig = ''
+        Storage=persistent
+        SystemMaxUse=2G
+        MaxRetentionSec=2week
+      '';
 
-    services.smartd = {
-      enable = true;
-      autodetect = true;
+      smartd = {
+        enable = true;
+        autodetect = true;
+      };
+
+      # Periodic TRIM for NVMe and SSD storage drives
+      fstrim.enable = true;
     };
   };
 }

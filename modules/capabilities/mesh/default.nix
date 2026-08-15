@@ -77,7 +77,7 @@ in
       enable = true;
       port = cfg.tailscale.port;
       authKeyFile = cfg.tailscale.authKeyFile;
-      extraUpArgs = cfg.tailscale.extraUpArgs;
+      extraUpFlags = cfg.tailscale.extraUpArgs;
       useRoutingFeatures = cfg.tailscale.useRoutingFeatures;
     };
 
