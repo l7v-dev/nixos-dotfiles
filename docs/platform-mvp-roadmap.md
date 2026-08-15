@@ -120,9 +120,10 @@ graph LR
 - [x] **Frontend:** Üst navigasyon barında dinamik `HostSelector`, Cockpit'te `FleetDrawer` (filo durumu ve rolleri) ve `ColmenaDeployModal` canlı dağıtım konsolu.
 
 ### 3. Btrfs Snapshot & Backup Yönetimi
-- [ ] **Agent Backend:** `internal/storage/snapshots.go`
-  - `ListSnapperSnapshots()`, `CreateSnapperSnapshot()`, `GetResticStatus()`, `TriggerResticBackup()`.
-- [ ] **Frontend:** `StorageCard` bileşeni altına Snapshot oluşturma ve Restic yedekleme tetikleme butonları.
+- [x] **Agent Backend:** `internal/storage/snapshots.go` ve `restic.go`
+  - `ListSnapperConfigs()`, `ListSnapperSnapshots()`, `CreateSnapperSnapshot()`, `DeleteSnapperSnapshot()`.
+  - `GetResticStatus()`, `ListResticSnapshots()`, `TriggerResticBackup()`.
+- [x] **Frontend:** `StorageCard` ve 2 sekmeli `SnapshotDrawer` (Btrfs Snapper Zaman Çizelgesi + Restic Uzak Yedekler) bileşenleri.
 
 ### 4. SOPS & Güvenlik Audit Kartı
 - [ ] **Agent Backend:** `internal/security/audit.go`

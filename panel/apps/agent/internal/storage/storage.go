@@ -23,10 +23,17 @@ type RemovableDisk struct {
 	IsMounted  bool    `json:"is_mounted"`
 }
 
-// Client defines the interface for removable drive operations.
+// Client defines the interface for removable drive, Snapper snapshot and Restic operations.
 type Client interface {
 	GetRemovableDrives(ctx context.Context) ([]RemovableDisk, error)
 	Unmount(ctx context.Context, device string) error
+	ListSnapperConfigs(ctx context.Context) ([]SnapperConfig, error)
+	ListSnapperSnapshots(ctx context.Context, config string) ([]SnapperSnapshot, error)
+	CreateSnapperSnapshot(ctx context.Context, req CreateSnapshotRequest) (*SnapperSnapshot, error)
+	DeleteSnapperSnapshot(ctx context.Context, config string, id int) error
+	GetResticStatus(ctx context.Context) (*ResticStatus, error)
+	ListResticSnapshots(ctx context.Context) ([]ResticSnapshot, error)
+	TriggerResticBackup(ctx context.Context) error
 }
 
 type systemStorageClient struct {
@@ -36,6 +43,34 @@ type systemStorageClient struct {
 // NewClient creates a new storage manager client.
 func NewClient() Client {
 	return &systemStorageClient{}
+}
+
+func (c *systemStorageClient) ListSnapperConfigs(ctx context.Context) ([]SnapperConfig, error) {
+	return ListSnapperConfigs(ctx)
+}
+
+func (c *systemStorageClient) ListSnapperSnapshots(ctx context.Context, config string) ([]SnapperSnapshot, error) {
+	return ListSnapperSnapshots(ctx, config)
+}
+
+func (c *systemStorageClient) CreateSnapperSnapshot(ctx context.Context, req CreateSnapshotRequest) (*SnapperSnapshot, error) {
+	return CreateSnapperSnapshot(ctx, req)
+}
+
+func (c *systemStorageClient) DeleteSnapperSnapshot(ctx context.Context, config string, id int) error {
+	return DeleteSnapperSnapshot(ctx, config, id)
+}
+
+func (c *systemStorageClient) GetResticStatus(ctx context.Context) (*ResticStatus, error) {
+	return GetResticStatus(ctx)
+}
+
+func (c *systemStorageClient) ListResticSnapshots(ctx context.Context) ([]ResticSnapshot, error) {
+	return ListResticSnapshots(ctx)
+}
+
+func (c *systemStorageClient) TriggerResticBackup(ctx context.Context) error {
+	return TriggerResticBackup(ctx)
 }
 
 // GetRemovableDrives queries connected USB/external storage partitions.

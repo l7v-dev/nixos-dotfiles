@@ -319,6 +319,58 @@ export interface ColmenaDeployJob {
     logs: string[];
 }
 
+// ---------------------------------------------------------------------------
+// Btrfs Snapshots & Restic Backup (Section C)
+// ---------------------------------------------------------------------------
+
+export interface SnapperConfig {
+    name: string;
+    subvolume: string;
+}
+
+export interface SnapperSnapshot {
+    id: number;
+    config: string;
+    type: "single" | "pre" | "post" | string;
+    pre_id?: number;
+    date: string;
+    date_string: string;
+    cleanup?: string;
+    description: string;
+    user_data?: string;
+}
+
+export interface CreateSnapshotRequest {
+    config?: string;
+    description: string;
+    cleanup?: string;
+    type?: string;
+    user_data?: string;
+}
+
+export interface ResticStatus {
+    enabled: boolean;
+    repository: string;
+    backend: "s3" | "sftp" | "local" | string;
+    service_active: boolean;
+    service_substate: string;
+    last_run_time?: string;
+    last_run_success: boolean;
+    next_run_time?: string;
+    snapshot_count: number;
+    paths: string[];
+}
+
+export interface ResticSnapshot {
+    id: string;
+    short_id: string;
+    time: string;
+    paths: string[];
+    hostname: string;
+    username: string;
+    tags: string[];
+}
+
 export interface VPNTunnel {
     type: "tailscale" | "wireguard" | string;
     active: boolean;

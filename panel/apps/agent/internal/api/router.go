@@ -217,10 +217,16 @@ func NewRouter(d Deps) http.Handler {
 		mux.Handle("POST /api/v1/security/vpn/toggle", securityVPNToggleHandler(d))
 	}
 
-	// Storage & Removable Media
+	// Storage, Snapper & Restic Backups
 	if d.Storage != nil {
 		mux.Handle("GET /api/v1/storage/removable", storageRemovableHandler(d))
 		mux.Handle("POST /api/v1/storage/unmount", storageUnmountHandler(d))
+		mux.Handle("GET /api/v1/storage/snapshots", storageSnapshotsHandler(d))
+		mux.Handle("POST /api/v1/storage/snapshots", storageCreateSnapshotHandler(d))
+		mux.Handle("DELETE /api/v1/storage/snapshots/{config}/{id}", storageDeleteSnapshotHandler(d))
+		mux.Handle("GET /api/v1/storage/restic/status", storageResticStatusHandler(d))
+		mux.Handle("GET /api/v1/storage/restic/snapshots", storageResticSnapshotsHandler(d))
+		mux.Handle("POST /api/v1/storage/restic/backup", storageResticBackupHandler(d))
 	}
 
 	// Log streaming & querying
