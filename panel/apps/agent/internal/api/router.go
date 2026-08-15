@@ -16,6 +16,7 @@ import (
 	"github.com/l7v/panel-agent/internal/journal"
 	"github.com/l7v/panel-agent/internal/metrics"
 	"github.com/l7v/panel-agent/internal/nixos"
+	"github.com/l7v/panel-agent/internal/packages"
 	"github.com/l7v/panel-agent/internal/security"
 	"github.com/l7v/panel-agent/internal/storage"
 	"github.com/l7v/panel-agent/internal/terminal"
@@ -32,6 +33,7 @@ type Deps struct {
 	Display          display.Client
 	Hardware         hardware.Client
 	NixOS            nixos.Client
+	Packages         packages.Client
 	Fleet            fleet.Client
 	Security         security.Client
 	Storage          storage.Client
@@ -202,6 +204,14 @@ func NewRouter(d Deps) http.Handler {
 		mux.Handle("GET /api/v1/nixos/rebuild/jobs/{id}", nixosRebuildJobGetHandler(d))
 		mux.Handle("POST /api/v1/nixos/rebuild/jobs/{id}/cancel", nixosRebuildJobCancelHandler(d))
 		mux.Handle("GET /api/v1/nixos/rebuild/stream", nixosRebuildStreamHandler(d))
+	}
+
+	// Nix Packages & Options Search
+	if d.Packages != nil {
+		mux.Handle("GET /api/v1/packages/search", packagesSearchHandler(d))
+		mux.Handle("GET /api/v1/packages/options", packagesOptionsHandler(d))
+		mux.Handle("GET /api/v1/packages/installed", packagesInstalledHandler(d))
+		mux.Handle("GET /api/v1/packages/info", packagesInfoHandler(d))
 	}
 
 	// Multi-Host Fleet & Colmena Orchestration

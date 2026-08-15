@@ -101,7 +101,7 @@ export function NetworkManagementTab() {
                                 <th className="p-3">Ağ Adı & ID</th>
                                 <th className="p-3">Sürücü & Scope</th>
                                 <th className="p-3">IPAM (Subnet / Gateway)</th>
-                                <th className="p-3">Bağlı Kapsayıcılar & IP'ler</th>
+                                <th className="p-3">Bağlı Kapsayıcılar & IP&apos;ler</th>
                                 <th className="p-3 text-right">İşlem</th>
                             </tr>
                         </thead>

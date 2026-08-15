@@ -194,7 +194,7 @@ export function SnapshotDrawer({ open, onClose }: SnapshotDrawerProps) {
                         }`}
                     >
                         <Camera className="w-4 h-4" />
-                        Btrfs Snapper Snapshot'ları ({snapshots.length})
+                        Btrfs Snapper Snapshot&apos;ları ({snapshots.length})
                     </button>
                     <button
                         onClick={() => setActiveTab("restic")}
@@ -483,14 +483,14 @@ export function SnapshotDrawer({ open, onClose }: SnapshotDrawerProps) {
                         {/* Remote Snapshots List */}
                         <div className="flex flex-col gap-3">
                             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                Depodaki Uzak Snapshot'lar
+                                Depodaki Uzak Snapshot&apos;lar
                             </span>
 
                             <div className="rounded-xl border border-border bg-card/60 overflow-hidden">
                                 {resticSnapshotsLoading ? (
                                     <div className="p-8 text-center text-xs text-muted-foreground">
                                         <RefreshCw className="w-4 h-4 animate-spin mr-2 inline" />
-                                        Restic snapshot'ları taranıyor...
+                                        Restic snapshot&apos;ları taranıyor...
                                     </div>
                                 ) : (resticSnapshotsData?.snapshots ?? []).length === 0 ? (
                                     <div className="p-8 text-center text-xs text-muted-foreground">

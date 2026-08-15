@@ -190,7 +190,7 @@ export function CreateContainerModal({ isOpen, onClose }: Props) {
                                     className="h-9 w-full rounded-md border border-border bg-card px-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
                                 />
                                 <p className="mt-1 text-[11px] text-muted-foreground">
-                                    İmaj yerelde yoksa otomatik olarak kayıtlı registry'den çekilecektir.
+                                    İmaj yerelde yoksa otomatik olarak kayıtlı registry&apos;den çekilecektir.
                                 </p>
                             </div>
 

@@ -27,6 +27,7 @@ import (
 	"github.com/l7v/panel-agent/internal/journal"
 	"github.com/l7v/panel-agent/internal/metrics"
 	"github.com/l7v/panel-agent/internal/nixos"
+	"github.com/l7v/panel-agent/internal/packages"
 	"github.com/l7v/panel-agent/internal/security"
 	"github.com/l7v/panel-agent/internal/storage"
 	"github.com/l7v/panel-agent/internal/terminal"
@@ -135,6 +136,7 @@ func main() {
 		Display:          display.NewClient(),
 		Hardware:         hardware.NewClient(),
 		NixOS:            nixos.NewClient(),
+		Packages:         packages.NewClient(),
 		Fleet:            fleet.NewClient(),
 		Security:         security.NewClient(),
 		Storage:          storage.NewClient(),

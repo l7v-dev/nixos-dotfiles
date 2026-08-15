@@ -139,7 +139,7 @@ export function ImageManagementTab() {
                 <div className="flex h-56 flex-col items-center justify-center rounded-lg border border-dashed border-border p-6 text-center">
                     <Disc className="mb-2 h-8 w-8 text-muted-foreground/30" />
                     <p className="text-sm font-semibold text-foreground">Kayıtlı İmaj Yok</p>
-                    <p className="text-xs text-muted-foreground">Registry'den yeni bir imaj çekebilirsiniz.</p>
+                    <p className="text-xs text-muted-foreground">Registry&apos;den yeni bir imaj çekebilirsiniz.</p>
                 </div>
             ) : (
                 <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">

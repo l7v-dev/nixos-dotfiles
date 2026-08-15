@@ -14,6 +14,7 @@ const PAGE_LABELS: Record<string, string> = {
     "/monitoring": "Monitoring",
     "/logs": "Logs",
     "/apps": "Applications",
+    "/packages": "Packages",
     "/cockpit": "Cockpit",
     "/terminal": "Terminal",
 };

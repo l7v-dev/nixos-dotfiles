@@ -316,7 +316,7 @@ export function ContainerDetailDrawer({ containerId, onClose }: Props) {
                             <div className="space-y-2">
                                 <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                     <HardDrive className="h-3.5 w-3.5" />
-                                    Bağlanan Diskler & Volume'ler ({container?.mounts?.length || 0})
+                                    Bağlanan Diskler & Volume&apos;ler ({container?.mounts?.length || 0})
                                 </h3>
                                 {container?.mounts && container.mounts.length > 0 ? (
                                     <div className="rounded-lg border border-border bg-card overflow-hidden">

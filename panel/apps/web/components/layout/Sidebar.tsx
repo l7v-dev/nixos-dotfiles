@@ -9,6 +9,7 @@ import {
     Boxes,
     Server,
     AppWindow,
+    PackageSearch,
     PanelLeftClose,
     PanelLeftOpen,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const monitoringNav = [
 ];
 
 const directManagementNav = [
+    { href: "/packages", label: "Packages", icon: PackageSearch },
     { href: "/containers", label: "Containers", icon: Boxes },
     { href: "/cockpit", label: "Cockpit", icon: Gauge },
     { href: "/terminal", label: "Terminal", icon: Terminal },
