@@ -104,15 +104,20 @@ graph LR
 ## 🎯 5. MVP 1.0 Detaylı Görev Listesi (Core MVP)
 
 ### 1. NixOS Flake & Jenerasyon Yönetimi
-- [ ] **Agent Backend:** `internal/nixos/generations.go`
-  - `GetGenerations()`: `/nix/var/nix/profiles/system*` listeleme, tarih, çekirdek ve link analizi.
-  - `SwitchGeneration(gen int)`: `nixos-rebuild switch --rollback` veya hedef jenerasyona geçiş.
-  - `RebuildFlake(flakePath string, target string)`: `nh os switch` veya `nixos-rebuild` çalıştırma ve SSE ile log akıtma.
-- [ ] **Frontend:** Cockpit içinde `NixOSCard` bileşenine "Generations", "Rollback" ve "Rebuild System" aksiyon modalı eklenmesi.
+- [x] **Agent Backend:** `internal/nixos/generations.go`, `diff.go`, `flake.go`, `rebuild.go`
+  - `ListGenerations()`: `/nix/var/nix/profiles/system*` listeleme, tarih, çekirdek ve link analizi.
+  - `GetGenerationDiff()`: `nix store diff-closures` ile paket değişim ve boyut analizi.
+  - `SwitchGeneration(gen int)`: `switch-to-configuration switch` veya hedef jenerasyona geçiş.
+  - `RollbackGeneration()`: Tek tıkla önceki jenerasyona güvenli geri dönüş.
+  - `GetFlakeInfo()`: `flake.lock` girdi, revizyon ve durum analizi.
+  - `TriggerRebuild()` & SSE Stream: `nh os switch`, `nixos-rebuild`, `update.sh` arka plan iş yönetimi ve canlı log akışı.
+- [x] **Frontend:** Cockpit içinde `NixOSCard`, `GenerationsDrawer` (Jenerasyon Zaman Çizelgesi, Paket Diff, Flake Kilit) ve `RebuildConsoleModal` canlı SSE konsol bileşenleri.
 
-### 2. Panel Çoklu Host Yönlendirme (Multi-Host Gateway)
-- [ ] **Agent Proxy:** `panel/apps/web/app/api/agent/[host]/[...path]/route.ts` dosyasının gelen `[host]` parametresine göre `managedHosts` haritasındaki soket/IP adresine dinamik istek göndermesi.
-- [ ] **Frontend:** Üst navigasyon barına `HostSelector` (Laptop / Server / Builder / Backup) açılır menüsü eklenmesi ve Zustand store ile seçili hostun senkronize edilmesi.
+### 2. Panel Çoklu Host Yönlendirme & Mesh Ağı (Multi-Host Gateway & Colmena)
+- [x] **Mesh Ağı Modülü:** `modules/capabilities/mesh/default.nix` ile bildirimsel Tailscale/WireGuard mesh network yeteneği ve MagicDNS (`*.mesh`).
+- [x] **Agent Proxy:** `panel/apps/web/app/api/agent/[host]/[...path]/route.ts` dosyasının gelen `[host]` parametresine göre `MANAGED_HOSTS` haritasındaki soket/IP adresine dinamik istek göndermesi.
+- [x] **Colmena Engine:** Go Agent `internal/fleet/fleet.go` ve `colmena.go` ile çoklu host sağlık kontrolü ve canlı SSE dağıtım akışı (`colmena apply --on <target>`).
+- [x] **Frontend:** Üst navigasyon barında dinamik `HostSelector`, Cockpit'te `FleetDrawer` (filo durumu ve rolleri) ve `ColmenaDeployModal` canlı dağıtım konsolu.
 
 ### 3. Btrfs Snapshot & Backup Yönetimi
 - [ ] **Agent Backend:** `internal/storage/snapshots.go`

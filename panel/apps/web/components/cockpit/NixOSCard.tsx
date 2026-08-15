@@ -4,13 +4,25 @@ import { useState } from "react";
 import {
     Sparkles, Trash2, HardDrive,
     RotateCcw, CheckCircle2, AlertCircle,
-    Layers, Cpu, Clock,
+    Layers, Cpu, Clock, Terminal,
+    GitBranch, ArrowUpDown, RefreshCw,
 } from "lucide-react";
-import { useNixOS } from "@/hooks/useNixOS";
+import { useNixOS, useRollback } from "@/hooks/useNixOS";
+import { GenerationsDrawer } from "./GenerationsDrawer";
+import { RebuildConsoleModal } from "./RebuildConsoleModal";
+import { FleetDrawer } from "./FleetDrawer";
+import { ColmenaDeployModal } from "./ColmenaDeployModal";
+import { Network, Rocket } from "lucide-react";
 
 export function NixOSCard() {
-    const { data: nixos, garbageCollect, storeOptimise, isLoading } = useNixOS();
+    const { data: nixos, garbageCollect, storeOptimise, isLoading, refetch } = useNixOS();
+    const rollback = useRollback();
+
     const [resultMsg, setResultMsg] = useState<{ ok: boolean; msg: string } | null>(null);
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [rebuildModalOpen, setRebuildModalOpen] = useState(false);
+    const [fleetDrawerOpen, setFleetDrawerOpen] = useState(false);
+    const [colmenaModalOpen, setColmenaModalOpen] = useState(false);
 
     const handleGC = () => {
         setResultMsg(null);
@@ -41,6 +53,26 @@ export function NixOSCard() {
         });
     };
 
+    const handleQuickRollback = () => {
+        setResultMsg(null);
+        if (!confirm("Önceki jenerasyona geri dönülecek (Rollback). Devam edilsin mi?")) {
+            return;
+        }
+
+        rollback.mutate(undefined, {
+            onSuccess: (res) => {
+                setResultMsg({
+                    ok: true,
+                    msg: `Rollback tamamlandı → Aktif Jenerasyon: #${res.target_generation || res.current_generation}`,
+                });
+                refetch();
+            },
+            onError: (err) => {
+                setResultMsg({ ok: false, msg: err.message ?? "Rollback işlemi başarısız oldu" });
+            },
+        });
+    };
+
     const formatUptime = (sec: number) => {
         const d = Math.floor(sec / 86400);
         const h = Math.floor((sec % 86400) / 3600);
@@ -55,18 +87,18 @@ export function NixOSCard() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-500">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
                         <Layers className="h-4 w-4" />
                     </div>
                     <div>
-                        <p className="text-sm font-semibold">NixOS ve Sistem Bakımı</p>
+                        <p className="text-sm font-semibold">NixOS ve Sistem Flake</p>
                         <p className="text-[11px] text-muted-foreground">
                             {isLoading ? "Yükleniyor…" : nixos?.version ?? "NixOS Linux"}
                         </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-500 border border-cyan-500/20">
+                    <span className="rounded-full bg-cyan-500/15 px-2 py-0.5 text-[10px] font-bold text-cyan-500 border border-cyan-500/30">
                         Gen #{nixos?.current_generation ?? 1}
                     </span>
                 </div>
@@ -88,17 +120,84 @@ export function NixOSCard() {
                 </div>
             </div>
 
-            {/* Maintenance Actions */}
-            <div className="space-y-2 rounded-lg border border-border/50 bg-background/40 p-3.5">
-                <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-2">
-                    Tek Tıkla Disk & Store Bakımı
+            {/* ── Flake & Generation Primary Actions ── */}
+            <div className="space-y-2 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-3.5">
+                <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[10px] uppercase font-semibold text-cyan-500 tracking-wider">
+                        Flake, Jenerasyon & Canlı Rebuild
+                    </p>
+                    <span className="text-[10px] text-muted-foreground">nh os switch / nix-store</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {/* Open Generations Drawer */}
+                    <button
+                        onClick={() => setDrawerOpen(true)}
+                        className="flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted hover:border-border/80 transition-all shadow-xs"
+                    >
+                        <ArrowUpDown className="h-3.5 w-3.5 text-cyan-500" />
+                        Jenerasyonlar & Diff
+                    </button>
+
+                    {/* Open Live Rebuild Console */}
+                    <button
+                        onClick={() => setRebuildModalOpen(true)}
+                        className="flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-xs"
+                    >
+                        <Terminal className="h-3.5 w-3.5" />
+                        Canlı Rebuild Konsolu
+                    </button>
+                </div>
+
+                {/* Quick Rollback */}
+                <button
+                    onClick={handleQuickRollback}
+                    disabled={rollback.isPending}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-orange-500/30 bg-orange-500/10 px-3 py-1.5 text-xs font-medium text-orange-400 hover:bg-orange-500/20 disabled:opacity-40 transition-colors"
+                >
+                    {rollback.isPending ? (
+                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    ) : (
+                        <RotateCcw className="h-3 w-3" />
+                    )}
+                    Önceki Jenerasyona Geri Dön (Rollback)
+                </button>
+            </div>
+
+            {/* ── Multi-Host Fleet & Mesh Networking ── */}
+            <div className="space-y-2 rounded-lg border border-border/50 bg-background/40 p-3">
+                <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-1.5">
+                    Filo Yönetimi & Mesh Ağı
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                        onClick={() => setFleetDrawerOpen(true)}
+                        className="flex items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+                    >
+                        <Network className="h-3.5 w-3.5 text-emerald-400" />
+                        Filo & Mesh Durumu
+                    </button>
+                    <button
+                        onClick={() => setColmenaModalOpen(true)}
+                        className="flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600/20 border border-emerald-500/30 px-3 py-1.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-600/30 transition-colors"
+                    >
+                        <Rocket className="h-3.5 w-3.5 text-emerald-400" />
+                        Colmena Dağıtımı
+                    </button>
+                </div>
+            </div>
+
+            {/* ── Maintenance Actions (GC & Optimise) ── */}
+            <div className="space-y-2 rounded-lg border border-border/50 bg-background/40 p-3">
+                <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider mb-1.5">
+                    Disk & Store Bakımı
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2">
                     {/* Garbage Collect */}
                     <button
                         onClick={handleGC}
                         disabled={garbageCollect.isPending}
-                        className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-secondary px-3 py-2 text-xs font-medium text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 transition-colors"
                     >
                         {garbageCollect.isPending ? (
                             <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -112,12 +211,12 @@ export function NixOSCard() {
                     <button
                         onClick={handleOptimise}
                         disabled={storeOptimise.isPending}
-                        className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
                     >
                         {storeOptimise.isPending ? (
                             <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
                         ) : (
-                            <Sparkles className="h-3.5 w-3.5" />
+                            <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
                         )}
                         Store Optimize Et
                     </button>
@@ -141,6 +240,35 @@ export function NixOSCard() {
                     <span className="leading-tight">{resultMsg.msg}</span>
                 </div>
             )}
+
+            {/* Drawer & Modal Components */}
+            <GenerationsDrawer
+                open={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+                onOpenRebuildModal={() => {
+                    setDrawerOpen(false);
+                    setRebuildModalOpen(true);
+                }}
+            />
+
+            <RebuildConsoleModal
+                open={rebuildModalOpen}
+                onClose={() => setRebuildModalOpen(false)}
+            />
+
+            <FleetDrawer
+                open={fleetDrawerOpen}
+                onOpenChange={setFleetDrawerOpen}
+                onOpenColmenaDeploy={() => {
+                    setFleetDrawerOpen(false);
+                    setColmenaModalOpen(true);
+                }}
+            />
+
+            <ColmenaDeployModal
+                open={colmenaModalOpen}
+                onOpenChange={setColmenaModalOpen}
+            />
         </div>
     );
 }

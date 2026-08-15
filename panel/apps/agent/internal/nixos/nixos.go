@@ -31,20 +31,32 @@ type MaintenanceResult struct {
 	FreedMB uint64 `json:"freed_mb,omitempty"`
 }
 
-// Client defines the interface for NixOS maintenance operations.
+// Client defines the interface for NixOS maintenance and generation operations.
 type Client interface {
 	GetStatus(ctx context.Context) (*Status, error)
 	RunGarbageCollect(ctx context.Context, deleteOlderThan string) (*MaintenanceResult, error)
 	RunStoreOptimise(ctx context.Context) (*MaintenanceResult, error)
+	ListGenerations(ctx context.Context) ([]Generation, error)
+	GetGenerationDiff(ctx context.Context, fromGen, toGen int) (*GenerationDiff, error)
+	SwitchGeneration(ctx context.Context, targetGen int) (*SwitchResult, error)
+	RollbackGeneration(ctx context.Context) (*SwitchResult, error)
+	GetFlakeInfo(ctx context.Context, flakePath string) (*FlakeInfo, error)
+	TriggerRebuild(ctx context.Context, req RebuildRequest) (*RebuildJob, error)
+	GetRebuildJob(id string) (*RebuildJob, bool)
+	ListRebuildJobs() []*RebuildJob
+	CancelRebuildJob(id string) error
 }
 
 type systemNixOSClient struct {
-	mu sync.Mutex
+	mu         sync.Mutex
+	rebuildMgr *RebuildManager
 }
 
 // NewClient creates a new NixOS system manager client.
 func NewClient() Client {
-	return &systemNixOSClient{}
+	return &systemNixOSClient{
+		rebuildMgr: NewRebuildManager(),
+	}
 }
 
 // GetStatus retrieves NixOS system generation and kernel information.

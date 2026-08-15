@@ -9,6 +9,7 @@ import (
 	"github.com/l7v/panel-agent/internal/containers"
 	"github.com/l7v/panel-agent/internal/dbus"
 	"github.com/l7v/panel-agent/internal/display"
+	"github.com/l7v/panel-agent/internal/fleet"
 	"github.com/l7v/panel-agent/internal/hardware"
 	"github.com/l7v/panel-agent/internal/journal"
 	"github.com/l7v/panel-agent/internal/metrics"
@@ -29,6 +30,7 @@ type Deps struct {
 	Display          display.Client
 	Hardware         hardware.Client
 	NixOS            nixos.Client
+	Fleet            fleet.Client
 	Security         security.Client
 	Storage          storage.Client
 	Procfs           metrics.ProcfsReader
@@ -181,11 +183,32 @@ func NewRouter(d Deps) http.Handler {
 		mux.Handle("POST /api/v1/hardware/power-profile", hardwarePowerProfileHandler(d))
 	}
 
-	// NixOS Maintenance & Generations
+	// NixOS Maintenance, Generations, Diff, Flake & Live Rebuild
 	if d.NixOS != nil {
 		mux.Handle("GET /api/v1/nixos/status", nixosStatusHandler(d))
 		mux.Handle("POST /api/v1/nixos/gc", nixosGCHandler(d))
 		mux.Handle("POST /api/v1/nixos/optimise", nixosOptimiseHandler(d))
+		mux.Handle("GET /api/v1/nixos/generations", nixosGenerationsHandler(d))
+		mux.Handle("GET /api/v1/nixos/generations/diff", nixosGenerationDiffHandler(d))
+		mux.Handle("POST /api/v1/nixos/generations/switch", nixosGenerationSwitchHandler(d))
+		mux.Handle("POST /api/v1/nixos/generations/rollback", nixosGenerationRollbackHandler(d))
+		mux.Handle("GET /api/v1/nixos/flake", nixosFlakeHandler(d))
+		mux.Handle("POST /api/v1/nixos/rebuild", nixosRebuildHandler(d))
+		mux.Handle("GET /api/v1/nixos/rebuild/jobs", nixosRebuildJobsHandler(d))
+		mux.Handle("GET /api/v1/nixos/rebuild/jobs/{id}", nixosRebuildJobGetHandler(d))
+		mux.Handle("POST /api/v1/nixos/rebuild/jobs/{id}/cancel", nixosRebuildJobCancelHandler(d))
+		mux.Handle("GET /api/v1/nixos/rebuild/stream", nixosRebuildStreamHandler(d))
+	}
+
+	// Multi-Host Fleet & Colmena Orchestration
+	if d.Fleet != nil {
+		mux.Handle("GET /api/v1/fleet/nodes", fleetNodesHandler(d))
+		mux.Handle("GET /api/v1/fleet/status", fleetStatusHandler(d))
+		mux.Handle("POST /api/v1/fleet/deploy", fleetDeployHandler(d))
+		mux.Handle("GET /api/v1/fleet/deploy/jobs", fleetDeployJobsHandler(d))
+		mux.Handle("GET /api/v1/fleet/deploy/jobs/{id}", fleetDeployJobGetHandler(d))
+		mux.Handle("POST /api/v1/fleet/deploy/jobs/{id}/cancel", fleetDeployJobCancelHandler(d))
+		mux.Handle("GET /api/v1/fleet/deploy/stream", fleetDeployStreamHandler(d))
 	}
 
 	// Security & VPN

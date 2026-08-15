@@ -170,11 +170,153 @@ export interface NixOSStatus {
     recent_generations?: string[];
 }
 
+export interface NixOSGeneration {
+    number: number;
+    timestamp: string;
+    date_formatted: string;
+    current: boolean;
+    nixos_version: string;
+    kernel_version: string;
+    configuration_revision?: string;
+    store_path: string;
+}
+
+export interface PackageDiffItem {
+    name: string;
+    change_type: "added" | "removed" | "updated" | "rebuilt";
+    old_version?: string;
+    new_version?: string;
+    size_delta?: string;
+    raw: string;
+}
+
+export interface DiffSummary {
+    added_count: number;
+    removed_count: number;
+    updated_count: number;
+    rebuilt_count: number;
+    total_changes: number;
+}
+
+export interface GenerationDiff {
+    from_generation: number;
+    to_generation: number;
+    from_store_path: string;
+    to_store_path: string;
+    summary: DiffSummary;
+    items: PackageDiffItem[];
+    raw_output: string;
+}
+
+export interface SwitchResult {
+    action: string;
+    target_generation: number;
+    current_generation: number;
+    status: string;
+    output: string;
+    duration_ms: number;
+    timestamp: string;
+}
+
+export interface FlakeInput {
+    name: string;
+    type: string;
+    owner?: string;
+    repo?: string;
+    ref?: string;
+    revision?: string;
+    short_revision?: string;
+    last_modified?: string;
+    last_modified_relative?: string;
+    nar_hash?: string;
+    url?: string;
+}
+
+export interface FlakeInfo {
+    flake_path: string;
+    lock_version: number;
+    total_inputs: number;
+    inputs: FlakeInput[];
+    last_updated: string;
+}
+
+export type RebuildAction = "switch" | "boot" | "test" | "dry-activate" | "update";
+
+export interface RebuildRequest {
+    action: RebuildAction;
+    flake_path?: string;
+    host?: string;
+    max_jobs?: number;
+    cores?: number;
+    update_inputs?: string[];
+}
+
+export interface RebuildJob {
+    id: string;
+    action: RebuildAction;
+    status: "queued" | "running" | "completed" | "failed" | "cancelled";
+    command: string;
+    start_time: string;
+    end_time?: string;
+    duration_ms: number;
+    exit_code: number;
+    logs: string[];
+}
+
 export interface MaintenanceResult {
     action: string;
     status: string;
     output: string;
     freed_mb?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Fleet & Multi-Host Orchestration (Section B)
+// ---------------------------------------------------------------------------
+
+export interface FleetNode {
+    id: string;
+    name: string;
+    target_host: string;
+    roles: string[];
+    tags: string[];
+    status: "online" | "offline" | "unreachable" | "local";
+    ping_ms: number;
+    agent_url?: string;
+    mesh_ip?: string;
+    is_local: boolean;
+    last_checked: string;
+}
+
+export interface FleetSummary {
+    total_nodes: number;
+    online_nodes: number;
+    offline_nodes: number;
+    nodes: FleetNode[];
+    last_updated: string;
+}
+
+export type ColmenaDeployAction = "apply" | "build" | "test" | "upload";
+
+export interface ColmenaDeployRequest {
+    target: string; // "@production", "server", "builder", "backup", "all"
+    action?: ColmenaDeployAction;
+    build_on_target?: boolean;
+    flake_path?: string;
+    verbose?: boolean;
+}
+
+export interface ColmenaDeployJob {
+    id: string;
+    target: string;
+    action: ColmenaDeployAction;
+    status: "running" | "completed" | "failed" | "cancelled";
+    command: string;
+    start_time: string;
+    end_time?: string;
+    duration_ms: number;
+    exit_code: number;
+    logs: string[];
 }
 
 export interface VPNTunnel {

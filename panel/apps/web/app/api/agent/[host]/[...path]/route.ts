@@ -2,12 +2,27 @@ import * as http from "http";
 import * as https from "https";
 import { type NextRequest } from "next/server";
 
-// Agent base URL — injected at runtime by the NixOS systemd unit via AGENT_BASE_URL env var.
-// Formats supported:
-//   Unix socket (dev):  http+unix:///tmp/panel-agent-dev.sock   (or legacy http://unix:/tmp/...sock:)
-//   TCP (production):   http://127.0.0.1:8080
-const AGENT_BASE_URL =
-    process.env.AGENT_BASE_URL ?? "http+unix:///tmp/panel-agent-dev.sock";
+// Default host mapping matching NixOS / Colmena topology
+const DEFAULT_HOST_TARGETS: Record<string, string> = {
+    laptop: process.env.AGENT_BASE_URL ?? "http+unix:///run/panel-agent/panel-agent.sock",
+    server: process.env.AGENT_SERVER_URL ?? "http://server.l7v.dev:8080",
+    builder: process.env.AGENT_BUILDER_URL ?? "http://builder.l7v.dev:8080",
+    backup: process.env.AGENT_BACKUP_URL ?? "http://backup.l7v.dev:8080",
+};
+
+/** Resolves the managed hosts map from env and defaults. */
+function getManagedHosts(): Record<string, string> {
+    const raw = process.env.PANEL_MANAGED_HOSTS ?? process.env.MANAGED_HOSTS;
+    if (raw) {
+        try {
+            const parsed = JSON.parse(raw);
+            return { ...DEFAULT_HOST_TARGETS, ...parsed };
+        } catch {
+            // ignore JSON parse error and fallback
+        }
+    }
+    return DEFAULT_HOST_TARGETS;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -15,18 +30,15 @@ export const dynamic = "force-dynamic";
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Parse AGENT_BASE_URL into { socketPath?, tcpBase } */
+/** Parse target URL into { socketPath?, tcpBase } */
 function parseAgentBase(base: string): {
     socketPath: string | null;
     tcpBase: string | null;
 } {
     // http+unix:///path/to.sock  →  socketPath = /path/to.sock
-    // Also handles URL-encoded form: http+unix://%2Fpath%2Fto.sock
     const unixMatch = base.match(/^http\+unix:\/\/(\/[^?#]*|%2F[^?#]*)/i);
     if (unixMatch) {
-        // Decode percent-encoded path separators so Node's http module receives a real path.
         const socketPath = decodeURIComponent(unixMatch[1]);
-        // Strip a trailing slash that NixOS appends (http+unix:///run/...sock/)
         return { socketPath: socketPath.replace(/\/$/, ""), tcpBase: null };
     }
     // Legacy: http://unix:/path/to.sock:  →  socketPath = /path/to.sock
@@ -37,8 +49,7 @@ function parseAgentBase(base: string): {
     return { socketPath: null, tcpBase: base };
 }
 
-/** Make an HTTP request over a Unix socket using Node.js http module.
- *  Returns a ReadableStream so SSE responses can be streamed through. */
+/** Make an HTTP request over a Unix socket using Node.js http module. */
 function fetchUnixSocket(
     socketPath: string,
     path: string,
@@ -94,6 +105,7 @@ function fetchTCP(
             path: url.pathname + url.search,
             method,
             headers,
+            timeout: 5000,
         };
 
         const req = mod.request(opts, (res) => {
@@ -112,6 +124,9 @@ function fetchTCP(
         });
 
         req.on("error", reject);
+        req.on("timeout", () => {
+            req.destroy(new Error(`Connection to ${base} timed out after 5000ms`));
+        });
 
         if (body) req.write(body);
         req.end();
@@ -127,7 +142,7 @@ export async function GET(
     context: { params: Promise<{ host: string; path: string[] }> }
 ) {
     const params = await context.params;
-    return proxyToAgent(request, params.path, "GET");
+    return proxyToAgent(request, params.host, params.path, "GET");
 }
 
 export async function POST(
@@ -135,7 +150,7 @@ export async function POST(
     context: { params: Promise<{ host: string; path: string[] }> }
 ) {
     const params = await context.params;
-    return proxyToAgent(request, params.path, "POST");
+    return proxyToAgent(request, params.host, params.path, "POST");
 }
 
 export async function DELETE(
@@ -143,17 +158,17 @@ export async function DELETE(
     context: { params: Promise<{ host: string; path: string[] }> }
 ) {
     const params = await context.params;
-    return proxyToAgent(request, params.path, "DELETE");
+    return proxyToAgent(request, params.host, params.path, "DELETE");
 }
 
 async function proxyToAgent(
     request: NextRequest,
+    hostKey: string,
     pathSegments: string[],
     method: string
 ): Promise<Response> {
     const agentPath = "/" + pathSegments.join("/") + request.nextUrl.search;
-    const reqId =
-        request.headers.get("X-Request-ID") ?? crypto.randomUUID();
+    const reqId = request.headers.get("X-Request-ID") ?? crypto.randomUUID();
 
     const upstreamHeaders: Record<string, string> = {
         "X-Request-ID": reqId,
@@ -166,30 +181,47 @@ async function proxyToAgent(
         if (text) body = text;
     }
 
-    const { socketPath, tcpBase } = parseAgentBase(AGENT_BASE_URL);
+    const managedHosts = getManagedHosts();
+    const targetBase = managedHosts[hostKey] ?? managedHosts.laptop ?? DEFAULT_HOST_TARGETS.laptop;
+    const { socketPath, tcpBase } = parseAgentBase(targetBase);
 
-    let result: { status: number; headers: http.IncomingHttpHeaders; stream: ReadableStream };
-    if (socketPath) {
-        result = await fetchUnixSocket(socketPath, agentPath, method, upstreamHeaders, body);
-    } else {
-        result = await fetchTCP(tcpBase!, agentPath, method, upstreamHeaders, body);
+    try {
+        let result: { status: number; headers: http.IncomingHttpHeaders; stream: ReadableStream };
+        if (socketPath) {
+            result = await fetchUnixSocket(socketPath, agentPath, method, upstreamHeaders, body);
+        } else {
+            result = await fetchTCP(tcpBase!, agentPath, method, upstreamHeaders, body);
+        }
+
+        return new Response(result.stream, {
+            status: result.status,
+            headers: {
+                "Content-Type": (result.headers["content-type"] as string) ?? "application/json",
+                "Cache-Control": (result.headers["cache-control"] as string) ?? "no-cache",
+                "X-Request-ID": (result.headers["x-request-id"] as string) ?? reqId,
+                "X-Target-Host": hostKey,
+                ...(result.headers["transfer-encoding"]
+                    ? { "Transfer-Encoding": result.headers["transfer-encoding"] as string }
+                    : {}),
+                "X-Accel-Buffering": "no",
+            },
+        });
+    } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        return new Response(
+            JSON.stringify({
+                error: `Hedef düğüme (${hostKey}) bağlanılamadı`,
+                message: errorMsg,
+                target_base: targetBase,
+                host: hostKey,
+            }),
+            {
+                status: 502,
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Request-ID": reqId,
+                },
+            }
+        );
     }
-
-    return new Response(result.stream, {
-        status: result.status,
-        headers: {
-            "Content-Type":
-                (result.headers["content-type"] as string) ?? "application/json",
-            "Cache-Control":
-                (result.headers["cache-control"] as string) ?? "no-cache",
-            "X-Request-ID":
-                (result.headers["x-request-id"] as string) ?? reqId,
-            // Forward SSE-required headers so Next.js doesn't buffer the stream.
-            ...(result.headers["transfer-encoding"]
-                ? { "Transfer-Encoding": result.headers["transfer-encoding"] as string }
-                : {}),
-            // Tell nginx / Vercel not to buffer SSE responses.
-            "X-Accel-Buffering": "no",
-        },
-    });
 }

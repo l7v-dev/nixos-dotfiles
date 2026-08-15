@@ -12,5 +12,6 @@
     ./cache
     ./messaging
     ./virtualisation
+    ./mesh
   ];
 }
