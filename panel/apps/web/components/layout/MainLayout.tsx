@@ -12,22 +12,20 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
     return (
-        <div className="flex h-screen w-full overflow-hidden bg-background font-sans">
+        <div className="flex h-screen w-full overflow-hidden bg-background p-2 sm:p-2.5 gap-2.5 font-sans">
             {/* Global Overlay Drawers & Command Menu */}
             <CommandPalette />
             <QuakeDrawer />
 
-            {/* Left Sidebar */}
+            {/* Left Sidebar — Symmetrical Rounded Card */}
             <Sidebar />
 
-            {/* Framed Container Shell (Circle / Linear Desktop Canvas) */}
-            <div className="flex flex-1 flex-col overflow-hidden lg:p-2 w-full">
-                <div className="flex flex-col flex-1 h-full w-full overflow-hidden lg:rounded-2xl lg:border border-border/70 bg-container shadow-sm">
-                    <Header />
-                    <main className="flex-1 overflow-y-auto p-4 sm:p-6">
-                        {children}
-                    </main>
-                </div>
+            {/* Main Application Canvas — Symmetrical Rounded Card */}
+            <div className="flex flex-1 flex-col h-full overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xs">
+                <Header />
+                <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+                    {children}
+                </main>
             </div>
         </div>
     );

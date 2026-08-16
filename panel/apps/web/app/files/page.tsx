@@ -22,6 +22,7 @@ import { useHostStore } from "@/store/host-store";
 import { useTerminalStore, dispatchTerminalInput } from "@/store/terminal-store";
 import { useRouter } from "next/navigation";
 import { Loader2, AlertCircle, Sparkles, Terminal } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { FileSystemItem, SearchMatch } from "@/types/files";
 
 export default function FilesPage() {
@@ -252,20 +253,22 @@ export default function FilesPage() {
 
             {/* Flake / Devshell Banner */}
             {(hasFlake || hasDevenv) && (
-                <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-cyan-950/60 to-zinc-900/60 border border-cyan-500/30 rounded-xl">
+                <div className="flex items-center justify-between px-4 py-2 bg-primary/10 border border-primary/20 rounded-xl">
                     <div className="flex items-center gap-2 text-xs">
-                        <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
-                        <span className="text-zinc-200">
-                            Bu dizinde <span className="font-semibold text-cyan-300">{hasFlake ? "flake.nix" : "devenv.nix"}</span> ortamı algılandı.
+                        <Sparkles className="w-4 h-4 text-primary shrink-0" strokeWidth={1.5} />
+                        <span className="text-foreground">
+                            Nix development environment detected (<span className="font-semibold text-primary font-mono">{hasFlake ? "flake.nix" : "devenv.nix"}</span>).
                         </span>
                     </div>
-                    <button
+                    <Button
+                        size="xs"
+                        variant="default"
                         onClick={handleLaunchDevshell}
-                        className="flex items-center gap-1.5 px-3 py-1 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 rounded-lg text-xs font-semibold transition"
+                        className="gap-1.5"
                     >
-                        <Terminal className="w-3.5 h-3.5" />
-                        <span>DevShell Başlat</span>
-                    </button>
+                        <Terminal className="w-3.5 h-3.5" strokeWidth={1.5} />
+                        <span>Launch DevShell</span>
+                    </Button>
                 </div>
             )}
 

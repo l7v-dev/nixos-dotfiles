@@ -11,12 +11,9 @@ import {
     Cpu,
     ShieldCheck,
     RefreshCw,
-    CheckCircle2,
-    XCircle,
     Activity,
     Rocket,
     Check,
-    Radio,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,76 +30,78 @@ function FleetPageContent() {
     const getNodeIcon = (id: string) => {
         switch (id) {
             case "laptop":
-                return <Laptop className="w-5 h-5 text-primary" />;
+                return <Laptop className="w-5 h-5 text-foreground" strokeWidth={1.5} />;
             case "server":
-                return <Server className="w-5 h-5 text-emerald-400" />;
+                return <Server className="w-5 h-5 text-foreground" strokeWidth={1.5} />;
             case "builder":
-                return <Cpu className="w-5 h-5 text-amber-400" />;
+                return <Cpu className="w-5 h-5 text-foreground" strokeWidth={1.5} />;
             case "backup":
-                return <ShieldCheck className="w-5 h-5 text-blue-400" />;
+                return <ShieldCheck className="w-5 h-5 text-foreground" strokeWidth={1.5} />;
             default:
-                return <Server className="w-5 h-5 text-muted-foreground" />;
+                return <Server className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />;
         }
     };
 
     return (
-        <div className="space-y-6 pb-12">
-            {/* ── Top Hero Banner ── */}
-            <div className="relative overflow-hidden rounded-2xl border border-pink-500/20 bg-gradient-to-br from-pink-500/10 via-card to-background p-6 shadow-sm">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                    <div className="space-y-2 max-w-2xl">
-                        <div className="inline-flex items-center gap-1.5 rounded-full border border-pink-500/30 bg-pink-500/10 px-3 py-1 text-[11px] font-semibold text-pink-400">
-                            <Layers className="h-3.5 w-3.5" />
-                            <span>Colmena Multi-Node Cluster</span>
+        <div className="space-y-4 pb-12 font-sans">
+            {/* ── Top Apparatus Header ── */}
+            <div className="instrument-card p-4 sm:p-5">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="space-y-1.5 max-w-2xl">
+                        <div className="flex items-center gap-2">
+                            <span className="flex h-2 w-2 rounded-full bg-primary" />
+                            <h1 className="text-base font-bold text-foreground">
+                                Fleet Topology & Colmena Cluster
+                            </h1>
+                            <Badge variant="outline" className="font-mono text-[10px]">
+                                {nodes.length} Nodes Configured
+                            </Badge>
                         </div>
-                        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-                            <span>Declarative Fleet Topology & Deployment</span>
-                        </h1>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                            Centrally manage NixOS host nodes, execute parallel SSH builds with Colmena, and monitor Tailscale mesh connectivity across all nodes.
+                            Declarative multi-node orchestration, parallel Nix builds with Colmena, and Tailscale mesh telemetry.
                         </p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                         <Button
                             variant="default"
-                            size="sm"
+                            size="xs"
                             onClick={() => setDeployModalOpen(true)}
-                            className="gap-1.5 shadow-md bg-pink-600 hover:bg-pink-500 text-white"
+                            className="gap-1.5 shadow-sm"
                         >
-                            <Rocket className="h-3.5 w-3.5" />
-                            <span>Colmena Fleet Deploy</span>
+                            <Rocket className="h-3 w-3" />
+                            <span>Colmena Deploy</span>
                         </Button>
                         <Button
                             variant="outline"
-                            size="sm"
+                            size="xs"
                             onClick={() => refetch()}
                             className="gap-1"
                         >
-                            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
+                            <RefreshCw className={`h-3 w-3 ${isFetching ? "animate-spin" : ""}`} />
                             <span>Refresh</span>
                         </Button>
                     </div>
                 </div>
-            </div>
 
-            {/* ── Summary KPI Cards ── */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="rounded-xl border border-border/60 bg-card p-4 shadow-xs">
-                    <span className="text-[11px] text-muted-foreground">Total Fleet Nodes</span>
-                    <p className="text-xl font-bold mt-1 font-mono text-foreground">{nodes.length}</p>
-                </div>
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 shadow-xs">
-                    <span className="text-[11px] text-emerald-500">Online & Local</span>
-                    <p className="text-xl font-bold mt-1 font-mono text-emerald-500">{onlineCount}</p>
-                </div>
-                <div className="rounded-xl border border-border/60 bg-card p-4 shadow-xs">
-                    <span className="text-[11px] text-muted-foreground">Offline / Awaiting Boot</span>
-                    <p className="text-xl font-bold mt-1 font-mono text-muted-foreground">{offlineCount}</p>
-                </div>
-                <div className="rounded-xl border border-border/60 bg-card p-4 shadow-xs">
-                    <span className="text-[11px] text-muted-foreground">Active Target</span>
-                    <p className="text-xl font-bold mt-1 font-mono text-primary truncate">{selectedHost}</p>
+                {/* KPI Strip */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-border/60 mt-4">
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Total Nodes</span>
+                        <p className="text-lg font-bold font-mono tnum text-foreground">{nodes.length}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Online & Mesh</span>
+                        <p className="text-lg font-bold font-mono tnum text-emerald-400">{onlineCount}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Offline / Standby</span>
+                        <p className="text-lg font-bold font-mono tnum text-muted-foreground">{offlineCount}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Active Target</span>
+                        <p className="text-sm font-bold font-mono text-primary truncate pt-0.5">{selectedHost}</p>
+                    </div>
                 </div>
             </div>
 
@@ -115,21 +114,19 @@ function FleetPageContent() {
                     return (
                         <div
                             key={node.id}
-                            className={`rounded-2xl border p-5 space-y-4 transition-all ${
-                                isSelected
-                                    ? "border-primary/50 bg-primary/5 shadow-xs"
-                                    : "border-border/70 bg-card hover:border-border"
+                            className={`instrument-card p-4 sm:p-5 space-y-3.5 transition-all ${
+                                isSelected ? "border-primary/50 ring-1 ring-primary/30" : ""
                             }`}
                         >
                             <div className="flex items-start justify-between">
-                                <div className="flex items-center gap-3.5">
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/60 border border-border/60 shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted/60 border border-border/60 shrink-0">
                                         {getNodeIcon(node.id)}
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2">
                                             <h3 className="text-xs font-bold text-foreground">{node.name}</h3>
-                                            {isSelected && <Badge variant="success">Active View</Badge>}
+                                            {isSelected && <Badge variant="info">Active View</Badge>}
                                         </div>
                                         <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
                                             {node.target_host} · {node.mesh_ip || "100.64.0.x"}
@@ -157,14 +154,14 @@ function FleetPageContent() {
                             {/* Ping & Target Switcher Footer */}
                             <div className="pt-3 border-t border-border/50 flex items-center justify-between">
                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
-                                    <Activity className="h-3.5 w-3.5" />
-                                    <span>Latency: {node.ping_ms >= 0 ? `${node.ping_ms} ms` : "Unreachable"}</span>
+                                    <Activity className="h-3.5 w-3.5 text-emerald-400" />
+                                    <span className="tnum">Ping: {node.ping_ms >= 0 ? `${node.ping_ms} ms` : "Unreachable"}</span>
                                 </div>
 
                                 {!isSelected ? (
                                     <Button
                                         size="xs"
-                                        variant="secondary"
+                                        variant="outline"
                                         onClick={() => setHost(node.id)}
                                     >
                                         Set as Active Node

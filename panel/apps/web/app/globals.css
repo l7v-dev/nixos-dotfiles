@@ -4,87 +4,97 @@
 
 @layer base {
   :root {
-    /* ── Linear / Circle Dark Theme (Default) ── */
-    --background: 240 10% 4%;           /* #0a0a0c */
-    --container: 240 8% 6.5%;           /* #101013 - Framed Canvas */
-    --foreground: 0 0% 98%;              /* #fafafa */
+    /* ── Anthropic Research Warm Slate & Terracotta (Dark Mode Default) ── */
+    --background: 60 2% 8%;              /* #141413 - Deep warm obsidian slate */
+    --container: 60 3% 11%;             /* #1c1c1a - Inset canvas surface */
+    --foreground: 60 10% 93%;           /* #ecebe6 - Warm ivory primary text */
 
-    --card: 240 6% 9%;                  /* #16161a */
-    --card-foreground: 0 0% 98%;
+    --card: 60 3% 12%;                  /* #1f1f1d - Elevated card surface */
+    --card-foreground: 60 10% 93%;
 
-    --popover: 240 6% 9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 60 3% 12%;
+    --popover-foreground: 60 10% 93%;
 
-    /* Linear Blue / Catppuccin Accent */
-    --primary: 217 91% 60%;             /* #3b82f6 */
+    /* ── Anthropic Warm Terracotta & Slate Accent ── */
+    --primary: 15 65% 60%;              /* #d97757 - Signature Anthropic Terracotta */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 5% 15%;            /* #242429 */
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 60 3% 16%;             /* #282825 - Muted control surface */
+    --secondary-foreground: 60 10% 93%;
 
-    --muted: 240 5% 13%;                /* #1f1f24 */
-    --muted-foreground: 240 5% 65%;     /* #9e9ea6 */
+    --muted: 60 3% 15%;                 /* #262623 */
+    --muted-foreground: 60 4% 65%;      /* #a8a69e - Warm stone secondary / body text */
 
-    --accent: 240 5% 16%;               /* #28282e */
-    --accent-foreground: 0 0% 98%;
+    --accent: 60 3% 18%;                /* #2e2e2a - Active hover state */
+    --accent-foreground: 60 10% 93%;
 
-    --destructive: 0 72% 51%;           /* #ef4444 */
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 72% 56%;           /* #e05252 - Precision Coral Crimson */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 240 5% 15%;               /* #26262c */
-    --input: 240 5% 15%;
-    --ring: 217 91% 60%;
-    --radius: 0.75rem;
+    --border: 60 3% 20%;                /* #363632 - Warm hairline structure */
+    --input: 60 3% 20%;
+    --ring: 15 65% 60%;
+    --radius: 0.875rem;                 /* 14px refined curvature */
 
-    --sidebar: 240 10% 4.5%;            /* #0d0d10 */
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-border: 240 5% 12%;
-    --sidebar-accent: 240 5% 12%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-primary: 217 91% 60%;
+    /* ── Anthropic Semantic Telemetry (Dark Mode) ── */
+    --telemetry-ok: 100 24% 54%;        /* #8fa374 Sage Olive */
+    --telemetry-warn: 35 70% 55%;       /* #d49543 Amber Kraft */
+    --telemetry-crit: 0 72% 56%;        /* #e05252 Coral Red */
+    --telemetry-info: 210 48% 62%;      /* #7ba7d7 Sky Slate */
+    --telemetry-ai: 15 65% 60%;         /* #d97757 Terracotta */
+
+    --sidebar: 60 3% 10%;               /* #191917 */
+    --sidebar-foreground: 60 10% 93%;
+    --sidebar-border: 60 3% 18%;        /* #2e2e2a */
+    --sidebar-accent: 60 3% 16%;
+    --sidebar-accent-foreground: 60 10% 93%;
+    --sidebar-primary: 15 65% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
   }
 
   .light {
-    --background: 0 0% 98%;             /* #fafafa */
-    --container: 0 0% 100%;             /* #ffffff */
-    --foreground: 240 10% 4%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 4%;
+    /* ── Anthropic Ivory Cream & Slate Ink (Light Mode) ── */
+    --background: 45 20% 97%;           /* #faf9f5 - Signature Anthropic Ivory Cream */
+    --container: 45 15% 94%;            /* #f3f1eb - Warm linen container */
+    --foreground: 60 2% 8%;             /* #141413 - Deep slate ink primary text */
+    --card: 0 0% 100%;                  /* #ffffff - Pure crisp card surface */
+    --card-foreground: 60 2% 8%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 4%;
-    --primary: 217 91% 50%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 5% 94%;
-    --secondary-foreground: 240 10% 4%;
-    --muted: 240 5% 94%;
-    --muted-foreground: 240 4% 46%;
-    --accent: 240 5% 92%;
-    --accent-foreground: 240 10% 4%;
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
-    --ring: 217 91% 50%;
-    --sidebar: 0 0% 97%;
-    --sidebar-foreground: 240 10% 4%;
-    --sidebar-border: 240 6% 90%;
-    --sidebar-accent: 240 5% 92%;
-    --sidebar-accent-foreground: 240 10% 4%;
-    --sidebar-primary: 217 91% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-  }
+    --popover-foreground: 60 2% 8%;
 
-  [data-app-theme="magic-blue"] {
-    --background: 244 26% 14%;          /* #1c1b2e */
-    --container: 244 22% 17%;           /* #232236 */
-    --card: 244 22% 17%;
-    --foreground: 240 60% 96%;
-    --border: 244 28% 27%;
-    --input: 244 28% 27%;
-    --primary: 238 65% 65%;
-    --muted: 244 23% 23%;
-    --muted-foreground: 244 25% 69%;
-    --sidebar: 244 25% 12%;
-    --sidebar-border: 244 23% 23%;
+    --primary: 15 65% 54%;              /* #d97757 - Signature Terracotta */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 45 15% 93%;            /* #f3f1eb */
+    --secondary-foreground: 60 2% 8%;
+
+    --muted: 45 15% 92%;                /* #eeebe3 */
+    --muted-foreground: 60 4% 38%;      /* #5e5d59 - High-contrast warm charcoal body */
+
+    --accent: 45 15% 90%;               /* #e7e4db */
+    --accent-foreground: 60 2% 8%;
+
+    --destructive: 0 68% 46%;           /* #c53030 */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 45 12% 86%;               /* #dedbd2 - Warm stone hairline border */
+    --input: 45 12% 86%;
+    --ring: 15 65% 54%;
+
+    /* ── Anthropic Semantic Telemetry (Light Mode) ── */
+    --telemetry-ok: 100 35% 36%;        /* #4e6b36 Deep Olive */
+    --telemetry-warn: 35 80% 36%;       /* #a35d0e Warm Amber */
+    --telemetry-crit: 0 68% 46%;        /* #c53030 Deep Crimson */
+    --telemetry-info: 210 55% 42%;      /* #30659a Deep Sky */
+    --telemetry-ai: 15 65% 46%;         /* #b85435 Deep Terracotta */
+
+    --sidebar: 45 20% 97%;              /* #faf9f5 */
+    --sidebar-foreground: 60 2% 8%;
+    --sidebar-border: 45 12% 86%;
+    --sidebar-accent: 45 15% 91%;
+    --sidebar-accent-foreground: 60 2% 8%;
+    --sidebar-primary: 15 65% 54%;
+    --sidebar-primary-foreground: 0 0% 100%;
   }
 }
 
@@ -99,30 +109,60 @@
 
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum" 1;
+    font-variant-numeric: tabular-nums;
   }
 
-  /* Linear-grade slim scrollbar */
+  /* Refined Anthropic slim scrollbar */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply rounded-full bg-border/60 transition-colors;
+    @apply rounded-full bg-border/70 transition-colors;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/40;
+    @apply bg-muted-foreground/50;
   }
 }
 
-/* Glassmorphism & Panel Utilities */
-.glass-panel {
-  @apply bg-card/75 backdrop-blur-md border border-border/60 shadow-sm;
+/* ── Anthropic Editorial Instrument Card ── */
+.instrument-card {
+  @apply rounded-xl border border-border/80 bg-card text-card-foreground transition-all duration-150;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04), 0 2px 8px -2px rgba(0, 0, 0, 0.35);
 }
 
-.subtle-ring {
-  @apply focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background;
+.light .instrument-card {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
+}
+
+.instrument-card:hover {
+  @apply border-border;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06), 0 4px 12px -3px rgba(0, 0, 0, 0.45);
+}
+
+.light .instrument-card:hover {
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+/* ── Tactile Control Toggle ── */
+.braun-toggle {
+  @apply flex flex-col items-center justify-center gap-1.5 rounded-xl border p-2.5 text-center transition-all duration-150 active:scale-[0.98] select-none;
+}
+
+.braun-toggle-active {
+  @apply border-primary/50 bg-primary/10 text-primary;
+  box-shadow: inset 0 1px 0 0 rgba(217, 119, 87, 0.2);
+}
+
+.braun-toggle-inactive {
+  @apply border-border/60 bg-background/40 text-muted-foreground hover:bg-muted/60 hover:text-foreground;
+}
+
+/* ── Tabular numbers ── */
+.tnum {
+  font-variant-numeric: tabular-nums;
 }

@@ -71,6 +71,13 @@ const config: Config = {
                     primary: "hsl(var(--sidebar-primary))",
                     primaryForeground: "hsl(var(--sidebar-primary-foreground))",
                 },
+                telemetry: {
+                    ok: "hsl(var(--telemetry-ok))",
+                    warn: "hsl(var(--telemetry-warn))",
+                    crit: "hsl(var(--telemetry-crit))",
+                    info: "hsl(var(--telemetry-info))",
+                    ai: "hsl(var(--telemetry-ai))",
+                },
             },
             borderRadius: {
                 "2xl": "1rem",
@@ -78,6 +85,12 @@ const config: Config = {
                 lg: "var(--radius)",
                 md: "calc(var(--radius) - 2px)",
                 sm: "calc(var(--radius) - 4px)",
+            },
+            boxShadow: {
+                xs: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+                instrument: "inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 2px 8px -2px rgba(0, 0, 0, 0.5)",
+                tactile: "inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 4px 16px -4px rgba(0, 0, 0, 0.6)",
+                glow: "0 0 12px -2px var(--primary)",
             },
             keyframes: {
                 "accordion-down": {

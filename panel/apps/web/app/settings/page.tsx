@@ -102,7 +102,7 @@ function SettingsPageContent() {
                                 : "border-border/70 bg-muted/20 hover:bg-muted/40"
                         }`}
                     >
-                        <Monitor className="h-5 w-5 text-indigo-400" />
+                        <Monitor className="h-5 w-5 text-foreground" strokeWidth={1.5} />
                         <div>
                             <p className="text-xs font-bold text-foreground">System Sync</p>
                             <p className="text-[11px] text-muted-foreground">Follow OS preference</p>

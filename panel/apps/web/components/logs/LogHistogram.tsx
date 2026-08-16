@@ -95,32 +95,32 @@ export function LogHistogram({ buckets, isLoading, onSelectBucket }: LogHistogra
 
                 <div className="flex items-center gap-2 text-[11px]">
                     {totals.critical > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded bg-rose-500/10 px-1.5 py-0.5 font-medium text-rose-400 border border-rose-500/20">
-                            <ShieldAlert className="h-3 w-3" />
-                            {totals.critical} Kritik
+                        <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2 py-0.5 font-medium text-rose-500 border border-rose-500/20">
+                            <ShieldAlert className="h-3 w-3" strokeWidth={1.5} />
+                            {totals.critical} Critical
                         </span>
                     )}
                     {totals.error > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded bg-red-500/10 px-1.5 py-0.5 font-medium text-red-400 border border-red-500/20">
-                            <AlertCircle className="h-3 w-3" />
-                            {totals.error} Hata
+                        <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 font-medium text-destructive border border-destructive/20">
+                            <AlertCircle className="h-3 w-3" strokeWidth={1.5} />
+                            {totals.error} Error
                         </span>
                     )}
                     {totals.warning > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-400 border border-amber-500/20">
-                            <AlertTriangle className="h-3 w-3" />
-                            {totals.warning} Uyarı
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 font-medium text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                            <AlertTriangle className="h-3 w-3" strokeWidth={1.5} />
+                            {totals.warning} Warning
                         </span>
                     )}
                     {totals.info > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded bg-blue-500/10 px-1.5 py-0.5 font-medium text-blue-400 border border-blue-500/20">
-                            <Info className="h-3 w-3" />
-                            {totals.info} Bilgi
+                        <span className="inline-flex items-center gap-1 rounded-full bg-muted/70 px-2 py-0.5 font-medium text-foreground border border-border/60">
+                            <Info className="h-3 w-3" strokeWidth={1.5} />
+                            {totals.info} Info
                         </span>
                     )}
                     {totals.debug > 0 && (
-                        <span className="inline-flex items-center gap-1 rounded bg-slate-500/10 px-1.5 py-0.5 font-medium text-slate-400 border border-slate-500/20">
-                            <Bug className="h-3 w-3" />
+                        <span className="inline-flex items-center gap-1 rounded-full bg-muted/40 px-2 py-0.5 font-medium text-muted-foreground border border-border/40">
+                            <Bug className="h-3 w-3" strokeWidth={1.5} />
                             {totals.debug} Debug
                         </span>
                     )}
@@ -157,15 +157,15 @@ export function LogHistogram({ buckets, isLoading, onSelectBucket }: LogHistogra
                                 if (!active || !payload || payload.length === 0) return null;
                                 const d = payload[0].payload;
                                 return (
-                                    <div className="rounded-md border border-border bg-popover/95 backdrop-blur p-2 shadow-md text-xs space-y-1">
-                                        <p className="font-semibold text-foreground">{d.time}</p>
-                                        <div className="space-y-0.5 text-[11px]">
-                                            {d.critical > 0 && <p className="text-rose-400">Kritik: {d.critical}</p>}
-                                            {d.error > 0 && <p className="text-red-400">Hata: {d.error}</p>}
-                                            {d.warning > 0 && <p className="text-amber-400">Uyarı: {d.warning}</p>}
-                                            {d.info > 0 && <p className="text-blue-400">Bilgi: {d.info}</p>}
-                                            {d.debug > 0 && <p className="text-slate-400">Debug: {d.debug}</p>}
-                                            <p className="text-muted-foreground pt-0.5 border-t border-border/50">Toplam: {d.total}</p>
+                                    <div className="rounded-xl border border-border bg-popover/95 backdrop-blur p-2.5 shadow-md text-xs space-y-1">
+                                        <p className="font-semibold text-foreground font-mono">{d.time}</p>
+                                        <div className="space-y-0.5 text-[11px] font-mono">
+                                            {d.critical > 0 && <p className="text-rose-500 font-medium">Critical: {d.critical}</p>}
+                                            {d.error > 0 && <p className="text-destructive font-medium">Error: {d.error}</p>}
+                                            {d.warning > 0 && <p className="text-amber-700 dark:text-amber-400 font-medium">Warning: {d.warning}</p>}
+                                            {d.info > 0 && <p className="text-foreground font-medium">Info: {d.info}</p>}
+                                            {d.debug > 0 && <p className="text-muted-foreground font-medium">Debug: {d.debug}</p>}
+                                            <p className="text-muted-foreground pt-1 border-t border-border/50">Total: {d.total}</p>
                                         </div>
                                     </div>
                                 );

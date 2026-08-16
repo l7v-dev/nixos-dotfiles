@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import {
     Wifi, WifiOff,
     Bluetooth, BluetoothOff,
@@ -7,19 +8,20 @@ import {
     Volume2, VolumeX,
     Mic, MicOff,
     SunMedium, Moon,
-    Lock, Zap,
+    Zap,
 } from "lucide-react";
 import { useWifi, useBluetooth } from "@/hooks/useMetrics";
 import { useAudio } from "@/hooks/useAudio";
 import { useDisplay } from "@/hooks/useDisplay";
 import { useSecurity } from "@/hooks/useSecurity";
 import { useHardware } from "@/hooks/useHardware";
+import { cn } from "@/lib/utils";
 
 export function QuickTogglesBar() {
     const { data: wifi, toggle: toggleWifi } = useWifi();
     const { data: bt, toggle: toggleBt } = useBluetooth();
     const { data: audio, setMute: setAudioMute } = useAudio();
-    const { data: display, setNightLight, lockSession } = useDisplay();
+    const { data: display, setNightLight } = useDisplay();
     const { data: security, toggleVPN } = useSecurity();
     const { data: hardware, setPowerProfile } = useHardware();
 
@@ -38,28 +40,38 @@ export function QuickTogglesBar() {
     };
 
     return (
-        <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
-            <p className="mb-2.5 px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Hızlı Kontroller
-            </p>
+        <div className="instrument-card p-4 sm:p-5 space-y-3 font-sans">
+            <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 whitespace-nowrap">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    Quick Controls & Peripheral Toggles
+                </p>
+                <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">
+                    Hardware Bus
+                </span>
+            </div>
+
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
                 {/* 1. WiFi Toggle */}
                 <button
                     onClick={() => toggleWifi.mutate()}
                     disabled={toggleWifi.isPending}
-                    className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border p-2.5 text-center transition-all ${
-                        isWifiOn
-                            ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
-                            : "border-border bg-background/50 text-muted-foreground hover:bg-muted"
-                    }`}
+                    className={cn(
+                        "braun-toggle",
+                        isWifiOn ? "braun-toggle-active" : "braun-toggle-inactive"
+                    )}
                 >
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-background/80 shadow-xs">
-                        {isWifiOn ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-background/80 shadow-xs border border-border/40">
+                        {isWifiOn ? (
+                            <Wifi className="h-3.5 w-3.5 text-primary" strokeWidth={1.75} />
+                        ) : (
+                            <WifiOff className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
+                        )}
                     </div>
-                    <div>
-                        <p className="text-xs font-semibold leading-tight">WiFi</p>
-                        <p className="text-[10px] truncate max-w-[80px] opacity-80">
-                            {isWifiOn ? (wifi?.ssid ?? "Açık") : "Kapalı"}
+                    <div className="w-full min-w-0">
+                        <p className="text-xs font-semibold leading-tight text-foreground whitespace-nowrap truncate">Wi-Fi</p>
+                        <p className="text-[10px] truncate font-mono text-muted-foreground">
+                            {isWifiOn ? (wifi?.ssid ?? "Connected") : "Disabled"}
                         </p>
                     </div>
                 </button>
@@ -68,19 +80,22 @@ export function QuickTogglesBar() {
                 <button
                     onClick={() => toggleBt.mutate()}
                     disabled={toggleBt.isPending}
-                    className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border p-2.5 text-center transition-all ${
-                        isBtOn
-                            ? "border-blue-500/40 bg-blue-500/10 text-blue-500 hover:bg-blue-500/15"
-                            : "border-border bg-background/50 text-muted-foreground hover:bg-muted"
-                    }`}
+                    className={cn(
+                        "braun-toggle",
+                        isBtOn ? "braun-toggle-active" : "braun-toggle-inactive"
+                    )}
                 >
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-background/80 shadow-xs">
-                        {isBtOn ? <Bluetooth className="h-3.5 w-3.5" /> : <BluetoothOff className="h-3.5 w-3.5" />}
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-background/80 shadow-xs border border-border/40">
+                        {isBtOn ? (
+                            <Bluetooth className="h-3.5 w-3.5 text-primary" strokeWidth={1.75} />
+                        ) : (
+                            <BluetoothOff className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
+                        )}
                     </div>
-                    <div>
-                        <p className="text-xs font-semibold leading-tight">Bluetooth</p>
-                        <p className="text-[10px] truncate max-w-[80px] opacity-80">
-                            {isBtOn ? `${bt?.devices?.filter(d => d.connected).length ?? 0} bağlı` : "Kapalı"}
+                    <div className="w-full min-w-0">
+                        <p className="text-xs font-semibold leading-tight text-foreground whitespace-nowrap truncate">Bluetooth</p>
+                        <p className="text-[10px] truncate font-mono text-muted-foreground">
+                            {isBtOn ? `${bt?.devices?.filter(d => d.connected).length ?? 0} paired` : "Disabled"}
                         </p>
                     </div>
                 </button>
@@ -89,19 +104,22 @@ export function QuickTogglesBar() {
                 <button
                     onClick={() => toggleVPN.mutate()}
                     disabled={toggleVPN.isPending}
-                    className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border p-2.5 text-center transition-all ${
-                        isVpnOn
-                            ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/15"
-                            : "border-border bg-background/50 text-muted-foreground hover:bg-muted"
-                    }`}
+                    className={cn(
+                        "braun-toggle",
+                        isVpnOn ? "braun-toggle-active" : "braun-toggle-inactive"
+                    )}
                 >
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-background/80 shadow-xs">
-                        {isVpnOn ? <Shield className="h-3.5 w-3.5" /> : <ShieldAlert className="h-3.5 w-3.5" />}
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-background/80 shadow-xs border border-border/40">
+                        {isVpnOn ? (
+                            <Shield className="h-3.5 w-3.5 text-primary" strokeWidth={1.75} />
+                        ) : (
+                            <ShieldAlert className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
+                        )}
                     </div>
-                    <div>
-                        <p className="text-xs font-semibold leading-tight">VPN</p>
-                        <p className="text-[10px] truncate max-w-[80px] opacity-80">
-                            {isVpnOn ? "Tailscale Aktif" : "Bağlı Değil"}
+                    <div className="w-full min-w-0">
+                        <p className="text-xs font-semibold leading-tight text-foreground whitespace-nowrap truncate">Tailscale VPN</p>
+                        <p className="text-[10px] truncate font-mono text-muted-foreground">
+                            {isVpnOn ? "Active Mesh" : "Offline"}
                         </p>
                     </div>
                 </button>
@@ -110,19 +128,22 @@ export function QuickTogglesBar() {
                 <button
                     onClick={() => setAudioMute.mutate({ target: "sink", muted: !isAudioMuted })}
                     disabled={setAudioMute.isPending}
-                    className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border p-2.5 text-center transition-all ${
-                        isAudioMuted
-                            ? "border-orange-500/40 bg-orange-500/10 text-orange-500 hover:bg-orange-500/15"
-                            : "border-border bg-background/50 text-muted-foreground hover:bg-muted"
-                    }`}
+                    className={cn(
+                        "braun-toggle",
+                        isAudioMuted ? "border-destructive/40 bg-destructive/10 text-destructive" : "braun-toggle-inactive"
+                    )}
                 >
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-background/80 shadow-xs">
-                        {isAudioMuted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-background/80 shadow-xs border border-border/40">
+                        {isAudioMuted ? (
+                            <VolumeX className="h-3.5 w-3.5 text-destructive" strokeWidth={1.75} />
+                        ) : (
+                            <Volume2 className="h-3.5 w-3.5 text-foreground" strokeWidth={1.5} />
+                        )}
                     </div>
-                    <div>
-                        <p className="text-xs font-semibold leading-tight">Ses</p>
-                        <p className="text-[10px] opacity-80">
-                            {isAudioMuted ? "Sessiz" : `%${audio?.output_volume ?? 70}`}
+                    <div className="w-full min-w-0">
+                        <p className="text-xs font-semibold leading-tight text-foreground whitespace-nowrap truncate">Audio Output</p>
+                        <p className="text-[10px] font-mono text-muted-foreground whitespace-nowrap truncate">
+                            {isAudioMuted ? "Muted" : `${audio?.output_volume ?? 70}%`}
                         </p>
                     </div>
                 </button>
@@ -131,19 +152,22 @@ export function QuickTogglesBar() {
                 <button
                     onClick={() => setAudioMute.mutate({ target: "source", muted: !isMicMuted })}
                     disabled={setAudioMute.isPending}
-                    className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border p-2.5 text-center transition-all ${
-                        isMicMuted
-                            ? "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/15"
-                            : "border-border bg-background/50 text-muted-foreground hover:bg-muted"
-                    }`}
+                    className={cn(
+                        "braun-toggle",
+                        isMicMuted ? "border-destructive/40 bg-destructive/10 text-destructive" : "braun-toggle-inactive"
+                    )}
                 >
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-background/80 shadow-xs">
-                        {isMicMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-background/80 shadow-xs border border-border/40">
+                        {isMicMuted ? (
+                            <MicOff className="h-3.5 w-3.5 text-destructive" strokeWidth={1.75} />
+                        ) : (
+                            <Mic className="h-3.5 w-3.5 text-foreground" strokeWidth={1.5} />
+                        )}
                     </div>
-                    <div>
-                        <p className="text-xs font-semibold leading-tight">Mikrofon</p>
-                        <p className="text-[10px] opacity-80">
-                            {isMicMuted ? "Kapalı" : "Açık"}
+                    <div className="w-full min-w-0">
+                        <p className="text-xs font-semibold leading-tight text-foreground whitespace-nowrap truncate">Microphone</p>
+                        <p className="text-[10px] font-mono text-muted-foreground whitespace-nowrap truncate">
+                            {isMicMuted ? "Muted" : "Active"}
                         </p>
                     </div>
                 </button>
@@ -157,19 +181,22 @@ export function QuickTogglesBar() {
                         })
                     }
                     disabled={setNightLight.isPending}
-                    className={`flex flex-col items-center justify-center gap-1.5 rounded-lg border p-2.5 text-center transition-all ${
-                        isNightLightOn
-                            ? "border-amber-500/40 bg-amber-500/10 text-amber-500 hover:bg-amber-500/15"
-                            : "border-border bg-background/50 text-muted-foreground hover:bg-muted"
-                    }`}
+                    className={cn(
+                        "braun-toggle",
+                        isNightLightOn ? "braun-toggle-active" : "braun-toggle-inactive"
+                    )}
                 >
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-background/80 shadow-xs">
-                        {isNightLightOn ? <Moon className="h-3.5 w-3.5" /> : <SunMedium className="h-3.5 w-3.5" />}
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-background/80 shadow-xs border border-border/40">
+                        {isNightLightOn ? (
+                            <Moon className="h-3.5 w-3.5 text-primary" strokeWidth={1.75} />
+                        ) : (
+                            <SunMedium className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
+                        )}
                     </div>
-                    <div>
-                        <p className="text-xs font-semibold leading-tight">Gece Işığı</p>
-                        <p className="text-[10px] opacity-80">
-                            {isNightLightOn ? `${display?.night_light?.temperature ?? 4500}K` : "Kapalı"}
+                    <div className="w-full min-w-0">
+                        <p className="text-xs font-semibold leading-tight text-foreground whitespace-nowrap truncate">Night Light</p>
+                        <p className="text-[10px] font-mono text-muted-foreground whitespace-nowrap truncate">
+                            {isNightLightOn ? `${display?.night_light?.temperature ?? 4500}K` : "Off"}
                         </p>
                     </div>
                 </button>
@@ -178,14 +205,14 @@ export function QuickTogglesBar() {
                 <button
                     onClick={nextProfile}
                     disabled={setPowerProfile.isPending}
-                    className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-background/50 p-2.5 text-center text-muted-foreground transition-all hover:bg-muted"
+                    className="braun-toggle braun-toggle-inactive hover:border-primary/40"
                 >
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-background/80 shadow-xs text-primary">
-                        <Zap className="h-3.5 w-3.5" />
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-background/80 shadow-xs border border-border/40 text-primary">
+                        <Zap className="h-3.5 w-3.5" strokeWidth={1.75} />
                     </div>
-                    <div>
-                        <p className="text-xs font-semibold leading-tight">Güç Modu</p>
-                        <p className="text-[10px] capitalize opacity-80">
+                    <div className="w-full min-w-0">
+                        <p className="text-xs font-semibold leading-tight text-foreground whitespace-nowrap truncate">Power Profile</p>
+                        <p className="text-[10px] capitalize font-mono text-primary font-semibold whitespace-nowrap truncate">
                             {currentProfile}
                         </p>
                     </div>

@@ -3,41 +3,48 @@
 import React, { useState } from "react";
 import {
     Boxes,
+    Plus,
+    RefreshCw,
     Layers,
     Disc,
     HardDrive,
     Network,
-    RefreshCw,
-    Plus,
     Activity,
-    Shield,
 } from "lucide-react";
 import { useContainers, useContainerOverview } from "@/hooks/useContainers";
 import { ContainerStatsCards } from "@/components/containers/ContainerStatsCards";
 import { ContainerTable } from "@/components/containers/ContainerTable";
 import { ContainerDetailDrawer } from "@/components/containers/ContainerDetailDrawer";
 import { CreateContainerModal } from "@/components/containers/CreateContainerModal";
+import { StackManagementTab } from "@/components/containers/StackManagementTab";
 import { ImageManagementTab } from "@/components/containers/ImageManagementTab";
 import { VolumeManagementTab } from "@/components/containers/VolumeManagementTab";
 import { NetworkManagementTab } from "@/components/containers/NetworkManagementTab";
-import { StackManagementTab } from "@/components/containers/StackManagementTab";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+
+type TabType = "containers" | "stacks" | "images" | "volumes" | "networks";
 
 export default function ContainersPage() {
-    const [activeTab, setActiveTab] = useState<
-        "containers" | "stacks" | "images" | "volumes" | "networks"
-    >("containers");
+    const [activeTab, setActiveTab] = useState<TabType>("containers");
     const [selectedContainerId, setSelectedContainerId] = useState<string | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const {
         data: containersData,
         isLoading: isContainersLoading,
+        isFetching: isContainersFetching,
         refetch: refetchContainers,
-        isFetching,
-    } = useContainers({ all: true });
+    } = useContainers();
 
-    const { data: overview, isLoading: isOverviewLoading, refetch: refetchOverview } =
-        useContainerOverview();
+    const {
+        data: overview,
+        isLoading: isOverviewLoading,
+        isFetching: isOverviewFetching,
+        refetch: refetchOverview,
+    } = useContainerOverview();
+
+    const isFetching = isContainersFetching || isOverviewFetching;
 
     const handleRefreshAll = () => {
         refetchContainers();
@@ -47,49 +54,53 @@ export default function ContainersPage() {
     const containers = containersData?.containers || [];
 
     return (
-        <div className="flex-1 space-y-6 p-6">
+        <div className="flex-1 space-y-6 p-6 font-sans">
             {/* Page Header */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                        <Boxes className="h-5 w-5" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted border border-border text-foreground">
+                        <Boxes className="h-5 w-5" strokeWidth={1.5} />
                     </div>
                     <div>
                         <div className="flex items-center gap-2.5">
                             <h1 className="text-xl font-bold tracking-tight text-foreground">
-                                Kapsayıcı Yönetimi
+                                Containers & Pods
                             </h1>
                             {overview?.engine && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-semibold text-blue-400">
-                                    <Activity className="h-3 w-3" />
+                                <Badge variant="outline" className="font-mono text-[10px]">
+                                    <Activity className="h-3 w-3 mr-1 text-primary" strokeWidth={1.5} />
                                     {overview.engine.toUpperCase()}{" "}
                                     {overview.engineVersion ? `v${overview.engineVersion}` : ""}
-                                </span>
+                                </Badge>
                             )}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            Podman & Docker OCI kapsayıcıları, yığınlar, imajlar, kalıcı diskler ve sanal ağlar.
+                            Podman & Docker OCI runtime, compose stacks, images, volumes, and bridge networks.
                         </p>
                     </div>
                 </div>
 
                 {/* Right Header Controls */}
                 <div className="flex items-center gap-2">
-                    <button
+                    <Button
+                        variant="outline"
+                        size="sm"
                         onClick={handleRefreshAll}
                         disabled={isFetching}
-                        className="flex h-9 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground shadow-xs transition-colors hover:bg-accent disabled:opacity-50"
+                        className="gap-1.5"
                     >
-                        <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
-                        Yenile
-                    </button>
-                    <button
+                        <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} strokeWidth={1.5} />
+                        <span>Refresh</span>
+                    </Button>
+                    <Button
+                        variant="default"
+                        size="sm"
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="flex h-9 items-center gap-1.5 rounded-md bg-primary px-3.5 text-xs font-semibold text-primary-foreground shadow hover:bg-primary/90 transition-colors"
+                        className="gap-1.5 shadow-sm"
                     >
-                        <Plus className="h-4 w-4" />
-                        Yeni Kapsayıcı
-                    </button>
+                        <Plus className="h-4 w-4" strokeWidth={1.75} />
+                        <span>New Container</span>
+                    </Button>
                 </div>
             </div>
 
@@ -97,7 +108,7 @@ export default function ContainersPage() {
             <ContainerStatsCards overview={overview} isLoading={isOverviewLoading} />
 
             {/* Tab Navigation */}
-            <div className="border-b border-border">
+            <div className="border-b border-border/70">
                 <nav className="flex space-x-6">
                     <button
                         onClick={() => setActiveTab("containers")}
@@ -107,9 +118,9 @@ export default function ContainersPage() {
                                 : "border-transparent text-muted-foreground hover:text-foreground"
                         }`}
                     >
-                        <Boxes className="h-4 w-4" />
-                        Kapsayıcılar
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                        <Boxes className="h-4 w-4" strokeWidth={1.5} />
+                        <span>Containers</span>
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground font-mono">
                             {containers.length}
                         </span>
                     </button>
@@ -122,8 +133,8 @@ export default function ContainersPage() {
                                 : "border-transparent text-muted-foreground hover:text-foreground"
                         }`}
                     >
-                        <Layers className="h-4 w-4" />
-                        Yığınlar / Podlar (Stacks)
+                        <Layers className="h-4 w-4" strokeWidth={1.5} />
+                        <span>Stacks & Pods</span>
                     </button>
 
                     <button
@@ -134,10 +145,10 @@ export default function ContainersPage() {
                                 : "border-transparent text-muted-foreground hover:text-foreground"
                         }`}
                     >
-                        <Disc className="h-4 w-4" />
-                        İmajlar (Images)
+                        <Disc className="h-4 w-4" strokeWidth={1.5} />
+                        <span>Images</span>
                         {overview?.totalImages !== undefined && (
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground font-mono">
                                 {overview.totalImages}
                             </span>
                         )}
@@ -151,10 +162,10 @@ export default function ContainersPage() {
                                 : "border-transparent text-muted-foreground hover:text-foreground"
                         }`}
                     >
-                        <HardDrive className="h-4 w-4" />
-                        Kalıcı Birimler (Volumes)
+                        <HardDrive className="h-4 w-4" strokeWidth={1.5} />
+                        <span>Volumes</span>
                         {overview?.totalVolumes !== undefined && (
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground font-mono">
                                 {overview.totalVolumes}
                             </span>
                         )}
@@ -168,10 +179,10 @@ export default function ContainersPage() {
                                 : "border-transparent text-muted-foreground hover:text-foreground"
                         }`}
                     >
-                        <Network className="h-4 w-4" />
-                        Sanal Ağlar (Networks)
+                        <Network className="h-4 w-4" strokeWidth={1.5} />
+                        <span>Networks</span>
                         {overview?.totalNetworks !== undefined && (
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground font-mono">
                                 {overview.totalNetworks}
                             </span>
                         )}

@@ -6,11 +6,8 @@ import {
     Disc,
     CheckCircle2,
     AlertCircle,
-    FileBox,
     FolderArchive,
     Camera,
-    Cloud,
-    ExternalLink,
     Play,
     Loader2,
 } from "lucide-react";
@@ -21,6 +18,8 @@ import {
     useTriggerResticBackup,
 } from "@/hooks/useStorage";
 import { SnapshotDrawer } from "./SnapshotDrawer";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export function StorageCard() {
     const { data: drives, unmount, isLoading } = useStorage();
@@ -35,10 +34,10 @@ export function StorageCard() {
         setActionMsg(null);
         unmount.mutate(device, {
             onSuccess: () => {
-                setActionMsg({ ok: true, msg: `${device} güvenli şekilde çıkarıldı!` });
+                setActionMsg({ ok: true, msg: `${device} safely unmounted!` });
             },
             onError: (err) => {
-                setActionMsg({ ok: false, msg: err.message ?? "Çıkarma başarısız" });
+                setActionMsg({ ok: false, msg: err.message ?? "Unmount failed" });
             },
         });
     };
@@ -47,135 +46,166 @@ export function StorageCard() {
         setActionMsg(null);
         resticBackup.mutate(undefined, {
             onSuccess: () => {
-                setActionMsg({ ok: true, msg: "Restic yedekleme servisi tetiklendi!" });
+                setActionMsg({ ok: true, msg: "Restic backup service triggered successfully!" });
             },
             onError: (err) => {
-                setActionMsg({ ok: false, msg: err.message ?? "Yedekleme başlatılamadı" });
+                setActionMsg({ ok: false, msg: err.message ?? "Failed to trigger backup" });
             },
         });
     };
 
     const removableDrives = drives ?? [];
     const snapshotCount = snapperData?.snapshots?.length ?? 0;
+    const isResticActive = resticStatus?.service_active ?? false;
 
     return (
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20">
-                        <FolderArchive className="h-4 w-4" />
+        <>
+            <div className="instrument-card p-4 sm:p-5 space-y-4">
+                {/* ── 1. Header & Status ── */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted border border-border text-foreground">
+                            <HardDrive className="h-4 w-4" strokeWidth={1.6} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-semibold leading-tight text-foreground whitespace-nowrap">Storage & Snapshots</p>
+                            <p className="text-[11px] text-muted-foreground font-mono whitespace-nowrap">
+                                {isLoading ? "Querying block devices…" : "Btrfs Subvolumes & Restic"}
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <p className="text-sm font-semibold">Depolama, Snapshot & Yedekleme</p>
-                        <p className="text-[11px] text-muted-foreground">
-                            {isLoading ? "Yükleniyor…" : `Btrfs Snapper (${snapshotCount} snapshot) · Restic (${resticStatus?.backend?.toUpperCase() ?? "S3"})`}
+
+                    <div className="flex items-center gap-2">
+                        <Badge variant={isResticActive ? "success" : "muted"} className="whitespace-nowrap">
+                            {isResticActive ? "Backup Active" : "Standby"}
+                        </Badge>
+                        <Button
+                            size="xs"
+                            variant="default"
+                            onClick={handleQuickRestic}
+                            disabled={resticBackup.isPending}
+                            className="gap-1 shadow-sm h-7 text-xs"
+                        >
+                            {resticBackup.isPending ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                                <Play className="h-3 w-3" strokeWidth={1.75} />
+                            )}
+                            <span>Run Backup</span>
+                        </Button>
+                    </div>
+                </div>
+
+                {/* ── 2. Primary Telemetry Metric Grid ── */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {/* Btrfs Root */}
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-1">
+                        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider whitespace-nowrap truncate block">
+                            Filesystem
+                        </p>
+                        <p className="text-sm font-bold font-mono text-foreground whitespace-nowrap truncate">
+                            Btrfs Subvolumes
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-mono whitespace-nowrap truncate">
+                            @root · @home · @nix
+                        </p>
+                    </div>
+
+                    {/* Snapper Snapshots */}
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-1">
+                        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider whitespace-nowrap truncate block">
+                            Snapper Timeline
+                        </p>
+                        <p className="text-lg font-bold font-mono tnum text-primary whitespace-nowrap truncate">
+                            {snapshotCount}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-mono whitespace-nowrap truncate">
+                            Root Config Snapshots
+                        </p>
+                    </div>
+
+                    {/* Restic Repository */}
+                    <div className="col-span-2 sm:col-span-1 rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-1">
+                        <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider whitespace-nowrap truncate block">
+                            Restic Remote
+                        </p>
+                        <p className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 whitespace-nowrap truncate">
+                            {resticStatus?.service_active ? "● Systemd Active" : "○ Idle"}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-mono whitespace-nowrap truncate">
+                            Encrypted S3 Repo
                         </p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                    <span className="rounded-full bg-teal-500/15 px-2 py-0.5 text-[10px] font-bold text-teal-400 border border-teal-500/30">
-                        {snapshotCount} Anlık Görüntü
-                    </span>
-                </div>
-            </div>
-
-            {/* ── Snapshot & Backup Quick Actions ── */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button
-                    onClick={() => setDrawerOpen(true)}
-                    className="flex items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
-                >
-                    <Camera className="h-3.5 w-3.5 text-teal-400" />
-                    Btrfs & Restic Merkezi
-                </button>
-
-                <button
-                    onClick={handleQuickRestic}
-                    disabled={resticBackup.isPending}
-                    className="flex items-center justify-center gap-1.5 rounded-lg bg-teal-600/20 border border-teal-500/30 px-3 py-2 text-xs font-semibold text-teal-400 hover:bg-teal-600/30 disabled:opacity-50 transition-colors"
-                >
-                    {resticBackup.isPending ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                        <Cloud className="h-3.5 w-3.5" />
-                    )}
-                    Şimdi Yedekle
-                </button>
-            </div>
-
-            {/* ── Removable Disks List ── */}
-            <div className="space-y-2">
-                <p className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
-                    Çıkarılabilir USB & Harici Diskler
-                </p>
-
-                {removableDrives.length > 0 ? (
-                    <div className="divide-y divide-border/40 rounded-lg border border-border/50 bg-background/40">
-                        {removableDrives.map((d) => (
-                            <div key={d.device} className="flex items-center justify-between p-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                                        <Disc className="h-4 w-4" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-semibold">
-                                            {d.label || d.name || d.device}
-                                        </p>
-                                        <p className="text-[10px] text-muted-foreground font-mono">
-                                            {d.size_gib ? `${d.size_gib.toFixed(1)} GB` : ""} {d.fs_type ? `· ${d.fs_type}` : ""}
-                                            {d.mount_point ? ` · ${d.mount_point}` : " · Bağlı Değil"}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div>
-                                    {d.is_mounted ? (
-                                        <button
-                                            onClick={() => handleUnmount(d.device)}
-                                            disabled={unmount.isPending}
-                                            className="rounded-md bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive hover:bg-destructive/20 disabled:opacity-50 transition-colors"
-                                        >
-                                            Güvenli Çıkar
-                                        </button>
-                                    ) : (
-                                        <span className="text-[11px] text-muted-foreground">Bağlı Değil</span>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center justify-center py-3 text-center text-muted-foreground rounded-lg border border-dashed border-border/60">
-                        <FileBox className="h-5 w-5 stroke-1 mb-1 opacity-50" />
-                        <p className="text-xs">Bağlı harici USB ortam bulunamadı.</p>
+                {/* Status Message Notification */}
+                {actionMsg && (
+                    <div
+                        className={`flex items-center gap-2 rounded-lg border p-2.5 text-xs font-mono ${
+                            actionMsg.ok
+                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                                : "border-destructive/30 bg-destructive/10 text-destructive"
+                        }`}
+                    >
+                        {actionMsg.ok ? (
+                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                        ) : (
+                            <AlertCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />
+                        )}
+                        <span className="flex-1">{actionMsg.msg}</span>
                     </div>
                 )}
+
+                {/* ── 3. Removable Disks Strip (if any) ── */}
+                {removableDrives.length > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                            Removable USB Media
+                        </p>
+                        <div className="space-y-1">
+                            {removableDrives.map((d) => (
+                                <div
+                                    key={d.device}
+                                    className="flex items-center justify-between rounded-lg border border-border/60 bg-background/60 p-2 text-xs"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Disc className="h-3.5 w-3.5 text-primary" />
+                                        <span className="font-semibold text-foreground">{d.label || d.device}</span>
+                                        <span className="font-mono text-[10px] text-muted-foreground">({d.size_gib} GiB)</span>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="xs"
+                                        onClick={() => handleUnmount(d.device)}
+                                        className="h-6 text-[10px]"
+                                    >
+                                        Eject
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* ── 4. Progressive Disclosure (Snapshot Drawer Trigger) ── */}
+                <div className="flex items-center justify-between border-t border-border/60 pt-3 text-xs text-muted-foreground">
+                    <button
+                        onClick={() => setDrawerOpen(true)}
+                        className="flex items-center gap-1.5 hover:text-foreground transition-colors font-medium"
+                    >
+                        <Camera className="h-3.5 w-3.5 text-primary" />
+                        <span>Manage Snapper Snapshots & Diffs ({snapshotCount})</span>
+                    </button>
+
+                    <div className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
+                        <FolderArchive className="h-3 w-3" />
+                        <span>Subvolume @root</span>
+                    </div>
+                </div>
             </div>
 
-            {/* Action Feedback */}
-            {actionMsg && (
-                <div
-                    className={`flex items-center gap-2 rounded-lg border p-2.5 text-xs ${
-                        actionMsg.ok
-                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                            : "border-destructive/30 bg-destructive/10 text-destructive"
-                    }`}
-                >
-                    {actionMsg.ok ? (
-                        <CheckCircle2 className="h-4 w-4 shrink-0" />
-                    ) : (
-                        <AlertCircle className="h-4 w-4 shrink-0" />
-                    )}
-                    <span className="leading-tight">{actionMsg.msg}</span>
-                </div>
-            )}
-
             {/* Snapshot Drawer */}
-            <SnapshotDrawer
-                open={drawerOpen}
-                onClose={() => setDrawerOpen(false)}
-            />
-        </div>
+            <SnapshotDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+        </>
     );
 }

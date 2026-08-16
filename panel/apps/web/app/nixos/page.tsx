@@ -25,7 +25,6 @@ import {
     Minus,
     RefreshCw,
     Layers,
-    FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -81,184 +80,206 @@ function NixOSPageContent() {
     const removedItems = diffData?.items?.filter((i) => i.change_type === "removed") ?? [];
 
     return (
-        <div className="space-y-6 pb-12">
-            {/* ── Top Hero Status Card ── */}
-            <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-background p-6 shadow-sm">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                    <div className="space-y-2 max-w-2xl">
-                        <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
-                            <GitBranch className="h-3.5 w-3.5" />
-                            <span>Declarative NixOS Engine</span>
+        <div className="space-y-4 pb-12 font-sans">
+            {/* ── Top Apparatus Header ── */}
+            <div className="instrument-card p-4 sm:p-5">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="space-y-1.5 max-w-2xl">
+                        <div className="flex items-center gap-2">
+                            <span className="flex h-2 w-2 rounded-full bg-primary shadow-glow" />
+                            <h1 className="text-base font-bold text-foreground">
+                                Declarative NixOS Engine & Generations
+                            </h1>
+                            <Badge variant="success" className="font-mono text-[10px]">
+                                Active Gen #{nixosStatus?.current_generation ?? "—"}
+                            </Badge>
                         </div>
-                        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-                            <span>Generation #{nixosStatus?.current_generation ?? "—"}</span>
-                            <Badge variant="success">Active System</Badge>
-                        </h1>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                            NixOS {nixosStatus?.version || "26.11"} · Kernel: {nixosStatus?.kernel_version || "6.13-zen"} · Uptime: {Math.floor((nixosStatus?.uptime_seconds || 0) / 3600)}h
+                            Immutable system configuration timeline, sub-second atomic rollback, package delta diffing, and Flake lockfile inspection.
                         </p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                         <Button
                             variant="destructive"
-                            size="sm"
+                            size="xs"
                             disabled={rollback.isPending}
                             onClick={() => rollback.mutate()}
                             className="gap-1.5"
                         >
-                            <RotateCcw className={`h-3.5 w-3.5 ${rollback.isPending ? "animate-spin" : ""}`} />
-                            <span>{rollback.isPending ? "Rolling back..." : "Rollback Generation"}</span>
+                            <RotateCcw className={`h-3 w-3 ${rollback.isPending ? "animate-spin" : ""}`} />
+                            <span>{rollback.isPending ? "Rolling back…" : "Rollback Gen"}</span>
                         </Button>
 
                         <Button
                             variant="default"
-                            size="sm"
+                            size="xs"
                             onClick={() => setRebuildModalOpen(true)}
-                            className="gap-1.5 shadow-md"
+                            className="gap-1.5 shadow-sm"
                         >
-                            <Sparkles className="h-3.5 w-3.5" />
-                            <span>Rebuild System (nh os switch)</span>
+                            <Sparkles className="h-3 w-3" />
+                            <span>Rebuild (nh os switch)</span>
                         </Button>
 
                         <Button
                             variant="outline"
-                            size="sm"
+                            size="xs"
                             onClick={handleRefreshAll}
                             className="gap-1"
                         >
-                            <RefreshCw className="h-3.5 w-3.5" />
+                            <RefreshCw className="h-3 w-3" />
                         </Button>
+                    </div>
+                </div>
+
+                {/* KPI Strip */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-border/60 mt-4">
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Active Generation</span>
+                        <p className="text-lg font-bold font-mono tnum text-primary">#{nixosStatus?.current_generation ?? "—"}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Total Generations</span>
+                        <p className="text-lg font-bold font-mono tnum text-foreground">{generations.length}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Kernel Version</span>
+                        <p className="text-xs font-bold font-mono text-foreground truncate pt-1">
+                            {nixosStatus?.kernel_version || "6.13-zen"}
+                        </p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Flake Inputs</span>
+                        <p className="text-lg font-bold font-mono tnum text-primary">
+                            {flakeInfo?.inputs?.length || 0} Locked
+                        </p>
                     </div>
                 </div>
             </div>
 
             {/* ── Tabbed Workspace ── */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border/60 pb-3">
                     <TabsList>
-                        <TabsTrigger value="generations" className="gap-2">
-                            <Layers className="h-3.5 w-3.5 text-primary" />
+                        <TabsTrigger value="generations" className="gap-1.5 text-xs">
+                            <Layers className="h-3.5 w-3.5" strokeWidth={1.5} />
                             <span>Generations Timeline ({generations.length})</span>
                         </TabsTrigger>
-                        <TabsTrigger value="diff" className="gap-2">
-                            <ArrowUpDown className="h-3.5 w-3.5 text-amber-500" />
-                            <span>Package Diff Viewer</span>
+                        <TabsTrigger value="diff" className="gap-1.5 text-xs">
+                            <ArrowUpDown className="h-3.5 w-3.5" strokeWidth={1.5} />
+                            <span>Package Diff</span>
                         </TabsTrigger>
-                        <TabsTrigger value="flake" className="gap-2">
-                            <GitBranch className="h-3.5 w-3.5 text-purple-400" />
-                            <span>Flake Lockfile & Inputs</span>
+                        <TabsTrigger value="flake" className="gap-1.5 text-xs">
+                            <GitBranch className="h-3.5 w-3.5" strokeWidth={1.5} />
+                            <span>Flake Lockfile</span>
                         </TabsTrigger>
                     </TabsList>
 
                     {activeTab === "generations" && (
-                        <div className="relative w-64 hidden sm:block">
+                        <div className="relative w-64">
                             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                             <input
                                 type="text"
                                 placeholder="Filter generations..."
                                 value={genSearch}
                                 onChange={(e) => setGenSearch(e.target.value)}
-                                className="w-full pl-8 pr-3 py-1 text-xs rounded-lg border border-border/80 bg-card focus:outline-none focus:ring-1 focus:ring-primary"
+                                className="w-full pl-8 pr-3 py-1 text-xs rounded-lg border border-border/80 bg-card focus:outline-none focus:ring-1 focus:ring-primary font-sans"
                             />
                         </div>
                     )}
                 </div>
 
                 {/* ── TAB 1: GENERATIONS TIMELINE ── */}
-                <TabsContent value="generations" className="space-y-4">
+                <TabsContent value="generations" className="space-y-2.5">
                     {loadingGens ? (
-                        <div className="p-8 text-center text-xs text-muted-foreground">Loading generations timeline...</div>
+                        <div className="p-8 text-center text-xs text-muted-foreground font-mono">Loading generations timeline...</div>
                     ) : filteredGenerations.length === 0 ? (
-                        <div className="p-8 text-center text-xs text-muted-foreground">No matching generations found.</div>
+                        <div className="p-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+                            No matching generations found.
+                        </div>
                     ) : (
-                        <div className="space-y-2.5">
-                            {filteredGenerations.map((gen) => {
-                                const isCurrent = gen.number === nixosStatus?.current_generation;
-                                return (
-                                    <div
-                                        key={gen.number}
-                                        className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border transition-all ${
-                                            isCurrent
-                                                ? "border-primary/50 bg-primary/5 shadow-xs"
-                                                : "border-border/70 bg-card hover:border-border"
-                                        }`}
-                                    >
-                                        <div className="flex items-center gap-3.5 min-w-0">
-                                            <div
-                                                className={`flex h-9 w-9 items-center justify-center rounded-xl font-mono text-xs font-bold shrink-0 ${
-                                                    isCurrent
-                                                        ? "bg-primary text-primary-foreground shadow-xs"
-                                                        : "bg-muted/60 text-muted-foreground border border-border/60"
-                                                }`}
-                                            >
-                                                #{gen.number}
-                                            </div>
-
-                                            <div className="min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <p className="text-xs font-semibold text-foreground truncate">
-                                                        NixOS {gen.nixos_version || `Generation ${gen.number}`}
-                                                    </p>
-                                                    {isCurrent && (
-                                                        <Badge variant="success">Current</Badge>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
-                                                    <span className="flex items-center gap-1">
-                                                        <Clock className="h-3 w-3" />
-                                                        {gen.date_formatted || "Unknown date"}
-                                                    </span>
-                                                    {gen.kernel_version && (
-                                                        <span className="flex items-center gap-1 font-mono">
-                                                            <Cpu className="h-3 w-3" />
-                                                            {gen.kernel_version}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
+                        filteredGenerations.map((gen) => {
+                            const isCurrent = gen.number === nixosStatus?.current_generation;
+                            return (
+                                <div
+                                    key={gen.number}
+                                    className={`instrument-card flex flex-col sm:flex-row sm:items-center justify-between p-3.5 transition-all ${
+                                        isCurrent ? "border-primary/50 ring-1 ring-primary/30" : ""
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-3.5 min-w-0">
+                                        <div
+                                            className={`flex h-8 w-8 items-center justify-center rounded-lg font-mono text-xs font-bold shrink-0 ${
+                                                isCurrent
+                                                    ? "bg-primary text-primary-foreground shadow-xs"
+                                                    : "bg-muted/60 text-muted-foreground border border-border/60"
+                                            }`}
+                                        >
+                                            #{gen.number}
                                         </div>
 
-                                        <div className="flex items-center gap-2 mt-3 sm:mt-0 shrink-0">
-                                            <Button
-                                                size="xs"
-                                                variant="outline"
-                                                onClick={() => {
-                                                    setDiffToGen(gen.number);
-                                                    setActiveTab("diff");
-                                                }}
-                                            >
-                                                Diff
-                                            </Button>
-
-                                            {!isCurrent && (
-                                                <Button
-                                                    size="xs"
-                                                    variant="secondary"
-                                                    disabled={switchGen.isPending}
-                                                    onClick={() => switchGen.mutate({ generation: gen.number })}
-                                                >
-                                                    Switch to #{gen.number}
-                                                </Button>
-                                            )}
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-xs font-semibold text-foreground truncate">
+                                                    NixOS {gen.nixos_version || `Generation ${gen.number}`}
+                                                </p>
+                                                {isCurrent && (
+                                                    <Badge variant="success" className="text-[10px]">Current</Badge>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-3 mt-0.5 text-[11px] text-muted-foreground font-mono">
+                                                <span className="flex items-center gap-1">
+                                                    <Clock className="h-3 w-3" />
+                                                    {gen.date_formatted || "Unknown date"}
+                                                </span>
+                                                {gen.kernel_version && (
+                                                    <span className="flex items-center gap-1">
+                                                        <Cpu className="h-3 w-3" />
+                                                        {gen.kernel_version}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                );
-                            })}
-                        </div>
+
+                                    <div className="flex items-center gap-2 mt-2.5 sm:mt-0 shrink-0">
+                                        <Button
+                                            size="xs"
+                                            variant="outline"
+                                            onClick={() => {
+                                                setDiffToGen(gen.number);
+                                                setActiveTab("diff");
+                                            }}
+                                        >
+                                            Diff
+                                        </Button>
+
+                                        {!isCurrent && (
+                                            <Button
+                                                size="xs"
+                                                variant="secondary"
+                                                disabled={switchGen.isPending}
+                                                onClick={() => switchGen.mutate({ generation: gen.number })}
+                                            >
+                                                Switch to #{gen.number}
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })
                     )}
                 </TabsContent>
 
                 {/* ── TAB 2: PACKAGE DIFF VIEWER ── */}
                 <TabsContent value="diff" className="space-y-4">
-                    {/* Select Generation Comparators */}
-                    <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl border border-border/70 bg-card">
-                        <div className="flex items-center gap-2 text-xs">
-                            <span className="text-muted-foreground">Compare from:</span>
+                    <div className="instrument-card p-4 flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2 text-xs font-mono">
+                            <span className="text-muted-foreground">From:</span>
                             <select
                                 value={diffFromGen}
                                 onChange={(e) => setDiffFromGen(Number(e.target.value))}
-                                className="rounded-lg border border-border/80 bg-background px-2.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                                className="rounded-lg border border-border/80 bg-background px-2.5 py-1 text-xs text-foreground"
                             >
                                 {generations.map((g) => (
                                     <option key={g.number} value={g.number}>
@@ -270,12 +291,12 @@ function NixOSPageContent() {
 
                         <ArrowRight className="h-4 w-4 text-muted-foreground" />
 
-                        <div className="flex items-center gap-2 text-xs">
+                        <div className="flex items-center gap-2 text-xs font-mono">
                             <span className="text-muted-foreground">To:</span>
                             <select
                                 value={diffToGen}
                                 onChange={(e) => setDiffToGen(Number(e.target.value))}
-                                className="rounded-lg border border-border/80 bg-background px-2.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                                className="rounded-lg border border-border/80 bg-background px-2.5 py-1 text-xs text-foreground"
                             >
                                 {generations.map((g) => (
                                     <option key={g.number} value={g.number}>
@@ -296,15 +317,14 @@ function NixOSPageContent() {
                         </div>
                     </div>
 
-                    {/* Diff Content Results */}
                     {loadingDiff ? (
-                        <div className="p-8 text-center text-xs text-muted-foreground">Computing generation diff...</div>
+                        <div className="p-8 text-center text-xs text-muted-foreground font-mono">Computing generation diff…</div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Added Packages */}
-                            <div className="rounded-xl border border-emerald-500/20 bg-card p-4 space-y-3">
+                            <div className="instrument-card p-4 space-y-3">
                                 <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                                    <span className="text-xs font-semibold text-emerald-500 flex items-center gap-1.5">
+                                    <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
                                         <Plus className="h-3.5 w-3.5" /> Added Packages ({addedItems.length})
                                     </span>
                                 </div>
@@ -313,7 +333,7 @@ function NixOSPageContent() {
                                         addedItems.map((pkg, idx) => (
                                             <div key={idx} className="flex items-center justify-between py-0.5">
                                                 <span className="text-foreground">{pkg.name}</span>
-                                                <span className="text-[10px] text-emerald-500">{pkg.new_version || "+new"}</span>
+                                                <span className="text-[10px] text-emerald-400">{pkg.new_version || "+new"}</span>
                                             </div>
                                         ))
                                     ) : (
@@ -323,7 +343,7 @@ function NixOSPageContent() {
                             </div>
 
                             {/* Removed Packages */}
-                            <div className="rounded-xl border border-destructive/20 bg-card p-4 space-y-3">
+                            <div className="instrument-card p-4 space-y-3">
                                 <div className="flex items-center justify-between border-b border-border/60 pb-2">
                                     <span className="text-xs font-semibold text-destructive flex items-center gap-1.5">
                                         <Minus className="h-3.5 w-3.5" /> Removed Packages ({removedItems.length})
@@ -347,41 +367,35 @@ function NixOSPageContent() {
                 </TabsContent>
 
                 {/* ── TAB 3: FLAKE LOCKFILE & INPUTS ── */}
-                <TabsContent value="flake" className="space-y-4">
-                    {loadingFlake ? (
-                        <div className="p-8 text-center text-xs text-muted-foreground">Inspecting flake inputs...</div>
-                    ) : (
-                        <div className="space-y-3">
-                            <div className="rounded-xl border border-border/70 bg-card p-4">
-                                <h3 className="text-xs font-semibold text-foreground">Flake Path: {flakeInfo?.flake_path || "/home/l7v/dev/projects/company/active/nixos"}</h3>
-                                <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">
-                                    Lockfile Version: {flakeInfo?.lock_version || 7} · Total Inputs: {flakeInfo?.total_inputs || flakeInfo?.inputs?.length || 0}
-                                </p>
-                            </div>
+                <TabsContent value="flake" className="space-y-3">
+                    <div className="instrument-card p-4">
+                        <h3 className="text-xs font-semibold text-foreground">Flake Path: {flakeInfo?.flake_path || "/home/l7v/dev/projects/company/active/nixos"}</h3>
+                        <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">
+                            Lockfile Version: {flakeInfo?.lock_version || 7} · Total Inputs: {flakeInfo?.total_inputs || flakeInfo?.inputs?.length || 0}
+                        </p>
+                    </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {flakeInfo?.inputs?.map((input: FlakeInput) => (
-                                    <div key={input.name} className="rounded-xl border border-border/60 bg-card p-3.5 space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs font-bold text-foreground font-mono">{input.name}</span>
-                                            <Badge variant="outline">{input.type || "git"}</Badge>
-                                        </div>
-                                        <p className="text-[11px] text-muted-foreground font-mono truncate">
-                                            {input.owner ? `${input.owner}/${input.repo}` : input.url || "local"}
-                                        </p>
-                                        <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
-                                            <span>Rev: {input.short_revision || input.revision?.substring(0, 7) || "latest"}</span>
-                                            <span className="text-emerald-500 font-semibold">Locked</span>
-                                        </div>
-                                    </div>
-                                ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {flakeInfo?.inputs?.map((input: FlakeInput) => (
+                            <div key={input.name} className="instrument-card p-3.5 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-foreground font-mono">{input.name}</span>
+                                    <Badge variant="outline">{input.type || "git"}</Badge>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground font-mono truncate">
+                                    {input.owner ? `${input.owner}/${input.repo}` : input.url || "local"}
+                                </p>
+                                <div className="pt-2 border-t border-border/50 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                                    <span>Rev: {input.short_revision || input.revision?.substring(0, 7) || "latest"}</span>
+                                    <span className="text-emerald-400 font-semibold">Locked</span>
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        ))}
+                    </div>
                 </TabsContent>
             </Tabs>
 
-            {/* ── Rebuild Live Console Modal ── */}
+            {/* Rebuild Console Modal */}
             <RebuildConsoleModal
                 open={rebuildModalOpen}
                 onClose={() => setRebuildModalOpen(false)}

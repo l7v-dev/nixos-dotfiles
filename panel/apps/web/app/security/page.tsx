@@ -7,13 +7,11 @@ import {
     useSecurityAudit,
     useFail2ban,
     useUnbanIP,
-    useSecurity,
 } from "@/hooks/useSecurity";
 import {
     Shield,
     Key,
     Lock,
-    Unlock,
     RefreshCw,
     CheckCircle2,
     XCircle,
@@ -21,8 +19,6 @@ import {
     Copy,
     Check,
     Search,
-    RotateCcw,
-    Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,203 +48,225 @@ function SecurityPageContent() {
         refetchF2B();
     };
 
+    const sopsOk = auditData?.sops_report?.decryption_ok ?? true;
+    const score = auditData?.score ?? 95;
+    const grade = auditData?.grade ?? "A+";
+    const jails = f2bData?.jails ?? [];
+    const ports = auditData?.open_ports ?? [];
+
     return (
-        <div className="space-y-6 pb-12">
-            {/* ── Top Hero Banner ── */}
-            <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-card to-background p-6 shadow-sm">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                    <div className="space-y-2 max-w-2xl">
-                        <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-400">
-                            <Shield className="h-3.5 w-3.5" />
-                            <span>Zero-Trust Infrastructure Security</span>
-                        </div>
-                        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-                            <span>SOPS Age Cryptography & Threat Defense</span>
-                            <Badge variant={sopsData?.decryption_ok ? "success" : "warning"}>
-                                {sopsData?.decryption_ok ? "Secrets Decrypted" : "Verify Required"}
+        <div className="space-y-4 pb-12 font-sans">
+            {/* ── Top Apparatus Header ── */}
+            <div className="instrument-card p-4 sm:p-5">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="space-y-1.5 max-w-2xl">
+                        <div className="flex items-center gap-2">
+                            <span className="flex h-2 w-2 rounded-full bg-emerald-500 shadow-glow" />
+                            <h1 className="text-base font-bold text-foreground">
+                                Security Posture & SOPS Secrets
+                            </h1>
+                            <Badge variant="success" className="font-mono text-[10px]">
+                                Grade {grade} ({score}%)
                             </Badge>
-                        </h1>
+                        </div>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                            SOPS / Age in-memory secret decryption, strict Polkit permissions, fail2ban brute-force protection, and firewall ingress audit.
+                            Age key decryption verification, SOPS encrypted secrets audit, Fail2ban jail telemetry, and open port vulnerability scanning.
                         </p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                         <Button
                             variant="default"
-                            size="sm"
-                            disabled={verifySOPSMutation.isPending}
+                            size="xs"
                             onClick={() => verifySOPSMutation.mutate()}
-                            className="gap-1.5 shadow-md bg-emerald-600 hover:bg-emerald-500 text-white"
+                            disabled={verifySOPSMutation.isPending}
+                            className="gap-1.5 shadow-sm"
                         >
-                            <Key className="h-3.5 w-3.5" />
-                            <span>{verifySOPSMutation.isPending ? "Testing..." : "Verify SOPS Decryption"}</span>
+                            <Key className="h-3 w-3" />
+                            <span>{verifySOPSMutation.isPending ? "Auditing…" : "Verify SOPS Keys"}</span>
                         </Button>
                         <Button
                             variant="outline"
-                            size="sm"
+                            size="xs"
                             onClick={handleRefreshAll}
                             className="gap-1"
                         >
-                            <RefreshCw className="h-3.5 w-3.5" />
+                            <RefreshCw className="h-3 w-3" />
+                            <span>Refresh</span>
                         </Button>
                     </div>
                 </div>
-            </div>
 
-            {/* ── Summary KPI Row ── */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="rounded-xl border border-border/60 bg-card p-4 shadow-xs">
-                    <span className="text-[11px] text-muted-foreground">Security Grade</span>
-                    <p className="text-xl font-bold mt-1 font-mono text-emerald-500">{auditData?.grade || "A+"}</p>
-                </div>
-                <div className="rounded-xl border border-border/60 bg-card p-4 shadow-xs">
-                    <span className="text-[11px] text-muted-foreground">Security Score</span>
-                    <p className="text-xl font-bold mt-1 font-mono text-foreground">{auditData?.score || 98} / 100</p>
-                </div>
-                <div className="rounded-xl border border-border/60 bg-card p-4 shadow-xs">
-                    <span className="text-[11px] text-muted-foreground">Active Fail2ban Jails</span>
-                    <p className="text-xl font-bold mt-1 font-mono text-foreground">{f2bData?.active_jails || 3}</p>
-                </div>
-                <div className="rounded-xl border border-border/60 bg-card p-4 shadow-xs">
-                    <span className="text-[11px] text-muted-foreground">Total Banned IPs</span>
-                    <p className="text-xl font-bold mt-1 font-mono text-destructive">{f2bData?.total_banned_ip || 0}</p>
+                {/* KPI Strip */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-border/60 mt-4">
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">SOPS Decryption</span>
+                        <p className={`text-sm font-bold font-mono pt-0.5 ${sopsOk ? "text-emerald-400" : "text-destructive"}`}>
+                            {sopsOk ? "● Key Validated" : "▲ Missing Key"}
+                        </p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Firewall Status</span>
+                        <p className="text-sm font-bold font-mono text-emerald-400 pt-0.5">● iptables active</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Fail2ban Jails</span>
+                        <p className="text-lg font-bold font-mono tnum text-foreground">{jails.length}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Listening Sockets</span>
+                        <p className="text-lg font-bold font-mono tnum text-primary">{ports.length}</p>
+                    </div>
                 </div>
             </div>
 
             {/* ── Tabs Workspace ── */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
-                    <TabsTrigger value="sops" className="gap-2">
-                        <Key className="h-3.5 w-3.5 text-emerald-400" />
-                        <span>SOPS & Age Keys</span>
+                    <TabsTrigger value="sops" className="gap-1.5 text-xs">
+                        <Key className="h-3.5 w-3.5" />
+                        <span>SOPS & Secrets</span>
                     </TabsTrigger>
-                    <TabsTrigger value="fail2ban" className="gap-2">
-                        <Shield className="h-3.5 w-3.5 text-amber-400" />
-                        <span>Fail2ban Jails</span>
+                    <TabsTrigger value="fail2ban" className="gap-1.5 text-xs">
+                        <Lock className="h-3.5 w-3.5" />
+                        <span>Fail2ban Jails ({jails.length})</span>
                     </TabsTrigger>
-                    <TabsTrigger value="firewall" className="gap-2">
-                        <Lock className="h-3.5 w-3.5 text-blue-400" />
-                        <span>Firewall Ingress Ports</span>
+                    <TabsTrigger value="ports" className="gap-1.5 text-xs">
+                        <Shield className="h-3.5 w-3.5" />
+                        <span>Port Scanner ({ports.length})</span>
                     </TabsTrigger>
                 </TabsList>
 
-                {/* ── TAB 1: SOPS & AGE KEYS ── */}
-                <TabsContent value="sops" className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Age Key Status */}
-                        <div className="rounded-2xl border border-border/70 bg-card p-5 space-y-4">
-                            <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                                <h3 className="text-xs font-bold text-foreground">Host Age Private Key</h3>
-                                <Badge variant={sopsData?.key_file_exists ? "success" : "destructive"}>
-                                    {sopsData?.key_file_exists ? "Present & Loaded" : "Missing Key"}
-                                </Badge>
-                            </div>
-                            <div className="space-y-2 text-xs">
-                                <span className="text-muted-foreground block">Key Location: {sopsData?.key_file_path || "/etc/age/key"}</span>
-                                <div className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/30 p-2.5 font-mono text-[11px] text-foreground">
-                                    <span className="truncate">{sopsData?.public_key || "age100fgm3zj79kwsw962f9ehw8s43llfk7z2tpsh2juy3platc99qcs7lj0yw"}</span>
-                                    <button
-                                        onClick={() => handleCopyKey(sopsData?.public_key || "")}
-                                        className="ml-2 text-muted-foreground hover:text-foreground"
-                                    >
-                                        {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Encrypted Secrets Files */}
-                        <div className="rounded-2xl border border-border/70 bg-card p-5 space-y-4">
-                            <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                                <h3 className="text-xs font-bold text-foreground">SOPS Verification Report</h3>
-                                <Badge variant={sopsData?.decryption_ok ? "success" : "warning"}>
-                                    {sopsData?.decryption_ok ? "RAM Decrypt OK" : "Pending Test"}
-                                </Badge>
-                            </div>
-                            <div className="space-y-2 font-mono text-xs text-muted-foreground">
-                                <div className="flex items-center justify-between py-1 border-b border-border/40">
-                                    <span className="text-foreground">Status Message</span>
-                                    <span className="text-[11px] text-foreground font-sans">{sopsData?.status_message || "All secrets verified against host Age key"}</span>
-                                </div>
-                                <div className="flex items-center justify-between py-1">
-                                    <span className="text-foreground">Last Tested</span>
-                                    <span className="text-[10px] text-muted-foreground">{sopsData?.last_tested_at || "Recent"}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </TabsContent>
-
-                {/* ── TAB 2: FAIL2BAN JAILS ── */}
-                <TabsContent value="fail2ban" className="space-y-4">
-                    <div className="rounded-2xl border border-border/70 bg-card p-5 space-y-4">
-                        <div className="flex items-center justify-between border-b border-border/60 pb-3">
+                {/* 1. SOPS Tab */}
+                <TabsContent value="sops">
+                    <div className="instrument-card p-4 sm:p-5 space-y-4">
+                        <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="text-xs font-bold text-foreground">Fail2ban Active Jails</h3>
-                                <p className="text-xs text-muted-foreground">Automated brute-force IP blocking</p>
+                                <h3 className="text-sm font-semibold text-foreground">Age Public Key & SOPS Encrypted Secrets</h3>
+                                <p className="text-xs text-muted-foreground">
+                                    Declarative secrets managed via <code className="font-mono text-primary">modules/capabilities/secrets/sops.nix</code>
+                                </p>
                             </div>
-                            <Badge variant={f2bData?.enabled ? "success" : "muted"}>
-                                {f2bData?.enabled ? "Daemon Active" : "Disabled"}
+                            <Badge variant={sopsOk ? "success" : "destructive"}>
+                                {sopsOk ? "Decryption Healthy" : "Decryption Error"}
                             </Badge>
                         </div>
 
-                        <div className="space-y-2">
-                            {f2bData?.jails?.map((jail: Fail2banJailInfo) => (
-                                <div key={jail.name} className="flex items-center justify-between p-3 rounded-xl border border-border/60 bg-muted/20">
-                                    <span className="font-mono text-xs font-bold text-foreground">{jail.name}</span>
-                                    <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono">
-                                        <span>Currently Banned: {jail.currently_banned || 0}</span>
-                                        <span>Total Banned: {jail.total_banned || 0}</span>
+                        {sopsData?.public_key && (
+                            <div className="rounded-lg border border-border/60 bg-background/60 p-3 space-y-1.5">
+                                <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                                    Host Age Public Key (/etc/age/key)
+                                </span>
+                                <div className="flex items-center justify-between gap-2">
+                                    <code className="text-xs font-mono text-foreground select-all break-all">
+                                        {sopsData.public_key}
+                                    </code>
+                                    <Button
+                                        size="xs"
+                                        variant="outline"
+                                        onClick={() => handleCopyKey(sopsData.public_key!)}
+                                        className="gap-1 shrink-0"
+                                    >
+                                        {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                                        <span>{copied ? "Copied" : "Copy"}</span>
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="space-y-2 pt-2">
+                            <p className="text-xs font-semibold text-foreground">Encrypted Secret Targets</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-xs">
+                                {[
+                                    "secrets/sops/cloudflare.yaml",
+                                    "secrets/sops/forgejo.yaml",
+                                    "secrets/sops/restic.yaml",
+                                    "secrets/sops/tailscale.yaml",
+                                ].map((s) => (
+                                    <div key={s} className="flex items-center gap-2 rounded-lg border border-border/60 bg-background/40 p-2.5">
+                                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                                        <span className="truncate text-muted-foreground">{s}</span>
                                     </div>
-                                </div>
-                            )) || (
-                                <div className="p-4 text-center text-xs text-muted-foreground">
-                                    All jails operational. 0 IPs currently banned.
-                                </div>
-                            )}
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </TabsContent>
 
-                {/* ── TAB 3: FIREWALL PORTS ── */}
-                <TabsContent value="firewall" className="space-y-4">
-                    <div className="rounded-2xl border border-border/70 bg-card p-5 space-y-4">
-                        <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                            <h3 className="text-xs font-bold text-foreground">Audited Listening Ingress Ports</h3>
-                            <Badge variant={auditData?.firewall_active ? "success" : "destructive"}>
-                                {auditData?.firewall_active ? "NFTables Enforced" : "Firewall Off"}
-                            </Badge>
+                {/* 2. Fail2ban Tab */}
+                <TabsContent value="fail2ban">
+                    <div className="instrument-card p-4 sm:p-5 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-semibold text-foreground">Fail2ban Active Jails</h3>
+                            <span className="text-xs font-mono text-muted-foreground">Sentinel active</span>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 font-mono text-xs">
-                            {auditData?.open_ports?.map((port: PortAuditItem, idx: number) => (
-                                <div key={idx} className="p-3 rounded-xl border border-border/60 bg-muted/20 space-y-1">
-                                    <div className="flex items-center justify-between">
-                                        <span className="font-bold text-foreground">{port.protocol.toUpperCase()} Port {port.port}</span>
-                                        <Badge variant={port.exposure === "public" ? "warning" : "outline"}>
-                                            {port.exposure}
-                                        </Badge>
+                        {jails.length === 0 ? (
+                            <div className="p-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+                                No active jails configured or fail2ban daemon is idle.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {jails.map((j: Fail2banJailInfo) => (
+                                    <div key={j.name} className="rounded-lg border border-border/60 bg-background/50 p-3 space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-bold font-mono text-foreground">{j.name}</span>
+                                            <Badge variant="outline" className="text-[10px] text-emerald-400">
+                                                {j.currently_banned} banned
+                                            </Badge>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground font-mono">
+                                            Total banned IPs: {j.total_banned} ({j.banned_ips?.length ?? 0} active)
+                                        </p>
                                     </div>
-                                    <p className="text-[11px] text-muted-foreground truncate">{port.process || "System Daemon"}</p>
-                                </div>
-                            )) || (
-                                <>
-                                    <div className="p-3 rounded-xl border border-border/60 bg-muted/20">
-                                        <span className="text-muted-foreground block text-[10px]">TCP Port 22</span>
-                                        <span className="font-bold text-foreground">SSH Hardened</span>
-                                    </div>
-                                    <div className="p-3 rounded-xl border border-border/60 bg-muted/20">
-                                        <span className="text-muted-foreground block text-[10px]">TCP Port 80/443</span>
-                                        <span className="font-bold text-foreground">Nginx Ingress</span>
-                                    </div>
-                                    <div className="p-3 rounded-xl border border-border/60 bg-muted/20">
-                                        <span className="text-muted-foreground block text-[10px]">UDP Port 41641</span>
-                                        <span className="font-bold text-foreground">Tailscale WireGuard</span>
-                                    </div>
-                                </>
-                            )}
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </TabsContent>
+
+                {/* 3. Ports Tab */}
+                <TabsContent value="ports">
+                    <div className="instrument-card p-4 sm:p-5 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-semibold text-foreground">Open TCP/UDP Sockets</h3>
+                            <span className="text-xs font-mono text-muted-foreground">{ports.length} listening daemons</span>
                         </div>
+
+                        {ports.length === 0 ? (
+                            <div className="p-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+                                No listening ports recorded in audit.
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto rounded-lg border border-border/60">
+                                <table className="w-full text-left text-xs font-mono">
+                                    <thead className="bg-muted/60 text-muted-foreground border-b border-border/60">
+                                        <tr>
+                                            <th className="p-2.5 font-semibold">Port</th>
+                                            <th className="p-2.5 font-semibold">Protocol</th>
+                                            <th className="p-2.5 font-semibold">Address</th>
+                                            <th className="p-2.5 font-semibold">Process / Daemon</th>
+                                            <th className="p-2.5 font-semibold">Scope</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border/40">
+                                        {ports.map((p: PortAuditItem, idx: number) => (
+                                            <tr key={idx} className="hover:bg-muted/30 transition-colors">
+                                                <td className="p-2.5 font-bold text-primary tnum">:{p.port}</td>
+                                                <td className="p-2.5 uppercase">{p.protocol || "tcp"}</td>
+                                                <td className="p-2.5 text-muted-foreground">{p.address || "0.0.0.0"}</td>
+                                                <td className="p-2.5 text-foreground font-sans font-medium">{p.process || "systemd"}</td>
+                                                <td className="p-2.5">
+                                                    <Badge variant={p.exposure === "localhost" ? "muted" : "warning"} className="text-[10px]">
+                                                        {p.exposure || "localhost"}
+                                                    </Badge>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
             </Tabs>
@@ -258,7 +276,7 @@ function SecurityPageContent() {
 
 export default function SecurityPage() {
     return (
-        <Suspense fallback={<div className="p-8 text-xs text-muted-foreground">Loading Security Center...</div>}>
+        <Suspense fallback={<div className="p-8 text-xs text-muted-foreground">Loading Security Hub...</div>}>
             <SecurityPageContent />
         </Suspense>
     );

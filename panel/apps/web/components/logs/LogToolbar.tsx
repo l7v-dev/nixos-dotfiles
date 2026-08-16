@@ -38,11 +38,11 @@ interface LogToolbarProps {
 }
 
 const SEVERITY_GROUPS = [
-    { label: "Kritik", priorities: [0, 1, 2], badge: "bg-rose-500/15 text-rose-400 border-rose-500/30", color: "text-rose-400" },
-    { label: "Hata", priorities: [3], badge: "bg-red-500/15 text-red-400 border-red-500/30", color: "text-red-400" },
-    { label: "Uyarı", priorities: [4], badge: "bg-amber-500/15 text-amber-400 border-amber-500/30", color: "text-amber-400" },
-    { label: "Bilgi", priorities: [5, 6], badge: "bg-blue-500/15 text-blue-400 border-blue-500/30", color: "text-blue-400" },
-    { label: "Debug", priorities: [7], badge: "bg-slate-500/15 text-slate-400 border-slate-500/30", color: "text-slate-400" },
+    { label: "Critical", priorities: [0, 1, 2], badge: "bg-destructive/15 text-destructive border-destructive/30", color: "text-destructive" },
+    { label: "Error", priorities: [3], badge: "bg-destructive/15 text-destructive border-destructive/30", color: "text-destructive" },
+    { label: "Warning", priorities: [4], badge: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30", color: "text-amber-600 dark:text-amber-400" },
+    { label: "Info", priorities: [5, 6], badge: "bg-muted/80 text-foreground border-border/80", color: "text-foreground" },
+    { label: "Debug", priorities: [7], badge: "bg-muted/50 text-muted-foreground border-border/50", color: "text-muted-foreground" },
 ];
 
 export function LogToolbar({

@@ -12,14 +12,14 @@ import {
 import {
     HardDrive,
     Camera,
-    RotateCcw,
     RefreshCw,
     Plus,
     Clock,
-    Database,
     Shield,
     Trash2,
     CheckCircle2,
+    AlertCircle,
+    Disc,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,229 +61,270 @@ function StoragePageContent() {
     };
 
     return (
-        <div className="space-y-6 pb-12">
-            {/* ── Top Hero Banner ── */}
-            <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-card to-background p-6 shadow-sm">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                    <div className="space-y-2 max-w-2xl">
-                        <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold text-amber-400">
-                            <HardDrive className="h-3.5 w-3.5" />
-                            <span>Storage, Snapper & Restic</span>
+        <div className="space-y-4 pb-12 font-sans">
+            {/* ── Top Apparatus Header ── */}
+            <div className="instrument-card p-4 sm:p-5">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="space-y-1.5 max-w-2xl">
+                        <div className="flex items-center gap-2">
+                            <span className="flex h-2 w-2 rounded-full bg-amber-500 shadow-glow" />
+                            <h1 className="text-base font-bold text-foreground">
+                                Storage, Btrfs Snapshots & Restic
+                            </h1>
+                            <Badge variant="outline" className="font-mono text-[10px]">
+                                {snapshots.length} Snapshots
+                            </Badge>
                         </div>
-                        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-                            <span>Btrfs Timeline Snapshots & Offsite Backups</span>
-                        </h1>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                            Create instant pre/post system snapshots with Snapper, restore filesystem states, and track encrypted Restic backups to AWS S3 & SFTP.
+                            Btrfs subvolume timelines, declarative Snapper snapshots, and encrypted Restic offsite backups.
                         </p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                         <Button
                             variant="default"
-                            size="sm"
+                            size="xs"
                             onClick={() => setActiveTab("new-snapshot")}
-                            className="gap-1.5 shadow-md bg-amber-600 hover:bg-amber-500 text-white"
+                            className="gap-1.5 shadow-sm"
                         >
-                            <Camera className="h-3.5 w-3.5" />
+                            <Camera className="h-3 w-3" />
                             <span>Create Snapshot</span>
                         </Button>
                         <Button
                             variant="outline"
-                            size="sm"
+                            size="xs"
                             onClick={handleRefreshAll}
                             className="gap-1"
                         >
-                            <RefreshCw className="h-3.5 w-3.5" />
+                            <RefreshCw className="h-3 w-3" />
+                            <span>Refresh</span>
                         </Button>
                     </div>
                 </div>
-            </div>
 
-            {/* ── Summary Cards ── */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="rounded-xl border border-border/60 bg-card p-4 shadow-xs">
-                    <span className="text-[11px] text-muted-foreground">Total Snapshots</span>
-                    <p className="text-xl font-bold mt-1 font-mono text-foreground">{snapshots.length}</p>
-                </div>
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 shadow-xs">
-                    <span className="text-[11px] text-emerald-500">Root Filesystem</span>
-                    <p className="text-xl font-bold mt-1 font-mono text-emerald-500">Btrfs Subvolume</p>
-                </div>
-                <div className="rounded-xl border border-border/60 bg-card p-4 shadow-xs">
-                    <span className="text-[11px] text-muted-foreground">Restic Repositories</span>
-                    <p className="text-xl font-bold mt-1 font-mono text-foreground">S3 & SFTP</p>
-                </div>
-                <div className="rounded-xl border border-border/60 bg-card p-4 shadow-xs">
-                    <span className="text-[11px] text-muted-foreground">Auto Cleanup</span>
-                    <p className="text-xl font-bold mt-1 font-mono text-primary">Hourly / Daily</p>
+                {/* KPI Strip */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-border/60 mt-4">
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Root Filesystem</span>
+                        <p className="text-sm font-bold font-mono text-foreground pt-0.5">Btrfs Subvolumes</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Timeline Snapshots</span>
+                        <p className="text-lg font-bold font-mono tnum text-primary">{snapshots.length}</p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Restic Service</span>
+                        <p className="text-sm font-bold font-mono text-emerald-400 pt-0.5">
+                            {resticData?.service_active ? "● Active" : "○ Standby"}
+                        </p>
+                    </div>
+                    <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-0.5">
+                        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Removable Media</span>
+                        <p className="text-lg font-bold font-mono tnum text-foreground">
+                            {storageDisks?.length || 0} Connected
+                        </p>
+                    </div>
                 </div>
             </div>
 
             {/* ── Tabs Workspace ── */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
-                    <TabsTrigger value="snapshots" className="gap-2">
-                        <Camera className="h-3.5 w-3.5 text-amber-500" />
-                        <span>Btrfs Snapshots ({snapshots.length})</span>
+                    <TabsTrigger value="snapshots" className="gap-1.5 text-xs">
+                        <Camera className="h-3.5 w-3.5" />
+                        <span>Snapshots ({snapshots.length})</span>
                     </TabsTrigger>
-                    <TabsTrigger value="new-snapshot" className="gap-2">
-                        <Plus className="h-3.5 w-3.5 text-primary" />
+                    <TabsTrigger value="new-snapshot" className="gap-1.5 text-xs">
+                        <Plus className="h-3.5 w-3.5" />
                         <span>Take Snapshot</span>
                     </TabsTrigger>
-                    <TabsTrigger value="disks" className="gap-2">
-                        <HardDrive className="h-3.5 w-3.5 text-blue-400" />
-                        <span>Removable Disks</span>
+                    <TabsTrigger value="restic" className="gap-1.5 text-xs">
+                        <Shield className="h-3.5 w-3.5" />
+                        <span>Restic Backup</span>
                     </TabsTrigger>
-                    <TabsTrigger value="restic" className="gap-2">
-                        <Shield className="h-3.5 w-3.5 text-emerald-400" />
-                        <span>Restic Offsite Backups</span>
+                    <TabsTrigger value="devices" className="gap-1.5 text-xs">
+                        <Disc className="h-3.5 w-3.5" />
+                        <span>Block Devices</span>
                     </TabsTrigger>
                 </TabsList>
 
-                {/* ── TAB 1: SNAPSHOTS LIST ── */}
-                <TabsContent value="snapshots" className="space-y-4">
-                    {loadingSnaps ? (
-                        <div className="p-8 text-center text-xs text-muted-foreground">Loading snapshots...</div>
-                    ) : snapshots.length === 0 ? (
-                        <div className="p-8 text-center text-xs text-muted-foreground">No snapshots recorded yet.</div>
-                    ) : (
-                        <div className="space-y-2.5">
-                            {snapshots.map((snap: SnapperSnapshot) => (
-                                <div
-                                    key={snap.id}
-                                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-border/70 bg-card hover:border-border transition-all"
-                                >
-                                    <div className="flex items-center gap-3.5 min-w-0">
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 font-mono text-xs font-bold shrink-0">
-                                            #{snap.id}
-                                        </div>
-
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <p className="text-xs font-semibold text-foreground truncate">
-                                                    {snap.description || `Snapshot #${snap.id}`}
-                                                </p>
-                                                <Badge variant="outline">{snap.type || "single"}</Badge>
-                                            </div>
-                                            <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
-                                                <span className="flex items-center gap-1">
-                                                    <Clock className="h-3 w-3" />
-                                                    {snap.date || snap.date_string || "Recent"}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 mt-3 sm:mt-0 shrink-0">
-                                        <Button
-                                            size="xs"
-                                            variant="ghost"
-                                            disabled={deleteMutation.isPending}
-                                            onClick={() => deleteMutation.mutate({ config: snap.config || "root", id: snap.id })}
-                                            className="text-destructive hover:bg-destructive/10"
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </TabsContent>
-
-                {/* ── TAB 2: TAKE SNAPSHOT ── */}
-                <TabsContent value="new-snapshot" className="space-y-4">
-                    <form onSubmit={handleCreateSnapshot} className="rounded-2xl border border-border/70 bg-card p-6 space-y-4 max-w-xl">
-                        <div className="space-y-1 border-b border-border/60 pb-3">
-                            <h3 className="text-sm font-bold text-foreground">Create Btrfs Snapshot</h3>
-                            <p className="text-xs text-muted-foreground">
-                                Captures an atomic copy-on-write snapshot of root subvolumes.
+                {/* 1. Snapshots Table */}
+                <TabsContent value="snapshots">
+                    <div className="instrument-card p-4 sm:p-5 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <p className="text-xs font-semibold text-foreground">
+                                Snapper Subvolume Snapshot History
                             </p>
+                            <span className="text-[10px] font-mono text-muted-foreground">
+                                Config: root
+                            </span>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-xs font-semibold text-foreground">Snapshot Description</label>
-                            <input
-                                type="text"
-                                placeholder="e.g. Pre-upgrade backup before kernel bump"
-                                value={newSnapshotDesc}
-                                onChange={(e) => setNewSnapshotDesc(e.target.value)}
-                                className="w-full rounded-lg border border-border/80 bg-background px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                                required
-                            />
-                        </div>
-
-                        <div className="pt-2 flex justify-end gap-2">
-                            <Button type="button" variant="outline" onClick={() => setActiveTab("snapshots")}>
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                variant="default"
-                                disabled={createMutation.isPending || !newSnapshotDesc}
-                                className="bg-amber-600 hover:bg-amber-500 text-white gap-1.5"
-                            >
-                                <Camera className="h-3.5 w-3.5" />
-                                <span>{createMutation.isPending ? "Creating..." : "Save Snapshot"}</span>
-                            </Button>
-                        </div>
-                    </form>
-                </TabsContent>
-
-                {/* ── TAB 3: REMOVABLE DISKS ── */}
-                <TabsContent value="disks" className="space-y-4">
-                    <div className="space-y-3">
-                        {storageDisks && storageDisks.length > 0 ? (
-                            storageDisks.map((disk: RemovableDisk) => (
-                                <div key={disk.device} className="flex items-center justify-between p-4 rounded-xl border border-border/70 bg-card">
-                                    <div>
-                                        <p className="text-xs font-bold text-foreground">{disk.name || disk.label || disk.device}</p>
-                                        <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                                            {disk.mount_point || "Not mounted"} · {disk.fs_type} · {disk.size_gib} GiB
-                                        </p>
-                                    </div>
-                                    <Badge variant={disk.is_mounted ? "success" : "muted"}>
-                                        {disk.is_mounted ? "Mounted" : "Unmounted"}
-                                    </Badge>
-                                </div>
-                            ))
+                        {loadingSnaps ? (
+                            <div className="p-8 text-center text-xs text-muted-foreground font-mono">
+                                Loading snapshot metadata…
+                            </div>
+                        ) : snapshots.length === 0 ? (
+                            <div className="p-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+                                No Snapper snapshots recorded on this host.
+                            </div>
                         ) : (
-                            <div className="p-8 text-center text-xs text-muted-foreground">No external removable drives detected.</div>
+                            <div className="overflow-x-auto rounded-lg border border-border/60">
+                                <table className="w-full text-left text-xs font-mono">
+                                    <thead className="bg-muted/60 text-muted-foreground border-b border-border/60">
+                                        <tr>
+                                            <th className="p-2.5 font-semibold">#</th>
+                                            <th className="p-2.5 font-semibold">Type</th>
+                                            <th className="p-2.5 font-semibold">Description</th>
+                                            <th className="p-2.5 font-semibold">Timestamp</th>
+                                            <th className="p-2.5 font-semibold">Cleanup</th>
+                                            <th className="p-2.5 font-semibold text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border/40">
+                                        {snapshots.map((snap: SnapperSnapshot) => (
+                                            <tr key={snap.id} className="hover:bg-muted/30 transition-colors">
+                                                <td className="p-2.5 font-bold text-primary tnum">#{snap.id}</td>
+                                                <td className="p-2.5">
+                                                    <Badge variant="outline" className="text-[10px] capitalize">
+                                                        {snap.type || "single"}
+                                                    </Badge>
+                                                </td>
+                                                <td className="p-2.5 font-sans font-medium text-foreground truncate max-w-xs">
+                                                    {snap.description || "Manual checkpoint"}
+                                                </td>
+                                                <td className="p-2.5 text-muted-foreground tnum">
+                                                    {snap.date || "Recent"}
+                                                </td>
+                                                <td className="p-2.5 text-muted-foreground">
+                                                    {snap.cleanup || "number"}
+                                                </td>
+                                                <td className="p-2.5 text-right">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="xs"
+                                                        onClick={() => deleteMutation.mutate({ id: snap.id, config: "root" })}
+                                                        disabled={deleteMutation.isPending}
+                                                        className="text-destructive hover:bg-destructive/10 h-6 px-1.5"
+                                                    >
+                                                        <Trash2 className="h-3 w-3" />
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
                     </div>
                 </TabsContent>
 
-                {/* ── TAB 4: RESTIC OFFSITE ── */}
-                <TabsContent value="restic" className="space-y-4">
-                    <div className="rounded-2xl border border-border/70 bg-card p-5 space-y-4">
-                        <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                            <div>
-                                <h3 className="text-xs font-bold text-foreground">Encrypted Offsite Backup Repositories</h3>
-                                <p className="text-xs text-muted-foreground">Target: {resticData?.repository || "AWS S3 / SFTP"}</p>
+                {/* 2. New Snapshot Form */}
+                <TabsContent value="new-snapshot">
+                    <div className="instrument-card p-4 sm:p-5 max-w-lg space-y-4">
+                        <div>
+                            <h3 className="text-sm font-semibold text-foreground">Create Btrfs Snapshot</h3>
+                            <p className="text-xs text-muted-foreground">
+                                Capture an instant read-only subvolume checkpoint with Snapper.
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleCreateSnapshot} className="space-y-3">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-medium text-foreground">
+                                    Snapshot Description
+                                </label>
+                                <input
+                                    type="text"
+                                    value={newSnapshotDesc}
+                                    onChange={(e) => setNewSnapshotDesc(e.target.value)}
+                                    placeholder="e.g. Before system flake update..."
+                                    className="w-full rounded-lg border border-border/80 bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary font-sans"
+                                />
                             </div>
-                            <Badge variant={resticData?.service_active ? "success" : "muted"}>
-                                {resticData?.service_active ? "Service Active" : "Standby"}
-                            </Badge>
-                        </div>
-                        <div className="text-xs text-muted-foreground space-y-2">
-                            <p>Daily backups run via systemd timer: <code className="font-mono text-foreground">restic-backups-system.service</code></p>
-                            <p>Backend: <span className="font-mono font-semibold text-foreground uppercase">{resticData?.backend || "S3"}</span></p>
-                            <p>Last Successful Run: <span className="font-mono text-foreground">{resticData?.last_run_time || "Recent"}</span></p>
-                            <p>Next Scheduled Run: <span className="font-mono text-foreground">{resticData?.next_run_time || "Tomorrow 04:00"}</span></p>
-                        </div>
-                        <div className="pt-2">
+
+                            <Button
+                                type="submit"
+                                size="xs"
+                                variant="default"
+                                disabled={!newSnapshotDesc || createMutation.isPending}
+                                className="gap-1.5 shadow-sm"
+                            >
+                                <Camera className="h-3 w-3" />
+                                <span>{createMutation.isPending ? "Creating…" : "Save Snapshot"}</span>
+                            </Button>
+                        </form>
+                    </div>
+                </TabsContent>
+
+                {/* 3. Restic Backup Status */}
+                <TabsContent value="restic">
+                    <div className="instrument-card p-4 sm:p-5 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-sm font-semibold text-foreground">Restic Backup Posture</h3>
+                                <p className="text-xs text-muted-foreground">
+                                    Encrypted deduplicated backups to remote target.
+                                </p>
+                            </div>
                             <Button
                                 size="xs"
                                 variant="default"
-                                disabled={triggerBackupMutation.isPending}
                                 onClick={() => triggerBackupMutation.mutate()}
-                                className="gap-1.5"
+                                disabled={triggerBackupMutation.isPending}
+                                className="gap-1.5 shadow-sm"
                             >
-                                <Shield className="h-3.5 w-3.5" />
-                                <span>{triggerBackupMutation.isPending ? "Starting Backup..." : "Trigger Manual Backup"}</span>
+                                <Shield className="h-3 w-3" />
+                                <span>{triggerBackupMutation.isPending ? "Running…" : "Trigger Backup"}</span>
                             </Button>
                         </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                            <div className="rounded-lg border border-border/60 bg-background/50 p-3 space-y-1">
+                                <span className="text-[10px] text-muted-foreground font-semibold uppercase">Status</span>
+                                <p className="text-xs font-bold font-mono text-emerald-400">
+                                    {resticData?.service_active ? "● Service Running" : "○ Idle"}
+                                </p>
+                            </div>
+                            <div className="rounded-lg border border-border/60 bg-background/50 p-3 space-y-1">
+                                <span className="text-[10px] text-muted-foreground font-semibold uppercase">Target</span>
+                                <p className="text-xs font-bold font-mono text-foreground truncate">
+                                    {resticData?.repository || "S3 Encrypted Bucket"}
+                                </p>
+                            </div>
+                            <div className="rounded-lg border border-border/60 bg-background/50 p-3 space-y-1">
+                                <span className="text-[10px] text-muted-foreground font-semibold uppercase">Schedule</span>
+                                <p className="text-xs font-bold font-mono text-muted-foreground">
+                                    Daily via systemd.timer
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </TabsContent>
+
+                {/* 4. Block Devices */}
+                <TabsContent value="devices">
+                    <div className="instrument-card p-4 sm:p-5 space-y-3">
+                        <p className="text-xs font-semibold text-foreground">
+                            Connected Storage Media & Disks
+                        </p>
+                        {(!storageDisks || storageDisks.length === 0) ? (
+                            <div className="p-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+                                No external block devices detected.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {storageDisks.map((d: RemovableDisk) => (
+                                    <div key={d.device} className="rounded-lg border border-border/60 bg-background/50 p-3 space-y-1">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-bold font-mono text-foreground">{d.device}</span>
+                                            <Badge variant="outline" className="text-[10px]">{d.size_gib} GiB</Badge>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">{d.label || "Storage Volume"}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
             </Tabs>
@@ -293,7 +334,7 @@ function StoragePageContent() {
 
 export default function StoragePage() {
     return (
-        <Suspense fallback={<div className="p-8 text-xs text-muted-foreground">Loading Storage & Snapshots...</div>}>
+        <Suspense fallback={<div className="p-8 text-xs text-muted-foreground">Loading Storage Dashboard...</div>}>
             <StoragePageContent />
         </Suspense>
     );
