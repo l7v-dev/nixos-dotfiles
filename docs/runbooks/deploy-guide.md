@@ -1,42 +1,34 @@
-# System Deployment & Rebuild Guide
+# Operational Runbook: Deployment Guide
 
-> [!NOTE]
-> This runbook covers local NixOS system rebuilds and multi-server deployments via Colmena.
+> **Target:** Workstation (`L7V`) & Server Fleet (`server`, `builder`, `backup`)
 
 ---
 
-## 1. Local Workstation Rebuild
-
-To apply NixOS configuration changes on the local workstation:
-
+## 1. Local Workstation Deployment
 ```bash
-sudo nixos-rebuild switch --flake .#L7V
+# 1. Navigate to workspace
+cd ~/dev/projects/company/active/nixos
+
+# 2. Stage all modifications
+git add -A
+
+# 3. Apply changes via nh helper
+nh os switch
+
+# 4. Immediate rollback if needed
+nh os switch --rollback
 ```
 
-### Options & Flags
-- Test configuration without switching boot default:
-  ```bash
-  sudo nixos-rebuild test --flake .#L7V
-  ```
-- Dry run (simulate build):
-  ```bash
-  sudo nixos-rebuild dry-build --flake .#L7V
-  ```
-
 ---
 
-## 2. Multi-Server Deployment (Colmena)
-
-For remote server management and deployment:
-
-### Deploy All Production Hosts
+## 2. Server Fleet Deployment via Colmena
 ```bash
+# Dry-run build
+colmena build
+
+# Deploy to production cluster
 colmena apply --on @production
-```
 
-### Deploy Specific Hosts
-```bash
+# Deploy to specific host
 colmena apply --on server
-colmena apply --on builder
-colmena apply --on backup
 ```

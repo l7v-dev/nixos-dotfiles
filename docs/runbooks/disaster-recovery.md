@@ -1,33 +1,25 @@
-# Disaster Recovery & Backup Guide
+# Operational Runbook: Disaster Recovery
 
-> [!CAUTION]
-> Ensure backup destinations are verified before performing any destructive snapshot revert operation.
+> **Target:** System Recovery, Btrfs Rollback & Bare-Metal Restore
 
 ---
 
-## 1. Btrfs Snapshot Rollbacks
-
-### List Snapshots
+## 1. Local Btrfs Snapshot Rollback
 ```bash
+# List snapshots
 snapper -c root list
-```
 
-### Undo Changes Between Snapshots
-```bash
-snapper -c root undochange SNAP1..SNAP2
+# Revert specific configuration
+snapper -c root undochange <prev>..<curr> /path/to/file
 ```
 
 ---
 
-## 2. Restic Offsite Backups
-
-### Verify Backups & Snapshots
+## 2. Remote Restic Backup Restoration
 ```bash
-restic -r sftp:backup@l7v.dev:/srv/restic snapshots
-restic -r sftp:backup@l7v.dev:/srv/restic check
-```
+# List snapshots in repository
+restic snapshots
 
-### Restore Files from Latest Snapshot
-```bash
-restic -r sftp:backup@l7v.dev:/srv/restic restore latest --target /tmp/restore
+# Restore entire snapshot
+restic restore <snapshot-id> --target /mnt/restore
 ```

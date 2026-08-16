@@ -1,41 +1,26 @@
-# Secrets & Encryption Management Guide
+# Operational Runbook: Secrets Management
 
-> [!IMPORTANT]
-> All sensitive secrets (API keys, private tokens, passwords) are encrypted using SOPS and Age keys. Never commit raw unencrypted secrets to Git.
+> **Target:** SOPS with Age Encryption (`/etc/age/key`)
 
 ---
 
-## 1. Edit or Add Secrets
+## 1. Verify Decryption & Key Health
+```bash
+./scripts/age-check.sh
+```
 
-To modify the SOPS secrets YAML file:
-
+## 2. Edit Encrypted Secrets
 ```bash
 sops secrets/sops/secrets.yaml
 ```
 
-> [!TIP]
-> Make sure your text editor (`$EDITOR`) is set in your environment.
-
----
-
-## 2. Rotate Host Secrets
-
-When a new host is added or keys change, re-encrypt `secrets.yaml`:
-
-```bash
-./scripts/secrets-rotate.sh <hostname> <age-public-key>
-```
-
----
-
-## 3. Bootstrap Host Encryption Key
-
-To generate a new `/etc/age/key` for a host:
-
-```bash
-sudo ./scripts/bootstrap.sh HOSTNAME
-```
-
-1. Copy the public key printed in the output.
-2. Add it to `secrets/sops/.sops.yaml`.
-3. Run `sops updatekeys secrets/sops/secrets.yaml`.
+## 3. Register a New Host
+1. Generate key on target machine:
+   ```bash
+   ./scripts/bootstrap.sh <hostname>
+   ```
+2. Add public key to `secrets/sops/.sops.yaml`.
+3. Re-encrypt all secrets:
+   ```bash
+   sops updatekeys secrets/sops/secrets.yaml
+   ```

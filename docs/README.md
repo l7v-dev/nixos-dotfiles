@@ -1,27 +1,56 @@
-# NixOS Infrastructure & Technical Documentation Index
+# Technical Documentation Hub (`docs/`)
 
-Centralized documentation index for L7V NixOS declarative infrastructure and developer automation workflows.
+> **Repository:** `l7v-dev/nixos-dotfiles`  
+> **Architecture:** Capability-First Declarative NixOS Platform & Unified Control Center
 
 ---
 
-## 📂 Documentation Structure
+## 📚 Documentation Tree & Master Index
 
-### 📖 0. Technical Wiki (`docs/wiki/`)
-- [Master Technical Wiki](wiki/Home.md) — Centralized repository wiki covering architecture, Niri desktop, services, security, CLI tools, and troubleshooting.
-
-### 📘 1. Operational Runbooks (`docs/runbooks/`)
-- [Deployment Guide](runbooks/deploy-guide.md) — Workstation switch and multi-host deployment.
-- [Secrets Management](runbooks/secrets-management.md) — SOPS encryption, Age keys, and secret rotation.
-- [Disaster Recovery](runbooks/disaster-recovery.md) — Snapshot rollbacks and backup restoration.
-- [Service Operations](runbooks/service-operations.md) — Managed services (Forgejo, Grafana, Vaultwarden).
-- [Developer Workflows](runbooks/developer-workflows.md) — Project initializers (AFT, BPT) and repository adoption.
-
-### 💡 2. Developer Skills (`docs/skills/`)
-- [Project Initialization Protocol](skills/project-init.md) — Standardized project creation rules.
-- [Playground & Adoption Protocol](skills/playground-adoption.md) — Repository sandbox adoption protocol.
-- [Agentic Framework Template Protocol](skills/aft-template.md) — Next.js 16 AFT boilerplate guide.
-- [MCP Management Guide](skills/mcp-management-guide.md) — MCP configuration and diagnostics.
-
-### 🏛️ 3. Infrastructure Architecture (`docs/architecture/`)
-- [System Architecture Overview](architecture/system-overview.md) — Flake architecture and module layout.
-- [Platform MVP Roadmap](platform-mvp-roadmap.md) — Architecture review, gap analysis, and 3-phase MVP implementation roadmap.
+```text
+docs/
+├── 00-discovery/                 # Project Discovery & Audit Framework
+│   ├── PROJECT_DISCOVERY.md     # Discovery overview & CONFIRMED / UNKNOWN / MISSING triage
+│   ├── PROJECT_STATUS.md        # Real-time subsystem health & phase completions
+│   ├── DISCOVERY_LOG.md         # Chronological audit log & codebase inspection findings
+│   └── UNKNOWNS.md              # Ambiguities, unverified host keys, missing secrets
+│
+├── 01-architecture/              # Infrastructure & Systems Architecture
+│   ├── ARCHITECTURE.md          # Multi-host topology, capability model & NixOS layer design
+│   ├── REPOSITORY_MAP.md        # Full repository layout, directory roles & file explanations
+│   └── DATA_FLOW.md             # IPC, D-Bus, Unix socket, SSE, WebSocket & metric pipelines
+│
+├── 02-features/                  # Feature Inventories & Readiness
+│   ├── FEATURE_INVENTORY.md     # Complete feature matrix (Desktop, Services, AI Tools, Panel)
+│   └── FEATURE_STATUS.md        # Feature completion states (Done, Partial, Stubbed, Planned)
+│
+├── 03-technical/                 # Deep Technical Specifications
+│   ├── API_INVENTORY.md         # Panel-agent REST, SSE, and WebSocket endpoint specifications
+│   ├── DATABASE_INVENTORY.md    # PostgreSQL 16, PgBouncer, SQLite, Redis configurations
+│   ├── DEPENDENCIES.md          # Flake inputs, channels, Go modules, Node/PNPM dependencies
+│   └── ENVIRONMENT.md           # Env variables, systemd paths, hardware drivers, Wayland session vars
+│
+├── 04-operations/                # Deployment & Operations Runbooks
+│   ├── DEPLOYMENT.md            # Colmena multi-node deployment, nh os switch, local build workflows
+│   ├── CI_CD.md                 # Forgejo Actions runner, validate.sh pipeline, pre-commit hooks
+│   ├── MONITORING.md            # Prometheus exporters, scrape configs, Loki/Fluent-bit, Grafana
+│   └── BACKUP_RECOVERY.md       # Restic S3/SFTP backups, Snapper btrfs snapshots, rollback strategies
+│
+├── 05-quality/                   # Quality Assurance, Security & Risk
+│   ├── TESTING_STATUS.md        # Go unit/property tests, Vitest web tests, Statix/Deadnix/Nixfmt checks
+│   ├── SECURITY_REVIEW.md       # SOPS/Age key management, Polkit permissions, SSH hardening, fail2ban
+│   └── TECHNICAL_DEBT.md        # Known stubs (Attic), hardcoded paths, TODO keys, memory footprint
+│
+├── 06-roadmap/                   # Roadmap, Priorities & Governance
+│   ├── TODO.md                  # Immediate operational tasks & backlog items
+│   ├── PRIORITIES.md            # P0 (Critical/Blocker), P1 (High), P2 (Medium), P3 (Future) classification
+│   └── RECOMMENDATIONS.md       # Architectural, governance, and CI/CD strategic recommendations
+│
+└── runbooks/                     # Standard Runbooks (Installed to /etc/l7v/runbooks)
+    ├── deploy-guide.md          # Fast deployment cheatsheet
+    ├── secrets-management.md    # SOPS/Age encryption and rotation
+    ├── disaster-recovery.md     # Bare-metal installation and restore
+    ├── service-operations.md    # Managing systemd services and databases
+    ├── developer-workflows.md   # Daily dev shell, flake, and devenv workflows
+    └── agent-operations.md      # AI agent sandboxes, worktrees, and loop runners
+```

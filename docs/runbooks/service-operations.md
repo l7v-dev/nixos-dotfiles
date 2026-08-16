@@ -1,33 +1,27 @@
-# Service Operations & Infrastructure Guide
+# Operational Runbook: Service Operations
 
-> [!NOTE]
-> System services are managed declaratively through NixOS modules with automatic Prometheus monitoring.
-
----
-
-## 1. Managed Services Overview
-
-| Service | Access URL | Administration & Operation |
-| :--- | :--- | :--- |
-| **Forgejo** | `https://git.l7v.dev` | CLI user list: `forgejo admin user list` |
-| **Grafana** | `https://grafana.l7v.dev` | Provisioned with Prometheus (`http://127.0.0.1:9090`) |
-| **Vaultwarden** | `https://vault.l7v.dev` | Admin panel: `/admin` (token protected) |
+> **Target:** Systemd Services, PostgreSQL, PgBouncer, Prometheus & Web Dashboard
 
 ---
 
-## 2. Common Service Operations
-
-### Inspect Service Status
+## 1. Systemd Service Management
 ```bash
-systemctl status <service-name>
+# Check service status
+systemctl status panel-agent.service
+systemctl status postgresql.service
+systemctl status forgejo.service
+
+# Restart service after configuration switch
+sudo systemctl restart <service-name>
 ```
 
-### Stream Live Service Logs
-```bash
-journalctl -u <service-name> -f
-```
+---
 
-### Apply Service Configuration Changes
+## 2. PostgreSQL & PgBouncer Administration
 ```bash
-sudo nixos-rebuild switch --flake .#server
+# Connect to PostgreSQL via peer authentication
+sudo -u postgres psql
+
+# Check PgBouncer connection pooler
+psql -p 6432 -h 127.0.0.1 -U postgres pgbouncer
 ```

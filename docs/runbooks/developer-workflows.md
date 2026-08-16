@@ -1,46 +1,31 @@
-# Developer Workflows & Project Management Guide
+# Operational Runbook: Developer Workflows
 
-> [!NOTE]
-> Standardized workflows for creating isolated projects and integrating external GitHub repositories into NixOS environment.
-
----
-
-## 1. Directory Structure Standards
-
-| Workspace Category | Path |
-| :--- | :--- |
-| **Enterprise Active Projects** | `/home/l7v/dev/projects/company/active/` |
-| **Playground / GitHub Testing Repos** | `/home/l7v/dev/sandboxes/playgrounds/` |
-| **NixOS Config & Infrastructure** | `/home/l7v/dev/projects/company/active/nixos/` |
+> **Target:** Development shells, Flake devShells, Direnv, and project initializers
 
 ---
 
-## 2. Project Initializer Tools
-
-### Full-Stack Agentic Framework Template (AFT)
-Next.js 16 + React 19 + TypeScript + TailwindCSS v4 + AI Agent Governance:
+## 1. Project Initializers (`scripts/`)
 ```bash
-./scripts/aft-init.sh <project-name> [target-directory]
-```
+# Initialize Next.js 16 AI project (AFT)
+./scripts/aft-init.sh my-app
 
-### Base Polyglot Template (BPT)
-Python, Node.js, Rust, Go, Java, or Minimal environment:
-```bash
-./scripts/bpt-init.sh <project-name> [python|node|rust|go|java|minimal]
-```
+# Initialize polyglot project (BPT)
+./scripts/bpt-init.sh my-api python
 
-### Repository Adoption (ADOPT)
-Automated GitHub repo cloning, secret scanning, language detection, and Nix/Devenv isolation:
-```bash
-./scripts/adopt-repo.sh <github-url-or-slug-or-directory>
+# Adopt external repository
+./scripts/adopt-repo.sh user/repo
 ```
 
 ---
 
-## 3. Troubleshooting
+## 2. Isolated Development Environments
+```bash
+# Allow direnv on directory enter
+direnv allow
 
-### `nodePackages.typescript-language-server` evaluation error
-- **Solution:** Use top-level `pkgs.typescript-language-server` in `devenv.nix` or `flake.nix`.
+# One-off ephemeral shell
+nix shell nixpkgs#htop
 
-### `direnv: error .envrc is blocked`
-- **Solution:** Run `direnv allow` inside the project directory.
+# Project declarative dev shell
+nix develop
+```
