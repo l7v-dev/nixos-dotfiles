@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Header } from "@/components/layout/Header";
 import { Providers } from "./providers";
+import { MainLayout } from "@/components/layout/MainLayout";
 
 export const metadata: Metadata = {
-    title: "l7v-panel",
-    description: "NixOS Control Center",
+    title: "l7v-panel · NixOS Control Center",
+    description: "Declarative Infrastructure, AI Workloads & Multi-Node Fleet Management",
 };
 
 export default function RootLayout({
@@ -16,17 +15,9 @@ export default function RootLayout({
 }) {
     return (
         <html lang="en" suppressHydrationWarning>
-            <body className="font-sans antialiased" suppressHydrationWarning>
+            <body className="font-sans antialiased text-foreground bg-background" suppressHydrationWarning>
                 <Providers>
-                    <div className="flex h-screen overflow-hidden">
-                        <Sidebar />
-                        <div className="flex flex-1 flex-col overflow-hidden">
-                            <Header />
-                            <main className="flex-1 overflow-auto p-6">
-                                {children}
-                            </main>
-                        </div>
-                    </div>
+                    <MainLayout>{children}</MainLayout>
                 </Providers>
             </body>
         </html>
