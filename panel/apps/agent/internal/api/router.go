@@ -11,6 +11,7 @@ import (
 	"github.com/l7v/panel-agent/internal/containers"
 	"github.com/l7v/panel-agent/internal/dbus"
 	"github.com/l7v/panel-agent/internal/display"
+	"github.com/l7v/panel-agent/internal/files"
 	"github.com/l7v/panel-agent/internal/fleet"
 	"github.com/l7v/panel-agent/internal/hardware"
 	"github.com/l7v/panel-agent/internal/journal"
@@ -34,6 +35,7 @@ type Deps struct {
 	Hardware         hardware.Client
 	NixOS            nixos.Client
 	Packages         packages.Client
+	Files            files.Client
 	Fleet            fleet.Client
 	Security         security.Client
 	Storage          storage.Client
@@ -212,6 +214,25 @@ func NewRouter(d Deps) http.Handler {
 		mux.Handle("GET /api/v1/packages/options", packagesOptionsHandler(d))
 		mux.Handle("GET /api/v1/packages/installed", packagesInstalledHandler(d))
 		mux.Handle("GET /api/v1/packages/info", packagesInfoHandler(d))
+	}
+
+	// File Explorer & Host Filesystem Management
+	if d.Files != nil {
+		mux.Handle("GET /api/v1/fs/list", fsListHandler(d))
+		mux.Handle("GET /api/v1/fs/stat", fsStatHandler(d))
+		mux.Handle("GET /api/v1/fs/read", fsReadHandler(d))
+		mux.Handle("GET /api/v1/fs/download", fsDownloadHandler(d))
+		mux.Handle("POST /api/v1/fs/write", fsWriteHandler(d))
+		mux.Handle("POST /api/v1/fs/upload", fsUploadHandler(d))
+		mux.Handle("POST /api/v1/fs/mkdir", fsMkdirHandler(d))
+		mux.Handle("POST /api/v1/fs/delete", fsDeleteHandler(d))
+		mux.Handle("POST /api/v1/fs/rename", fsRenameHandler(d))
+		mux.Handle("POST /api/v1/fs/copy", fsCopyHandler(d))
+		mux.Handle("POST /api/v1/fs/chmod", fsChmodHandler(d))
+		mux.Handle("POST /api/v1/fs/archive", fsArchiveHandler(d))
+		mux.Handle("POST /api/v1/fs/extract", fsExtractHandler(d))
+		mux.Handle("GET /api/v1/fs/search", fsSearchHandler(d))
+		mux.Handle("GET /api/v1/fs/git", fsGitHandler(d))
 	}
 
 	// Multi-Host Fleet & Colmena Orchestration

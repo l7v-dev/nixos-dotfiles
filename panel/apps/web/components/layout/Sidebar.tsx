@@ -10,6 +10,7 @@ import {
     Server,
     AppWindow,
     PackageSearch,
+    FolderTree,
     PanelLeftClose,
     PanelLeftOpen,
 } from "lucide-react";
@@ -24,6 +25,7 @@ const monitoringNav = [
 
 const directManagementNav = [
     { href: "/packages", label: "Packages", icon: PackageSearch },
+    { href: "/files", label: "Files", icon: FolderTree },
     { href: "/containers", label: "Containers", icon: Boxes },
     { href: "/cockpit", label: "Cockpit", icon: Gauge },
     { href: "/terminal", label: "Terminal", icon: Terminal },
