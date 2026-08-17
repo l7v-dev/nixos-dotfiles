@@ -57,6 +57,7 @@ type NetworkClient interface {
 	ConnectWifi(ctx context.Context, ssid, password string) error
 	DisconnectWifi(ctx context.Context) error
 	GetSavedConnections(ctx context.Context) ([]SavedConnection, error)
+	DeleteSavedConnection(ctx context.Context, uuid string) error
 }
 
 // AccessPoint represents a discovered WiFi network.

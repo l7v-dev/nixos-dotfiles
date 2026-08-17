@@ -9,7 +9,6 @@ import { BroadcastBar } from "@/components/terminal/BroadcastBar";
 import { TerminalSettingsModal } from "@/components/terminal/TerminalSettingsModal";
 import { SnippetPalette } from "@/components/terminal/SnippetPalette";
 import {
-    Maximize2,
     Minus,
     X,
     GripHorizontal,
@@ -26,8 +25,6 @@ export function QuakeDrawer() {
         toggleQuake,
         quakeHeight,
         setQuakeHeight,
-        tabs,
-        activeTabId,
     } = useTerminalStore();
 
     const [settingsOpen, setSettingsOpen] = useState(false);
@@ -107,21 +104,26 @@ export function QuakeDrawer() {
 
     return (
         <>
+            {/* Backdrop for closing Quake drawer by clicking outside */}
+            <div
+                onClick={() => setQuakeOpen(false)}
+                className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs transition-opacity duration-200"
+            />
+
+            {/* Quake Dropdown Container */}
             <div
                 style={{ height: `${quakeHeight}vh` }}
-                className="fixed top-0 left-0 right-0 z-50 flex flex-col border-b-2 border-primary/60 bg-card shadow-2xl backdrop-blur-xl animate-in slide-in-from-top duration-200"
+                className="fixed top-0 left-0 right-0 z-50 flex flex-col border-b border-border bg-card shadow-2xl transition-all duration-150 ease-out font-sans"
             >
-                {/* Quake Header Bar */}
-                <div className="flex h-9 shrink-0 items-center justify-between border-b border-border bg-card/90 px-3 text-xs">
+                {/* Top Mini Header */}
+                <div className="flex h-7 shrink-0 items-center justify-between border-b border-border bg-muted/40 px-3 text-xs">
                     <div className="flex items-center gap-2">
-                        <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/20 text-primary">
-                            <TerminalIcon className="h-3 w-3" />
-                        </div>
+                        <TerminalIcon className="h-3.5 w-3.5 text-primary" strokeWidth={1.5} />
                         <span className="font-semibold text-foreground">
-                            Quake Terminal
+                            Quake Dropdown Terminal
                         </span>
-                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground font-mono">
-                            Ctrl+`
+                        <span className="rounded-full bg-muted px-1.5 py-0.2 text-[10px] font-mono text-muted-foreground">
+                            Ctrl + `
                         </span>
                     </div>
 
@@ -131,25 +133,25 @@ export function QuakeDrawer() {
                                 setQuakeOpen(false);
                                 router.push("/terminal");
                             }}
-                            title="Tam Ekrana Geç (/terminal)"
-                            className="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                            title="Fullscreen (/terminal)"
+                            className="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                         >
-                            <ExternalLink className="h-3 w-3" />
-                            <span className="hidden sm:inline">Tam Ekran</span>
+                            <ExternalLink className="h-3 w-3" strokeWidth={1.5} />
+                            <span className="hidden sm:inline">Fullscreen</span>
                         </button>
                         <button
                             onClick={() => toggleQuake()}
-                            title="Gizle (Ctrl+`)"
-                            className="rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                            title="Minimize (Ctrl+`)"
+                            className="rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                         >
-                            <Minus className="h-3.5 w-3.5" />
+                            <Minus className="h-3.5 w-3.5" strokeWidth={1.5} />
                         </button>
                         <button
                             onClick={() => setQuakeOpen(false)}
-                            title="Kapat"
-                            className="rounded p-1 text-muted-foreground hover:bg-destructive/20 hover:text-destructive transition-colors"
+                            title="Close"
+                            className="rounded-full p-1 text-muted-foreground hover:bg-destructive/20 hover:text-destructive transition-colors"
                         >
-                            <X className="h-3.5 w-3.5" />
+                            <X className="h-3.5 w-3.5" strokeWidth={1.5} />
                         </button>
                     </div>
                 </div>
@@ -164,7 +166,7 @@ export function QuakeDrawer() {
                 <BroadcastBar />
 
                 {/* Workspace Body */}
-                <div className="relative flex flex-1 min-h-0 min-w-0 overflow-hidden bg-[#0d1117]">
+                <div className="relative flex flex-1 min-h-0 min-w-0 overflow-hidden bg-background">
                     <div className="flex-1 min-h-0 min-w-0 p-1.5">
                         <SplitPaneLayout
                             tab={quakeTab}
@@ -187,8 +189,8 @@ export function QuakeDrawer() {
                         startYRef.current = e.clientY;
                         startHeightRef.current = quakeHeight;
                     }}
-                    className="flex h-2.5 w-full cursor-row-resize items-center justify-center bg-card/80 hover:bg-primary/30 transition-colors select-none"
-                    title="Boyutlandırmak için sürükleyin"
+                    className="flex h-2.5 w-full cursor-row-resize items-center justify-center bg-muted/60 hover:bg-primary/30 transition-colors select-none"
+                    title="Drag to resize"
                 >
                     <GripHorizontal className="h-3 w-3 text-muted-foreground/50" />
                 </div>

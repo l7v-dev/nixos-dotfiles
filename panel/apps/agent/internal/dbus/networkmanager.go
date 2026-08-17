@@ -305,6 +305,21 @@ func (n *networkClient) GetSavedConnections(_ context.Context) ([]SavedConnectio
 	return conns, nil
 }
 
+// DeleteSavedConnection deletes a saved NM WiFi connection profile by UUID.
+func (n *networkClient) DeleteSavedConnection(_ context.Context, uuid string) error {
+	settingsObj := n.conn.Object(nmBus, "/org/freedesktop/NetworkManager/Settings")
+	var connPath dbus.ObjectPath
+	err := settingsObj.Call("org.freedesktop.NetworkManager.Settings.GetConnectionByUuid", 0, uuid).Store(&connPath)
+	if err != nil {
+		return fmt.Errorf("GetConnectionByUuid: %w", err)
+	}
+	connObj := n.conn.Object(nmBus, connPath)
+	if err := connObj.Call("org.freedesktop.NetworkManager.Settings.Connection.Delete", 0).Err; err != nil {
+		return fmt.Errorf("delete connection: %w", err)
+	}
+	return nil
+}
+
 // classifySecurity determines security type from NM AP flags.
 // NM_802_11_AP_FLAGS_PRIVACY = 0x1, WPA/RSN flags non-zero → encrypted.
 func classifySecurity(flags, wpaFlags, rsnFlags uint32) string {

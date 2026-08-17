@@ -4,13 +4,83 @@ export interface TerminalThemeDefinition {
     id: string;
     name: string;
     description: string;
+    isAdaptive?: boolean;
     theme: ITheme;
 }
 
+export const ANTHROPIC_DARK_THEME: ITheme = {
+    background: "#141413",
+    foreground: "#ECEBE6",
+    cursor: "#D97757",
+    cursorAccent: "#141413",
+    selectionBackground: "#3D3835",
+    selectionForeground: "#FFFFFF",
+    black: "#242320",
+    red: "#F87171",
+    green: "#4ADE80",
+    yellow: "#FBBF24",
+    blue: "#60A5FA",
+    magenta: "#C084FC",
+    cyan: "#38BDF8",
+    white: "#D1D0C7",
+    brightBlack: "#5E5D59",
+    brightRed: "#FCA5A5",
+    brightGreen: "#86EFAC",
+    brightYellow: "#FDE047",
+    brightBlue: "#93C5FD",
+    brightMagenta: "#E9D5FF",
+    brightCyan: "#7DD3FC",
+    brightWhite: "#FAF9F5",
+};
+
+export const ANTHROPIC_LIGHT_THEME: ITheme = {
+    background: "#FAF9F5",
+    foreground: "#141413",
+    cursor: "#D97757",
+    cursorAccent: "#FAF9F5",
+    selectionBackground: "#E6E2D8",
+    selectionForeground: "#141413",
+    black: "#3D3C38",
+    red: "#DC2626",
+    green: "#16A34A",
+    yellow: "#D97706",
+    blue: "#2563EB",
+    magenta: "#9333EA",
+    cyan: "#0891B2",
+    white: "#87867F",
+    brightBlack: "#6B6960",
+    brightRed: "#EF4444",
+    brightGreen: "#22C55E",
+    brightYellow: "#F59E0B",
+    brightBlue: "#3B82F6",
+    brightMagenta: "#A855F7",
+    brightCyan: "#06B6D4",
+    brightWhite: "#141413",
+};
+
 export const TERMINAL_THEMES: Record<string, TerminalThemeDefinition> = {
+    adaptive: {
+        id: "adaptive",
+        name: "Adaptive (System & Theme Sync)",
+        description: "Automatically switches between Anthropic Ivory and Onyx based on UI mode",
+        isAdaptive: true,
+        theme: ANTHROPIC_DARK_THEME,
+    },
+    anthropicDark: {
+        id: "anthropicDark",
+        name: "Anthropic Dark (Onyx)",
+        description: "Warm onyx slate with signature terracotta prompt highlights",
+        theme: ANTHROPIC_DARK_THEME,
+    },
+    anthropicLight: {
+        id: "anthropicLight",
+        name: "Anthropic Light (Ivory)",
+        description: "Editorial ivory paper with crisp high-contrast dark typography",
+        theme: ANTHROPIC_LIGHT_THEME,
+    },
     nixos: {
         id: "nixos",
-        name: "NixOS Blue (Default)",
+        name: "NixOS Blue",
         description: "Official NixOS brand inspired deep blue and cyan palette",
         theme: {
             background: "#0d1117",
@@ -183,3 +253,17 @@ export const TERMINAL_THEMES: Record<string, TerminalThemeDefinition> = {
         },
     },
 };
+
+/**
+ * Resolves the active terminal theme, considering light/dark mode and adaptive settings.
+ */
+export function resolveTerminalTheme(themeId: string, isLightMode: boolean): ITheme {
+    if (themeId === "adaptive" || !themeId) {
+        return isLightMode ? ANTHROPIC_LIGHT_THEME : ANTHROPIC_DARK_THEME;
+    }
+    const def = TERMINAL_THEMES[themeId];
+    if (def) {
+        return def.theme;
+    }
+    return isLightMode ? ANTHROPIC_LIGHT_THEME : ANTHROPIC_DARK_THEME;
+}

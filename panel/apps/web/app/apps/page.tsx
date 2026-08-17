@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 
-export default function AppsRedirect({
+export default async function AppsRedirect({
     searchParams,
 }: {
-    searchParams: { tab?: string };
+    searchParams: Promise<{ tab?: string }>;
 }) {
-    if (searchParams.tab === "apps") {
+    const params = await searchParams;
+    if (params?.tab === "apps") {
         redirect("/ai");
     }
     redirect("/services");

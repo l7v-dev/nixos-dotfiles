@@ -71,7 +71,7 @@ interface TerminalState {
 }
 
 const defaultSettings: TerminalSettings = {
-    theme: "nixos",
+    theme: "adaptive",
     fontSize: 14,
     fontFamily: "JetBrains Mono, Fira Code, Menlo, Monaco, 'Courier New', monospace",
     cursorStyle: "block",

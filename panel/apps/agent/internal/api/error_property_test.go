@@ -172,6 +172,9 @@ func (n *alwaysErrNetwork) DisconnectWifi(_ context.Context) error { return erro
 func (n *alwaysErrNetwork) GetSavedConnections(_ context.Context) ([]dbus.SavedConnection, error) {
 	return nil, errors.New("nm unavailable")
 }
+func (n *alwaysErrNetwork) DeleteSavedConnection(_ context.Context, _ string) error {
+	return errors.New("nm unavailable")
+}
 
 type alwaysErrBluetooth struct{}
 

@@ -36,7 +36,7 @@ export default function TerminalPage() {
     };
 
     return (
-        <div className="flex flex-col h-full w-full overflow-hidden bg-card rounded-lg border border-border">
+        <div className="flex flex-col h-full w-full overflow-hidden bg-card rounded-2xl border border-border/80 shadow-xs font-sans">
             {/* Tabs Header */}
             <TerminalTabs
                 onOpenSettings={() => setSettingsOpen(true)}
@@ -48,13 +48,13 @@ export default function TerminalPage() {
             <BroadcastBar />
 
             {/* Main Terminal Workspace */}
-            <div className="relative flex flex-1 min-h-0 min-w-0 overflow-hidden bg-[#0d1117]">
+            <div className="relative flex flex-1 min-h-0 min-w-0 overflow-hidden bg-background">
                 <div className="flex-1 min-h-0 min-w-0 p-2">
                     {currentTab ? (
                         <SplitPaneLayout tab={currentTab} onBroadcastInput={handleBroadcast} />
                     ) : (
-                        <div className="flex h-full w-full items-center justify-center text-muted-foreground text-sm">
-                            Terminal sekmesi bulunamadı.
+                        <div className="flex h-full w-full items-center justify-center text-muted-foreground text-sm font-mono">
+                            No active terminal tab.
                         </div>
                     )}
                 </div>

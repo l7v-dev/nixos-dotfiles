@@ -87,6 +87,9 @@ func (s *stubNetwork) DisconnectWifi(_ context.Context) error {
 func (s *stubNetwork) GetSavedConnections(_ context.Context) ([]dbus.SavedConnection, error) {
 	return []dbus.SavedConnection{}, nil
 }
+func (s *stubNetwork) DeleteSavedConnection(_ context.Context, _ string) error {
+	return errors.New("stub: network not implemented")
+}
 
 // --- Bluetooth stub ---
 

@@ -161,6 +161,7 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("POST /api/v1/network/wifi/connect", wifiConnectHandler(d))
 	mux.Handle("POST /api/v1/network/wifi/disconnect", wifiDisconnectHandler(d))
 	mux.Handle("GET /api/v1/network/wifi/connections", wifiConnectionsHandler(d))
+	mux.Handle("DELETE /api/v1/network/wifi/connections/{uuid}", wifiDeleteConnectionHandler(d))
 	mux.Handle("GET /api/v1/network/bluetooth", bluetoothStatusHandler(d))
 	mux.Handle("POST /api/v1/network/bluetooth/toggle", bluetoothToggleHandler(d))
 	mux.Handle("GET /api/v1/network/bluetooth/scan", bluetoothScanHandler(d))

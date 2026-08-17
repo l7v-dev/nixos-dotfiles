@@ -166,6 +166,27 @@ func wifiConnectionsHandler(d Deps) http.HandlerFunc {
 	}
 }
 
+// wifiDeleteConnectionHandler handles DELETE /api/v1/network/wifi/connections/{uuid}.
+func wifiDeleteConnectionHandler(d Deps) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uuid := r.PathValue("uuid")
+		if uuid == "" {
+			writeError(w, http.StatusBadRequest, map[string]string{"message": "uuid is required"})
+			return
+		}
+		if err := d.Network.DeleteSavedConnection(r.Context(), uuid); err != nil {
+			writeError(w, http.StatusServiceUnavailable, map[string]string{
+				"uuid":    uuid,
+				"message": err.Error(),
+			})
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"uuid": uuid, "status": "deleted"}) //nolint:errcheck
+	}
+}
+
 // bluetoothScanHandler handles GET /api/v1/network/bluetooth/scan.
 func bluetoothScanHandler(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

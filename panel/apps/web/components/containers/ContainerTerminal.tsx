@@ -10,11 +10,13 @@ import {
     RefreshCw,
     Maximize2,
     Minimize2,
-    Wifi,
     WifiOff,
     AlertCircle,
 } from "lucide-react";
 import { useContainerTerminal } from "@/hooks/useContainerTerminal";
+import { useTerminalStore } from "@/store/terminal-store";
+import { useThemeStore } from "@/store/theme-store";
+import { resolveTerminalTheme } from "@/lib/terminal-themes";
 
 interface Props {
     containerId: string;
@@ -27,6 +29,34 @@ export function ContainerTerminal({ containerId, isRunning }: Props) {
     const containerRef = useRef<HTMLDivElement>(null);
     const terminalRef = useRef<Terminal | null>(null);
     const fitAddonRef = useRef<FitAddon | null>(null);
+
+    const terminalSettings = useTerminalStore((s) => s.settings);
+    const currentAppTheme = useThemeStore((s) => s.theme);
+
+    const [isLightMode, setIsLightMode] = useState<boolean>(() => {
+        if (typeof window === "undefined") return false;
+        if (currentAppTheme === "light") return true;
+        if (currentAppTheme === "dark") return false;
+        return window.matchMedia("(prefers-color-scheme: light)").matches;
+    });
+
+    useEffect(() => {
+        const checkLight = () => {
+            if (currentAppTheme === "light") return true;
+            if (currentAppTheme === "dark") return false;
+            return window.matchMedia("(prefers-color-scheme: light)").matches;
+        };
+        setIsLightMode(checkLight());
+
+        const mq = window.matchMedia("(prefers-color-scheme: light)");
+        const handler = () => {
+            if (currentAppTheme === "system") {
+                setIsLightMode(mq.matches);
+            }
+        };
+        mq.addEventListener("change", handler);
+        return () => mq.removeEventListener("change", handler);
+    }, [currentAppTheme]);
 
     const {
         status,
@@ -46,31 +76,13 @@ export function ContainerTerminal({ containerId, isRunning }: Props) {
     useEffect(() => {
         if (!containerRef.current || !isRunning) return;
 
+        const currentTheme = resolveTerminalTheme(terminalSettings.theme, isLightMode);
+
         const term = new Terminal({
             cursorBlink: true,
-            fontSize: 13,
-            fontFamily: "JetBrains Mono, Menlo, Monaco, 'Courier New', monospace",
-            theme: {
-                background: "#0d1117",
-                foreground: "#c9d1d9",
-                cursor: "#58a6ff",
-                black: "#484f58",
-                red: "#ff7b72",
-                green: "#3fb950",
-                yellow: "#d29922",
-                blue: "#58a6ff",
-                magenta: "#bc8cff",
-                cyan: "#39c5cf",
-                white: "#b1bac4",
-                brightBlack: "#6e7681",
-                brightRed: "#ffa198",
-                brightGreen: "#56d364",
-                brightYellow: "#e3b341",
-                brightBlue: "#79c0ff",
-                brightMagenta: "#d2a8ff",
-                brightCyan: "#56d4dd",
-                brightWhite: "#f0f6fc",
-            },
+            fontSize: terminalSettings.fontSize || 13,
+            fontFamily: terminalSettings.fontFamily || "JetBrains Mono, Menlo, Monaco, monospace",
+            theme: currentTheme,
         });
 
         const fitAddon = new FitAddon();
@@ -107,7 +119,14 @@ export function ContainerTerminal({ containerId, isRunning }: Props) {
             terminalRef.current = null;
             fitAddonRef.current = null;
         };
-    }, [isRunning, sendInput, sendResize]);
+    }, [isRunning, sendInput, sendResize]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Dynamically update theme
+    useEffect(() => {
+        if (terminalRef.current) {
+            terminalRef.current.options.theme = resolveTerminalTheme(terminalSettings.theme, isLightMode);
+        }
+    }, [terminalSettings.theme, isLightMode]);
 
     // Re-fit on fullscreen toggle
     useEffect(() => {
@@ -122,11 +141,11 @@ export function ContainerTerminal({ containerId, isRunning }: Props) {
 
     if (!isRunning) {
         return (
-            <div className="flex h-72 flex-col items-center justify-center rounded-lg border border-dashed border-border p-6 text-center text-muted-foreground">
-                <TerminalIcon className="mb-2 h-8 w-8 text-muted-foreground/40" />
-                <p className="text-sm font-medium">Kapsayıcı çalışmıyor</p>
-                <p className="text-xs text-muted-foreground/70">
-                    İnteraktif bir kabuk açmak için kapsayıcının çalışır durumda olması gerekir.
+            <div className="flex h-72 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card/40 p-6 text-center text-muted-foreground font-sans">
+                <TerminalIcon className="mb-2 h-8 w-8 text-muted-foreground/40" strokeWidth={1.5} />
+                <p className="text-sm font-medium text-foreground">Container is not running</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">
+                    An interactive TTY session requires the container to be in running state.
                 </p>
             </div>
         );
@@ -134,21 +153,21 @@ export function ContainerTerminal({ containerId, isRunning }: Props) {
 
     return (
         <div
-            className={`flex flex-col rounded-lg border border-border bg-[#0d1117] transition-all ${
+            className={`flex flex-col rounded-xl border border-border bg-card overflow-hidden transition-all font-sans ${
                 isFullscreen
                     ? "fixed inset-4 z-50 shadow-2xl"
                     : "h-[520px] w-full"
             }`}
         >
             {/* Toolbar */}
-            <div className="flex items-center justify-between border-b border-slate-800 bg-[#161b22] px-3 py-2 text-xs">
+            <div className="flex items-center justify-between border-b border-border bg-muted/30 px-3 py-2 text-xs">
                 {/* Left: Shell Selector & Status */}
                 <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-300">Kabuk:</span>
+                    <span className="font-semibold text-muted-foreground">Shell:</span>
                     <select
                         value={shell}
                         onChange={(e) => setShell(e.target.value)}
-                        className="h-6 rounded bg-slate-900 px-2 text-xs font-mono text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="h-6 rounded-md border border-border bg-background px-2 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                     >
                         <option value="/bin/sh">/bin/sh</option>
                         <option value="/bin/bash">/bin/bash</option>
@@ -158,27 +177,27 @@ export function ContainerTerminal({ containerId, isRunning }: Props) {
 
                     {/* Status badge */}
                     {status === "connected" && (
-                        <span className="flex items-center gap-1 text-[11px] text-emerald-400">
+                        <span className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                            Bağlandı
+                            Connected
                         </span>
                     )}
                     {status === "creating" && (
-                        <span className="flex items-center gap-1 text-[11px] text-amber-400">
+                        <span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-mono">
                             <RefreshCw className="h-3 w-3 animate-spin" />
-                            Oturum Başlatılıyor...
+                            Starting Session...
                         </span>
                     )}
                     {status === "disconnected" && (
-                        <span className="flex items-center gap-1 text-[11px] text-slate-400">
+                        <span className="flex items-center gap-1 text-[11px] text-muted-foreground font-mono">
                             <WifiOff className="h-3 w-3" />
-                            Bağlantı Kapandı
+                            Disconnected
                         </span>
                     )}
                     {status === "error" && (
-                        <span className="flex items-center gap-1 text-[11px] text-red-400">
+                        <span className="flex items-center gap-1 text-[11px] text-destructive font-mono">
                             <AlertCircle className="h-3 w-3" />
-                            Hata
+                            Error
                         </span>
                     )}
                 </div>
@@ -186,32 +205,32 @@ export function ContainerTerminal({ containerId, isRunning }: Props) {
                 {/* Right: Actions */}
                 <div className="flex items-center gap-2">
                     {errorMessage && (
-                        <span className="text-[11px] text-red-400">{errorMessage}</span>
+                        <span className="text-[11px] text-destructive font-mono">{errorMessage}</span>
                     )}
                     <button
                         onClick={reconnect}
-                        title="Oturumu Yeniden Başlat"
-                        className="flex h-6 items-center gap-1 rounded bg-slate-800 px-2 text-[11px] text-slate-300 transition-colors hover:bg-slate-700"
+                        title="Restart Session"
+                        className="flex h-6 items-center gap-1 rounded-full border border-border bg-background px-2.5 text-[11px] font-medium text-foreground transition-colors hover:bg-accent"
                     >
-                        <RefreshCw className="h-3 w-3" />
-                        Yeniden Bağlan
+                        <RefreshCw className="h-3 w-3" strokeWidth={1.5} />
+                        <span>Reconnect</span>
                     </button>
                     <button
                         onClick={() => setIsFullscreen(!isFullscreen)}
-                        title={isFullscreen ? "Küçült" : "Tam Ekran"}
-                        className="flex h-6 w-6 items-center justify-center rounded bg-slate-800 text-slate-300 transition-colors hover:bg-slate-700"
+                        title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                        className="flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background text-foreground transition-colors hover:bg-accent"
                     >
                         {isFullscreen ? (
-                            <Minimize2 className="h-3.5 w-3.5" />
+                            <Minimize2 className="h-3.5 w-3.5" strokeWidth={1.5} />
                         ) : (
-                            <Maximize2 className="h-3.5 w-3.5" />
+                            <Maximize2 className="h-3.5 w-3.5" strokeWidth={1.5} />
                         )}
                     </button>
                 </div>
             </div>
 
             {/* xterm.js container */}
-            <div ref={containerRef} className="flex-1 overflow-hidden p-2" />
+            <div ref={containerRef} className="flex-1 overflow-hidden p-2 bg-card" />
         </div>
     );
 }

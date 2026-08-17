@@ -182,7 +182,7 @@ function AIPageContent() {
                             </div>
                         ) : tasks.length === 0 ? (
                             <div className="p-8 text-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
-                                No agent tasks dispatched yet. Click "Launch Agent Task" to run.
+                                No agent tasks dispatched yet. Click &quot;Launch Agent Task&quot; to run.
                             </div>
                         ) : (
                             <div className="overflow-x-auto rounded-lg border border-border/60">

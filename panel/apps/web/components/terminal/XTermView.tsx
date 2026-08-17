@@ -11,7 +11,8 @@ import "@xterm/xterm/css/xterm.css";
 
 import { useTerminal, ConnectionStatus } from "@/hooks/useTerminal";
 import { useTerminalStore } from "@/store/terminal-store";
-import { TERMINAL_THEMES } from "@/lib/terminal-themes";
+import { useThemeStore } from "@/store/theme-store";
+import { resolveTerminalTheme } from "@/lib/terminal-themes";
 import {
     Search,
     X,
@@ -56,6 +57,32 @@ export function XTermView({
 
     const settings = useTerminalStore((s) => s.settings);
     const broadcastMode = useTerminalStore((s) => s.broadcastMode);
+    const currentAppTheme = useThemeStore((s) => s.theme);
+
+    const [isLightMode, setIsLightMode] = useState<boolean>(() => {
+        if (typeof window === "undefined") return false;
+        if (currentAppTheme === "light") return true;
+        if (currentAppTheme === "dark") return false;
+        return window.matchMedia("(prefers-color-scheme: light)").matches;
+    });
+
+    useEffect(() => {
+        const checkLight = () => {
+            if (currentAppTheme === "light") return true;
+            if (currentAppTheme === "dark") return false;
+            return window.matchMedia("(prefers-color-scheme: light)").matches;
+        };
+        setIsLightMode(checkLight());
+
+        const mq = window.matchMedia("(prefers-color-scheme: light)");
+        const handler = () => {
+            if (currentAppTheme === "system") {
+                setIsLightMode(mq.matches);
+            }
+        };
+        mq.addEventListener("change", handler);
+        return () => mq.removeEventListener("change", handler);
+    }, [currentAppTheme]);
 
     // History handler (resets terminal buffer on reconnect to prevent duplicates)
     const handleHistory = useCallback((data: string) => {
@@ -101,8 +128,7 @@ export function XTermView({
     useEffect(() => {
         if (!containerRef.current) return;
 
-        const currentTheme =
-            TERMINAL_THEMES[settings.theme]?.theme || TERMINAL_THEMES.nixos.theme;
+        const currentTheme = resolveTerminalTheme(settings.theme, isLightMode);
 
         const term = new Terminal({
             cursorBlink: settings.cursorBlink,
@@ -225,11 +251,10 @@ export function XTermView({
         };
     }, [isActive, paneId, sendInput]);
 
-    // Update terminal settings dynamically
+    // Update terminal settings and theme dynamically
     useEffect(() => {
         if (!terminalRef.current) return;
-        const currentTheme =
-            TERMINAL_THEMES[settings.theme]?.theme || TERMINAL_THEMES.nixos.theme;
+        const currentTheme = resolveTerminalTheme(settings.theme, isLightMode);
 
         terminalRef.current.options.theme = currentTheme;
         terminalRef.current.options.fontSize = settings.fontSize;
@@ -240,7 +265,7 @@ export function XTermView({
         if (fitAddonRef.current) {
             fitAddonRef.current.fit();
         }
-    }, [settings]);
+    }, [settings, isLightMode]);
 
     // Handle search query
     const performSearch = useCallback(

@@ -90,14 +90,15 @@ export function useWifi() {
     return { ...query, toggle };
 }
 
-export function useWifiScan() {
+export function useWifiScan(enabled = true) {
     const host = useHostStore((s) => s.selectedHost);
     const queryClient = useQueryClient();
     const query = useQuery<AccessPoint[]>({
         queryKey: ["wifi-scan", host],
         queryFn: () => fetchAgent<AccessPoint[]>(host, "/api/v1/network/wifi/scan"),
-        enabled: false, // only fetch on demand
-        staleTime: 30_000,
+        enabled,
+        staleTime: 20_000,
+        refetchOnWindowFocus: false,
     });
     const scan = () => queryClient.invalidateQueries({ queryKey: ["wifi-scan", host] });
     const refetch = () => query.refetch();
@@ -113,6 +114,7 @@ export function useWifiConnect() {
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ["wifi", host] });
             queryClient.invalidateQueries({ queryKey: ["wifi-scan", host] });
+            queryClient.invalidateQueries({ queryKey: ["wifi-connections", host] });
         },
     });
 }
@@ -122,7 +124,10 @@ export function useWifiDisconnect() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: () => postAgent(host, "/api/v1/network/wifi/disconnect"),
-        onSettled: () => queryClient.invalidateQueries({ queryKey: ["wifi", host] }),
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["wifi", host] });
+            queryClient.invalidateQueries({ queryKey: ["wifi-scan", host] });
+        },
     });
 }
 
@@ -132,6 +137,19 @@ export function useSavedConnections() {
         queryKey: ["wifi-connections", host],
         queryFn: () => fetchAgent<SavedConnection[]>(host, "/api/v1/network/wifi/connections"),
         staleTime: 30_000,
+    });
+}
+
+export function useWifiForget() {
+    const host = useHostStore((s) => s.selectedHost);
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (uuid: string) =>
+            fetchAgent(host, `/api/v1/network/wifi/connections/${encodeURIComponent(uuid)}`, { method: "DELETE" }),
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["wifi-connections", host] });
+            queryClient.invalidateQueries({ queryKey: ["wifi-scan", host] });
+        },
     });
 }
 

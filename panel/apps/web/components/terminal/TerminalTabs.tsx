@@ -8,11 +8,9 @@ import {
     Terminal,
     Columns2,
     Rows2,
-    LayoutGrid,
     Radio,
     Settings,
     Sparkles,
-    Edit2,
     Check,
 } from "lucide-react";
 
@@ -40,8 +38,6 @@ export function TerminalTabs({
     const [editingTabId, setEditingTabId] = useState<string | null>(null);
     const [editTitle, setEditTitle] = useState<string>("");
 
-    const currentTab = tabs.find((t) => t.id === activeTabId);
-
     const startRename = (tab: TerminalTab) => {
         setEditingTabId(tab.id);
         setEditTitle(tab.title);
@@ -55,7 +51,7 @@ export function TerminalTabs({
     };
 
     return (
-        <div className="flex h-10 shrink-0 items-center justify-between border-b border-border bg-card/80 px-2 backdrop-blur-md">
+        <div className="flex h-10 shrink-0 items-center justify-between border-b border-border bg-card/80 px-2 backdrop-blur-md font-sans">
             {/* Left: Tabs List */}
             <div className="flex items-center gap-1 overflow-x-auto no-scrollbar max-w-[60%]">
                 {tabs.map((tab) => {
@@ -67,13 +63,13 @@ export function TerminalTabs({
                             key={tab.id}
                             onClick={() => !isEditing && setActiveTab(tab.id)}
                             onDoubleClick={() => startRename(tab)}
-                            className={`group relative flex h-7 items-center gap-2 rounded-t-md px-3 text-xs transition-all cursor-pointer select-none ${
+                            className={`group relative flex h-7 items-center gap-2 rounded-t-lg px-3 text-xs transition-all cursor-pointer select-none ${
                                 isActive
-                                    ? "bg-[#0d1117] text-foreground border-t-2 border-primary shadow-sm"
+                                    ? "bg-background text-foreground border-t-2 border-primary shadow-xs font-semibold"
                                     : "bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground"
                             }`}
                         >
-                            <Terminal className={`h-3.5 w-3.5 ${isActive ? "text-primary" : "text-muted-foreground/60"}`} />
+                            <Terminal className={`h-3.5 w-3.5 ${isActive ? "text-primary" : "text-muted-foreground/60"}`} strokeWidth={1.5} />
 
                             {isEditing ? (
                                 <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
@@ -86,13 +82,13 @@ export function TerminalTabs({
                                             if (e.key === "Escape") setEditingTabId(null);
                                         }}
                                         autoFocus
-                                        className="h-5 w-24 rounded bg-background px-1 text-xs text-foreground outline-none ring-1 ring-primary"
+                                        className="h-5 w-24 rounded bg-background px-1 text-xs text-foreground outline-none ring-1 ring-primary font-mono"
                                     />
                                     <button
                                         onClick={() => saveRename(tab.id)}
                                         className="rounded p-0.5 text-primary hover:bg-primary/20"
                                     >
-                                        <Check className="h-3 w-3" />
+                                        <Check className="h-3 w-3" strokeWidth={1.5} />
                                     </button>
                                 </div>
                             ) : (
@@ -103,7 +99,7 @@ export function TerminalTabs({
 
                             {/* Pane count badge if split */}
                             {tab.panes.length > 1 && (
-                                <span className="rounded bg-primary/20 px-1 py-0.2 text-[10px] font-semibold text-primary">
+                                <span className="rounded-full bg-primary/15 px-1.5 py-0.2 text-[10px] font-mono font-semibold text-primary">
                                     {tab.panes.length}
                                 </span>
                             )}
@@ -115,10 +111,10 @@ export function TerminalTabs({
                                         e.stopPropagation();
                                         closeTab(tab.id);
                                     }}
-                                    title="Sekmeyi Kapat"
-                                    className="ml-1 rounded p-0.5 text-muted-foreground/40 opacity-0 transition-opacity hover:bg-destructive/20 hover:text-destructive group-hover:opacity-100"
+                                    title="Close tab"
+                                    className="ml-1 rounded-full p-0.5 text-muted-foreground/40 opacity-0 transition-opacity hover:bg-destructive/20 hover:text-destructive group-hover:opacity-100"
                                 >
-                                    <X className="h-3 w-3" />
+                                    <X className="h-3 w-3" strokeWidth={1.5} />
                                 </button>
                             )}
                         </div>
@@ -128,30 +124,30 @@ export function TerminalTabs({
                 {/* Add Tab Button */}
                 <button
                     onClick={() => addTab()}
-                    title="Yeni Terminal Sekmesi Aç"
-                    className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                    title="Open new terminal tab"
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                 >
-                    <Plus className="h-3.5 w-3.5" />
+                    <Plus className="h-3.5 w-3.5" strokeWidth={1.5} />
                 </button>
             </div>
 
             {/* Right: Split, Broadcast, Snippet & Settings Tools */}
             <div className="flex items-center gap-1.5 text-muted-foreground">
                 {/* Split Panes Actions */}
-                <div className="flex items-center rounded-md border border-border/60 bg-background/50 p-0.5">
+                <div className="flex items-center rounded-lg border border-border/60 bg-background/50 p-0.5">
                     <button
                         onClick={() => splitPane("vertical")}
-                        title="Dikey Böl (Side-by-side)"
+                        title="Split vertical (Side-by-side)"
                         className="rounded p-1 hover:bg-accent hover:text-foreground transition-colors"
                     >
-                        <Columns2 className="h-3.5 w-3.5" />
+                        <Columns2 className="h-3.5 w-3.5" strokeWidth={1.5} />
                     </button>
                     <button
                         onClick={() => splitPane("horizontal")}
-                        title="Yatay Böl (Stacked)"
+                        title="Split horizontal (Stacked)"
                         className="rounded p-1 hover:bg-accent hover:text-foreground transition-colors"
                     >
-                        <Rows2 className="h-3.5 w-3.5" />
+                        <Rows2 className="h-3.5 w-3.5" strokeWidth={1.5} />
                     </button>
                 </div>
 
@@ -160,40 +156,40 @@ export function TerminalTabs({
                     onClick={toggleBroadcastMode}
                     title={
                         broadcastMode
-                            ? "Broadcast Modunu Kapat"
-                            : "Broadcast Modunu Aç (Tüm bölmelere aynı komutu gönder)"
+                            ? "Disable broadcast mode"
+                            : "Enable broadcast mode (Sends input to all panes simultaneously)"
                     }
-                    className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                         broadcastMode
-                            ? "bg-amber-500 text-black shadow-sm font-semibold"
+                            ? "bg-primary text-primary-foreground shadow-xs font-semibold"
                             : "border border-border/60 hover:bg-accent hover:text-foreground"
                     }`}
                 >
-                    <Radio className="h-3.5 w-3.5" />
+                    <Radio className="h-3.5 w-3.5" strokeWidth={1.5} />
                     <span className="hidden sm:inline">Broadcast</span>
                 </button>
 
                 {/* Snippets Palette Toggle */}
                 <button
                     onClick={onToggleSnippets}
-                    title="NixOS Komut Paleti"
-                    className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                    title="Quick Commands Palette"
+                    className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
                         snippetsOpen
-                            ? "bg-primary/20 text-primary border border-primary/40"
+                            ? "bg-primary/20 text-primary border border-primary/40 font-semibold"
                             : "border border-border/60 hover:bg-accent hover:text-foreground"
                     }`}
                 >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Komutlar</span>
+                    <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} />
+                    <span className="hidden sm:inline">Commands</span>
                 </button>
 
                 {/* Settings Modal Button */}
                 <button
                     onClick={onOpenSettings}
-                    title="Terminal Ayarları"
-                    className="flex h-7 w-7 items-center justify-center rounded-md border border-border/60 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                    title="Terminal Settings"
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-border/60 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                 >
-                    <Settings className="h-3.5 w-3.5" />
+                    <Settings className="h-3.5 w-3.5" strokeWidth={1.5} />
                 </button>
             </div>
         </div>

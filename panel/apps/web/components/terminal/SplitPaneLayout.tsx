@@ -2,16 +2,16 @@
 
 import dynamic from "next/dynamic";
 import { useTerminalStore, TerminalTab, TerminalPane } from "@/store/terminal-store";
-import { X, Maximize2, SplitSquareHorizontal, SplitSquareVertical } from "lucide-react";
+import { X, Maximize2 } from "lucide-react";
 
 const XTermView = dynamic(
     () => import("@/components/terminal/XTermView").then((mod) => mod.XTermView),
     {
         ssr: false,
         loading: () => (
-            <div className="flex h-full w-full items-center justify-center bg-[#0d1117] text-xs text-muted-foreground">
+            <div className="flex h-full w-full items-center justify-center bg-background text-xs text-muted-foreground font-mono">
                 <span className="h-2 w-2 rounded-full bg-primary animate-ping mr-2" />
-                Terminal yükleniyor…
+                Loading terminal…
             </div>
         ),
     }
@@ -33,11 +33,11 @@ export function SplitPaneLayout({ tab, onBroadcastInput }: SplitPaneLayoutProps)
         return (
             <div
                 key={pane.id}
-                className="relative flex h-full w-full flex-col min-h-0 min-w-0 bg-[#0d1117]"
+                className="relative flex h-full w-full flex-col min-h-0 min-w-0 bg-background"
             >
                 {/* Pane Mini Header if multi-pane */}
                 {totalPanes > 1 && (
-                    <div className="flex h-7 shrink-0 items-center justify-between border-b border-border/30 bg-card/60 px-3 text-xs">
+                    <div className="flex h-7 shrink-0 items-center justify-between border-b border-border/40 bg-muted/40 px-3 text-xs">
                         <div className="flex items-center gap-2">
                             <span
                                 className={`h-1.5 w-1.5 rounded-full ${
@@ -56,17 +56,17 @@ export function SplitPaneLayout({ tab, onBroadcastInput }: SplitPaneLayoutProps)
                         <div className="flex items-center gap-1">
                             <button
                                 onClick={() => setTabLayout(tab.id, "single")}
-                                title="Bu Bölmeyi Büyüt"
-                                className="rounded p-0.5 text-muted-foreground/60 hover:bg-accent hover:text-foreground transition-colors"
+                                title="Maximize this pane"
+                                className="rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
                             >
-                                <Maximize2 className="h-3 w-3" />
+                                <Maximize2 className="h-3 w-3" strokeWidth={1.5} />
                             </button>
                             <button
                                 onClick={() => closePane(tab.id, pane.id)}
-                                title="Bölmeyi Kapat"
-                                className="rounded p-0.5 text-muted-foreground/60 hover:bg-destructive/20 hover:text-destructive transition-colors"
+                                title="Close pane"
+                                className="rounded p-0.5 text-muted-foreground hover:bg-destructive/20 hover:text-destructive transition-colors"
                             >
-                                <X className="h-3 w-3" />
+                                <X className="h-3 w-3" strokeWidth={1.5} />
                             </button>
                         </div>
                     </div>
@@ -91,39 +91,39 @@ export function SplitPaneLayout({ tab, onBroadcastInput }: SplitPaneLayoutProps)
 
     if (panes.length === 0) {
         return (
-            <div className="flex h-full w-full items-center justify-center text-muted-foreground text-sm">
-                Açık terminal bölmesi yok.
+            <div className="flex h-full w-full items-center justify-center text-muted-foreground text-sm font-sans">
+                No active terminal panes.
             </div>
         );
     }
 
     if (panes.length === 1 || tab.layout === "single") {
-        return <div className="h-full w-full min-h-0">{renderPane(panes[0], 1)}</div>;
+        return renderPane(panes[0], 1);
     }
 
     if (tab.layout === "split-vertical" || panes.length === 2) {
         return (
-            <div className="grid h-full w-full grid-cols-1 md:grid-cols-2 gap-1.5 min-h-0">
-                {panes.slice(0, 2).map((pane) => renderPane(pane, panes.length))}
+            <div className="grid h-full w-full grid-cols-2 gap-1 bg-border/40 min-h-0 min-w-0">
+                {panes.slice(0, 2).map((p) => renderPane(p, panes.length))}
             </div>
         );
     }
 
     if (tab.layout === "split-horizontal") {
         return (
-            <div className="grid h-full w-full grid-rows-2 gap-1.5 min-h-0">
-                {panes.slice(0, 2).map((pane) => renderPane(pane, panes.length))}
+            <div className="grid h-full w-full grid-rows-2 gap-1 bg-border/40 min-h-0 min-w-0">
+                {panes.slice(0, 2).map((p) => renderPane(p, panes.length))}
             </div>
         );
     }
 
     if (tab.layout === "grid-2x2" || panes.length >= 3) {
         return (
-            <div className="grid h-full w-full grid-cols-1 md:grid-cols-2 grid-rows-2 gap-1.5 min-h-0">
-                {panes.slice(0, 4).map((pane) => renderPane(pane, panes.length))}
+            <div className="grid h-full w-full grid-cols-2 grid-rows-2 gap-1 bg-border/40 min-h-0 min-w-0">
+                {panes.slice(0, 4).map((p) => renderPane(p, panes.length))}
             </div>
         );
     }
 
-    return <div className="h-full w-full min-h-0">{renderPane(panes[0], 1)}</div>;
+    return renderPane(panes[0], 1);
 }

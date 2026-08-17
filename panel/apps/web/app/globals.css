@@ -166,3 +166,109 @@
 .tnum {
   font-variant-numeric: tabular-nums;
 }
+
+/* ── Cockpit Recessed Avionics Inset HUD ("Gömülü Görünüm") ── */
+.recessed-hud {
+  @apply rounded-2xl border border-border/70 bg-container/80 text-foreground transition-all duration-200 relative overflow-hidden;
+  box-shadow: inset 0 2px 8px 0 rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.02), 0 4px 20px -2px rgba(0, 0, 0, 0.3);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.light .recessed-hud {
+  box-shadow: inset 0 2px 6px 0 rgba(0, 0, 0, 0.08), inset 0 0 0 1px rgba(0, 0, 0, 0.04), 0 2px 10px -1px rgba(0, 0, 0, 0.04);
+  background-image: radial-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+}
+
+/* ── ECG Heartbeat Waveform Glow ── */
+.ecg-glow {
+  filter: drop-shadow(0 0 6px hsl(var(--telemetry-ok) / 0.7)) drop-shadow(0 0 12px hsl(var(--telemetry-ok) / 0.4));
+}
+
+.ecg-glow-warn {
+  filter: drop-shadow(0 0 6px hsl(var(--telemetry-warn) / 0.7)) drop-shadow(0 0 12px hsl(var(--telemetry-warn) / 0.4));
+}
+
+.ecg-glow-crit {
+  filter: drop-shadow(0 0 6px hsl(var(--telemetry-crit) / 0.8)) drop-shadow(0 0 14px hsl(var(--telemetry-crit) / 0.5));
+}
+
+@keyframes ecg-scan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-ecg-scan {
+  animation: ecg-scan 2.8s linear infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2.4s ease-in-out infinite;
+}
+
+/* ── Wi-Fi Avionics & Radar Animations ── */
+@keyframes radar-sweep {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-radar-sweep {
+  animation: radar-sweep 1.8s linear infinite;
+}
+
+@keyframes wifi-wave-ping {
+  0% {
+    transform: scale(0.85);
+    opacity: 1;
+  }
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-wifi-wave {
+  animation: wifi-wave-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes wifi-scan-beam {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(1000%);
+    opacity: 0;
+  }
+}
+
+.animate-scan-beam {
+  animation: wifi-scan-beam 2.2s ease-in-out infinite;
+}
+
