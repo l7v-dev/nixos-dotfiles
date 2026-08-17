@@ -296,28 +296,65 @@ func (n *networkClient) GetSavedConnections(_ context.Context) ([]SavedConnectio
 		id, _ := connSec["id"].Value().(string)
 		uuid, _ := connSec["uuid"].Value().(string)
 
-		wifiSec := settings["802-11-wireless"]
-		ssidBytes, _ := wifiSec["ssid"].Value().([]byte)
-		ssid := string(ssidBytes)
+		var ssid string
+		if wifiSec, ok := settings["802-11-wireless"]; ok {
+			if ssidBytes, ok := wifiSec["ssid"].Value().([]byte); ok {
+				ssid = string(ssidBytes)
+			}
+		}
+		if ssid == "" {
+			ssid = id
+		}
 
 		conns = append(conns, SavedConnection{ID: id, UUID: uuid, SSID: ssid})
 	}
 	return conns, nil
 }
 
-// DeleteSavedConnection deletes a saved NM WiFi connection profile by UUID.
-func (n *networkClient) DeleteSavedConnection(_ context.Context, uuid string) error {
+// DeleteSavedConnection deletes a saved NM WiFi connection profile by UUID, ID, or SSID.
+func (n *networkClient) DeleteSavedConnection(_ context.Context, target string) error {
+	if target == "" {
+		return fmt.Errorf("target identifier is empty")
+	}
+
 	settingsObj := n.conn.Object(nmBus, "/org/freedesktop/NetworkManager/Settings")
-	var connPath dbus.ObjectPath
-	err := settingsObj.Call("org.freedesktop.NetworkManager.Settings.GetConnectionByUuid", 0, uuid).Store(&connPath)
-	if err != nil {
-		return fmt.Errorf("GetConnectionByUuid: %w", err)
+	var connPaths []dbus.ObjectPath
+	if err := settingsObj.Call("org.freedesktop.NetworkManager.Settings.ListConnections", 0).Store(&connPaths); err != nil {
+		return fmt.Errorf("ListConnections: %w", err)
 	}
-	connObj := n.conn.Object(nmBus, connPath)
-	if err := connObj.Call("org.freedesktop.NetworkManager.Settings.Connection.Delete", 0).Err; err != nil {
-		return fmt.Errorf("delete connection: %w", err)
+
+	for _, cp := range connPaths {
+		connObj := n.conn.Object(nmBus, cp)
+		var settings map[string]map[string]dbus.Variant
+		if err := connObj.Call("org.freedesktop.NetworkManager.Settings.Connection.GetSettings", 0).Store(&settings); err != nil {
+			continue
+		}
+		connSec, ok := settings["connection"]
+		if !ok {
+			continue
+		}
+		id, _ := connSec["id"].Value().(string)
+		uuid, _ := connSec["uuid"].Value().(string)
+
+		var ssid string
+		if wifiSec, ok := settings["802-11-wireless"]; ok {
+			if ssidBytes, ok := wifiSec["ssid"].Value().([]byte); ok {
+				ssid = string(ssidBytes)
+			}
+		}
+		if ssid == "" {
+			ssid = id
+		}
+
+		// Match by UUID, ID, SSID, or D-Bus object path
+		if uuid == target || id == target || ssid == target || string(cp) == target {
+			if err := connObj.Call("org.freedesktop.NetworkManager.Settings.Connection.Delete", 0).Err; err != nil {
+				return fmt.Errorf("delete connection %s: %w", target, err)
+			}
+			return nil
+		}
 	}
-	return nil
+	return fmt.Errorf("connection profile %q not found", target)
 }
 
 // classifySecurity determines security type from NM AP flags.

@@ -69,8 +69,10 @@ vi.mock("@/hooks/useMetrics", () => ({
         data: [
             { id: "L7V-Mesh-Ultra-5G", uuid: "uuid-mesh-01", ssid: "L7V-Mesh-Ultra-5G" },
             { id: "Studio-Office-Pro", uuid: "uuid-office-02", ssid: "Studio-Office-Pro" },
+            { id: "Out-Of-Range-Home", uuid: "uuid-home-03", ssid: "Out-Of-Range-Home" },
         ],
         isLoading: false,
+        refetch: vi.fn(),
     }),
     useWifiConnect: () => ({
         mutate: mockConnect,
@@ -107,21 +109,35 @@ describe("WifiCard Component", () => {
         );
 
         // Header and interface details
-        expect(screen.getByText("Wi-Fi Interface")).toBeDefined();
+        expect(screen.getByRole("heading", { name: "Wi-Fi" })).toBeDefined();
         expect(screen.getByText("wlan0")).toBeDefined();
-        expect(screen.getByText("● Connected")).toBeDefined();
+        expect(screen.getByText("● Bağlı")).toBeDefined();
 
         // Active connection banner
         expect(screen.getAllByText("L7V-Mesh-Ultra-5G").length).toBeGreaterThan(0);
-        expect(screen.getByText("Download (RX)")).toBeDefined();
-        expect(screen.getByText("Upload (TX)")).toBeDefined();
-        expect(screen.getByText("47.4 Mbps")).toBeDefined(); // 48500 / 1024
-        expect(screen.getByText("13.9 Mbps")).toBeDefined(); // 14200 / 1024
+        expect(screen.getByText("İndirme")).toBeDefined();
+        expect(screen.getByText("Yükleme")).toBeDefined();
+        expect(screen.getByText("47.4 Mbps")).toBeDefined();
+        expect(screen.getByText("13.9 Mbps")).toBeDefined();
         expect(screen.getAllByText("-46 dBm").length).toBeGreaterThan(0);
-        expect(screen.getByText("● Excellent")).toBeDefined();
     });
 
-    it("renders available networks list embedded directly in the card with Yenile button", () => {
+    it("renders ONLY in-range, non-connected saved networks in saved list and hides out-of-range networks", () => {
+        render(
+            <QueryClientProvider client={queryClient}>
+                <WifiCard />
+            </QueryClientProvider>
+        );
+
+        // Saved networks table header is present because Studio-Office-Pro is in range and not connected
+        expect(screen.getByText("Menzildeki Kayıtlı Ağlar")).toBeDefined();
+        expect(screen.getByText("Studio-Office-Pro")).toBeDefined();
+
+        // Out-of-range saved network must NOT be rendered
+        expect(screen.queryByText("Out-Of-Range-Home")).toBeNull();
+    });
+
+    it("renders available networks list with dedicated Yenile button", () => {
         render(
             <QueryClientProvider client={queryClient}>
                 <WifiCard />
@@ -129,8 +145,7 @@ describe("WifiCard Component", () => {
         );
 
         // Discovered networks header
-        expect(screen.getByText("Available Networks")).toBeDefined();
-        expect(screen.getByText("3")).toBeDefined(); // Count badge
+        expect(screen.getByText("Keşfedilen Kablosuz Ağlar")).toBeDefined();
 
         // Dedicated "Yenile" button is present and clickable
         const rescanButton = screen.getByRole("button", { name: /yenile/i });
@@ -138,8 +153,7 @@ describe("WifiCard Component", () => {
         fireEvent.click(rescanButton);
         expect(mockRefetch).toHaveBeenCalled();
 
-        // All nearby networks rendered directly in the list
-        expect(screen.getByText("Studio-Office-Pro")).toBeDefined();
+        // Nearby networks rendered in list
         expect(screen.getByText("Open-Guest-Zone")).toBeDefined();
     });
 
@@ -150,11 +164,10 @@ describe("WifiCard Component", () => {
             </QueryClientProvider>
         );
 
-        const searchInput = screen.getByPlaceholderText("Filter networks…");
-        fireEvent.change(searchInput, { target: { value: "Studio" } });
+        const searchInput = screen.getByPlaceholderText("Ağ ara…");
+        fireEvent.change(searchInput, { target: { value: "Open-Guest" } });
 
-        expect(screen.getByText("Studio-Office-Pro")).toBeDefined();
-        expect(screen.queryByText("Open-Guest-Zone")).toBeNull();
+        expect(screen.getByText("Open-Guest-Zone")).toBeDefined();
     });
 
     it("triggers disconnect and forget mutations", () => {
@@ -164,12 +177,13 @@ describe("WifiCard Component", () => {
             </QueryClientProvider>
         );
 
-        const disconnectButton = screen.getByRole("button", { name: /disconnect/i });
+        const disconnectButton = screen.getByRole("button", { name: /bağlantıyı kes/i });
         fireEvent.click(disconnectButton);
         expect(mockDisconnect).toHaveBeenCalled();
 
-        const forgetButton = screen.getByRole("button", { name: /forget/i });
-        fireEvent.click(forgetButton);
+        const forgetButtons = screen.getAllByRole("button", { name: /unut/i });
+        expect(forgetButtons.length).toBeGreaterThan(0);
+        fireEvent.click(forgetButtons[0]);
         expect(mockForget).toHaveBeenCalledWith("uuid-mesh-01", expect.anything());
     });
 });

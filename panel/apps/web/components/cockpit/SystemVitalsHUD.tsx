@@ -125,15 +125,15 @@ export function SystemVitalsHUD({ onSelectModule }: SystemVitalsHUDProps) {
         subStr: string,
         icon: React.ReactNode,
         colorClass = "text-primary",
-        strokeHex = "#d97757"
+        strokeHex = "#38bdf8"
     ) => {
         const radius = 38;
         const circumference = 2 * Math.PI * radius;
         const strokeDashoffset = circumference - (Math.min(100, Math.max(0, percent)) / 100) * circumference;
 
         return (
-            <div className="flex flex-col items-center rounded-xl border border-border/70 bg-background/50 p-4 transition-all hover:border-border hover:bg-background/80 relative overflow-hidden group">
-                <div className="absolute top-2 right-2 opacity-50 group-hover:opacity-100 transition-opacity">
+            <div className="flex flex-col items-center rounded-xl border border-border/80 bg-card/60 p-4 transition-all hover:border-white/20 hover:bg-white/[0.04] relative overflow-hidden group shadow-xs">
+                <div className="absolute top-2.5 right-2.5 opacity-60 group-hover:opacity-100 transition-opacity">
                     {icon}
                 </div>
 
@@ -145,7 +145,7 @@ export function SystemVitalsHUD({ onSelectModule }: SystemVitalsHUDProps) {
                             cx="48"
                             cy="48"
                             r={radius}
-                            className="stroke-muted/30"
+                            className="stroke-muted/40"
                             strokeWidth="6"
                             fill="transparent"
                         />
@@ -169,7 +169,7 @@ export function SystemVitalsHUD({ onSelectModule }: SystemVitalsHUDProps) {
                         <span className="text-lg font-bold font-mono tracking-tight text-foreground tnum">
                             {percent.toFixed(0)}%
                         </span>
-                        <span className="text-[9px] uppercase font-semibold tracking-wider text-muted-foreground">
+                        <span className="text-[9px] uppercase font-semibold tracking-wider text-muted-foreground font-mono">
                             {label}
                         </span>
                     </div>
@@ -340,7 +340,7 @@ export function SystemVitalsHUD({ onSelectModule }: SystemVitalsHUDProps) {
                     `Gov: ${hardware?.cpu_governor ?? "schedutil"}`,
                     <Cpu className="h-4 w-4 text-primary" />,
                     "text-primary",
-                    "#d97757"
+                    "#38bdf8"
                 )}
 
                 {/* 2. Memory Pool */}

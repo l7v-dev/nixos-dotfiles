@@ -75,19 +75,19 @@ export function QuickControlsRail({
     return (
         <aside
             className={cn(
-                "instrument-card p-3 sm:p-4 space-y-4 font-sans shrink-0 w-full lg:w-[310px] xl:w-[330px]",
+                "instrument-card p-3.5 sm:p-4 space-y-4 font-sans shrink-0 w-full lg:w-[365px] xl:w-[390px]",
                 className
             )}
         >
             {/* ── 1. Rail Title & Master Vitals Trigger ── */}
             <div className="space-y-2">
                 <div className="flex items-center justify-between px-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                        <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2 font-mono">
+                        <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                         Quick Controls
                     </p>
-                    <span className="text-[10px] font-mono text-muted-foreground">
-                        Bus: /dev/sys
+                    <span className="text-xs font-mono text-muted-foreground/80">
+                        /dev/sys
                     </span>
                 </div>
 
@@ -97,22 +97,22 @@ export function QuickControlsRail({
                     className={cn(
                         "w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left group",
                         selectedId === "vitals"
-                            ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-xs"
-                            : "border-border/60 bg-background/50 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                            ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
+                            : "border-border/70 bg-card/60 text-muted-foreground hover:bg-white/[0.04] hover:border-white/15 hover:text-foreground"
                     )}
                 >
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-3">
                         <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-card border border-border/80 shadow-xs">
-                            <Heart className={cn("h-4 w-4", selectedId === "vitals" ? "text-primary animate-pulse" : "text-emerald-500")} />
+                            <Heart className={cn("h-4 w-4", selectedId === "vitals" ? "text-primary animate-pulse" : "text-emerald-400")} />
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-foreground">System Vitals HUD</p>
-                            <p className="text-[10px] font-mono text-muted-foreground">
+                            <p className="text-xs sm:text-sm font-bold text-foreground">System Vitals HUD</p>
+                            <p className="text-xs font-mono text-muted-foreground">
                                 Heartbeat & Telemetry
                             </p>
                         </div>
                     </div>
-                    <Badge variant={selectedId === "vitals" ? "default" : "outline"} className="text-[10px] font-mono">
+                    <Badge variant={selectedId === "vitals" ? "default" : "outline"} className="text-xs font-mono">
                         Overview
                     </Badge>
                 </button>
@@ -132,8 +132,8 @@ export function QuickControlsRail({
                         className={cn(
                             "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
                             selectedId === "wifi"
-                                ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
-                                : "border-border/60 bg-background/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
+                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
                         )}
                     >
                         <div className="flex items-center gap-2.5 min-w-0 pr-2">
@@ -177,8 +177,8 @@ export function QuickControlsRail({
                         className={cn(
                             "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
                             selectedId === "bluetooth"
-                                ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
-                                : "border-border/60 bg-background/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
+                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
                         )}
                     >
                         <div className="flex items-center gap-2.5 min-w-0 pr-2">
@@ -222,8 +222,8 @@ export function QuickControlsRail({
                         className={cn(
                             "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
                             selectedId === "vpn"
-                                ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
-                                : "border-border/60 bg-background/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
+                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
                         )}
                     >
                         <div className="flex items-center gap-2.5 min-w-0 pr-2">
@@ -274,8 +274,8 @@ export function QuickControlsRail({
                         className={cn(
                             "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
                             selectedId === "power"
-                                ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
-                                : "border-border/60 bg-background/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
+                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
                         )}
                     >
                         <div className="flex items-center gap-2.5 min-w-0 pr-2">
@@ -307,8 +307,8 @@ export function QuickControlsRail({
                         className={cn(
                             "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
                             selectedId === "hardware"
-                                ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
-                                : "border-border/60 bg-background/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
+                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
                         )}
                     >
                         <div className="flex items-center gap-2.5 min-w-0 pr-2">
@@ -334,8 +334,8 @@ export function QuickControlsRail({
                         className={cn(
                             "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
                             selectedId === "display"
-                                ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
-                                : "border-border/60 bg-background/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
+                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
                         )}
                     >
                         <div className="flex items-center gap-2.5 min-w-0 pr-2">
@@ -389,8 +389,8 @@ export function QuickControlsRail({
                         className={cn(
                             "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
                             selectedId === "audio"
-                                ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
-                                : "border-border/60 bg-background/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
+                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
                         )}
                     >
                         <div className="flex items-center gap-2.5 min-w-0 pr-2">
@@ -434,8 +434,8 @@ export function QuickControlsRail({
                         className={cn(
                             "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
                             selectedId === "mic"
-                                ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
-                                : "border-border/60 bg-background/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
+                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
                         )}
                     >
                         <div className="flex items-center gap-2.5 min-w-0 pr-2">
@@ -486,8 +486,8 @@ export function QuickControlsRail({
                         className={cn(
                             "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
                             selectedId === "nixos"
-                                ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
-                                : "border-border/60 bg-background/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
+                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
                         )}
                     >
                         <div className="flex items-center gap-2.5 min-w-0 pr-2">
@@ -510,8 +510,8 @@ export function QuickControlsRail({
                         className={cn(
                             "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
                             selectedId === "storage"
-                                ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
-                                : "border-border/60 bg-background/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
+                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
                         )}
                     >
                         <div className="flex items-center gap-2.5 min-w-0 pr-2">
@@ -534,8 +534,8 @@ export function QuickControlsRail({
                         className={cn(
                             "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
                             selectedId === "ai"
-                                ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/30"
-                                : "border-border/60 bg-background/40 hover:bg-muted/60 text-muted-foreground hover:text-foreground"
+                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
+                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
                         )}
                     >
                         <div className="flex items-center gap-2.5 min-w-0 pr-2">

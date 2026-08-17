@@ -135,56 +135,6 @@ export default function CockpitPage() {
 
                     {/* Right Column: Companion Card Stage / Embedded Vitals HUD */}
                     <main className="flex-1 min-w-0 w-full space-y-4">
-                        {/* Stage Top Navigation Bar (When a peripheral card is active) */}
-                        {selectedModule !== "vitals" && (
-                            <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card/70 p-3 shadow-xs">
-                                <div className="flex items-center gap-3 min-w-0">
-                                    <button
-                                        onClick={() => setSelectedModule("vitals")}
-                                        className="flex items-center gap-1.5 rounded-lg border border-border/70 bg-background/60 px-2.5 py-1 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all active:scale-95 shrink-0"
-                                    >
-                                        <ArrowLeft className="h-3.5 w-3.5 text-primary" />
-                                        Back to Vitals HUD
-                                    </button>
-
-                                    <div className="h-4 w-px bg-border/60 hidden sm:block" />
-
-                                    <div className="flex items-center gap-2 min-w-0">
-                                        <CurrentIcon className="h-4 w-4 text-primary shrink-0" />
-                                        <span className="text-xs font-bold text-foreground truncate">
-                                            {currentMeta.title}
-                                        </span>
-                                        <Badge variant="outline" className="text-[10px] font-mono hidden md:inline-flex">
-                                            {currentMeta.category}
-                                        </Badge>
-                                    </div>
-                                </div>
-
-                                {/* Quick Switch Pills */}
-                                <div className="flex items-center gap-1 shrink-0">
-                                    {[
-                                        { id: "wifi", icon: Wifi, label: "Wi-Fi" },
-                                        { id: "bluetooth", icon: Bluetooth, label: "BT" },
-                                        { id: "audio", icon: Volume2, label: "Audio" },
-                                        { id: "power", icon: Zap, label: "Power" },
-                                    ].map((p) => (
-                                        <button
-                                            key={p.id}
-                                            onClick={() => setSelectedModule(p.id as CockpitModuleId)}
-                                            className={cn(
-                                                "flex h-7 items-center gap-1 rounded-lg px-2 text-[11px] font-mono transition-all",
-                                                selectedModule === p.id
-                                                    ? "bg-primary text-primary-foreground font-bold"
-                                                    : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
-                                            )}
-                                        >
-                                            <p.icon className="h-3 w-3" />
-                                            <span className="hidden sm:inline">{p.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
 
                         {/* Active Companion Stage Content */}
                         {selectedModule === "vitals" && (

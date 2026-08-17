@@ -4,51 +4,51 @@
 
 @layer base {
   :root {
-    /* ── Anthropic Research Warm Slate & Terracotta (Dark Mode Default) ── */
-    --background: 60 2% 8%;              /* #141413 - Deep warm obsidian slate */
-    --container: 60 3% 11%;             /* #1c1c1a - Inset canvas surface */
-    --foreground: 60 10% 93%;           /* #ecebe6 - Warm ivory primary text */
+    /* ── True OLED Cybernetic Pure Black & Electric Ice Cyan ── */
+    --background: 0 0% 0%;              /* #000000 - True OLED Pure Black */
+    --container: 240 8% 3.5%;           /* #08080a - Inset obsidian canvas */
+    --foreground: 0 0% 98%;             /* #fafafa - Pure crisp white primary text */
 
-    --card: 60 3% 12%;                  /* #1f1f1d - Elevated card surface */
-    --card-foreground: 60 10% 93%;
+    --card: 240 8% 5.5%;                /* #0c0c10 - Elevated titanium obsidian card */
+    --card-foreground: 0 0% 98%;
 
-    --popover: 60 3% 12%;
-    --popover-foreground: 60 10% 93%;
+    --popover: 240 8% 6%;
+    --popover-foreground: 0 0% 98%;
 
-    /* ── Anthropic Warm Terracotta & Slate Accent ── */
-    --primary: 15 65% 60%;              /* #d97757 - Signature Anthropic Terracotta */
+    /* ── Electric Ice Cyan Accent (Replacing Orange) ── */
+    --primary: 195 95% 52%;             /* #38bdf8 - High-tech Electric Ice Cyan */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 60 3% 16%;             /* #282825 - Muted control surface */
-    --secondary-foreground: 60 10% 93%;
+    --secondary: 240 6% 10%;            /* #18181f - Muted control surface */
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 60 3% 15%;                 /* #262623 */
-    --muted-foreground: 60 4% 65%;      /* #a8a69e - Warm stone secondary / body text */
+    --muted: 240 6% 9%;                 /* #15151a */
+    --muted-foreground: 240 5% 65%;     /* #a1a1aa - Crisp secondary silver text */
 
-    --accent: 60 3% 18%;                /* #2e2e2a - Active hover state */
-    --accent-foreground: 60 10% 93%;
+    --accent: 240 6% 12%;               /* #1c1c24 - Active hover state */
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 72% 56%;           /* #e05252 - Precision Coral Crimson */
+    --destructive: 349 89% 60%;         /* #f43f5e - Precision Neon Crimson */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 60 3% 20%;                /* #363632 - Warm hairline structure */
-    --input: 60 3% 20%;
-    --ring: 15 65% 60%;
+    --border: 240 6% 15%;               /* #22222a - Hairline 1px razor border */
+    --input: 240 6% 15%;
+    --ring: 195 95% 52%;
     --radius: 0.875rem;                 /* 14px refined curvature */
 
-    /* ── Anthropic Semantic Telemetry (Dark Mode) ── */
-    --telemetry-ok: 100 24% 54%;        /* #8fa374 Sage Olive */
-    --telemetry-warn: 35 70% 55%;       /* #d49543 Amber Kraft */
-    --telemetry-crit: 0 72% 56%;        /* #e05252 Coral Red */
-    --telemetry-info: 210 48% 62%;      /* #7ba7d7 Sky Slate */
-    --telemetry-ai: 15 65% 60%;         /* #d97757 Terracotta */
+    /* ── High-Vibrancy Semantic Telemetry (OLED Tuned) ── */
+    --telemetry-ok: 152 76% 46%;        /* #10b981 Radiant Emerald */
+    --telemetry-warn: 45 94% 56%;       /* #fbbf24 Electric Amber */
+    --telemetry-crit: 349 89% 60%;      /* #f43f5e Precision Neon Crimson */
+    --telemetry-info: 195 95% 52%;      /* #38bdf8 Electric Sky Cyan */
+    --telemetry-ai: 270 95% 65%;        /* #a855f7 Neon Violet */
 
-    --sidebar: 60 3% 10%;               /* #191917 */
-    --sidebar-foreground: 60 10% 93%;
-    --sidebar-border: 60 3% 18%;        /* #2e2e2a */
-    --sidebar-accent: 60 3% 16%;
-    --sidebar-accent-foreground: 60 10% 93%;
-    --sidebar-primary: 15 65% 60%;
+    --sidebar: 0 0% 1.5%;               /* #040404 - True OLED navigation */
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-border: 240 6% 12%;       /* #1c1c24 */
+    --sidebar-accent: 240 6% 8%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-primary: 195 95% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
   }
 
@@ -129,10 +129,10 @@
   }
 }
 
-/* ── Anthropic Editorial Instrument Card ── */
+/* ── Cybernetic OLED Instrument Card ── */
 .instrument-card {
-  @apply rounded-xl border border-border/80 bg-card text-card-foreground transition-all duration-150;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04), 0 2px 8px -2px rgba(0, 0, 0, 0.35);
+  @apply rounded-2xl border border-border/80 bg-card text-card-foreground transition-all duration-150;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 2px 8px -2px rgba(0, 0, 0, 0.6);
 }
 
 .light .instrument-card {
@@ -141,7 +141,7 @@
 
 .instrument-card:hover {
   @apply border-border;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06), 0 4px 12px -3px rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08), 0 4px 14px -3px rgba(0, 0, 0, 0.7);
 }
 
 .light .instrument-card:hover {
@@ -155,11 +155,11 @@
 
 .braun-toggle-active {
   @apply border-primary/50 bg-primary/10 text-primary;
-  box-shadow: inset 0 1px 0 0 rgba(217, 119, 87, 0.2);
+  box-shadow: inset 0 1px 0 0 rgba(56, 189, 248, 0.25), 0 0 12px -2px rgba(56, 189, 248, 0.2);
 }
 
 .braun-toggle-inactive {
-  @apply border-border/60 bg-background/40 text-muted-foreground hover:bg-muted/60 hover:text-foreground;
+  @apply border-border/60 bg-background/40 text-muted-foreground hover:bg-white/[0.04] hover:text-foreground hover:border-border;
 }
 
 /* ── Tabular numbers ── */
