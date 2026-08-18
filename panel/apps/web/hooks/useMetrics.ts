@@ -163,7 +163,10 @@ export function useBluetooth() {
     });
     const toggle = useMutation({
         mutationFn: () => postAgent<BluetoothStatus>(host, "/api/v1/network/bluetooth/toggle"),
-        onSettled: () => queryClient.invalidateQueries({ queryKey: ["bluetooth", host] }),
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["bluetooth", host] });
+            queryClient.invalidateQueries({ queryKey: ["bt-scan", host] });
+        },
     });
     return { ...query, toggle };
 }
@@ -180,13 +183,29 @@ export function useBluetoothScan() {
     return { ...query, scan: () => queryClient.invalidateQueries({ queryKey: ["bt-scan", host] }), refetch: query.refetch };
 }
 
+export function useBluetoothPair() {
+    const host = useHostStore((s) => s.selectedHost);
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (address: string) =>
+            postAgent(host, `/api/v1/network/bluetooth/pair/${encodeURIComponent(address)}`),
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["bluetooth", host] });
+            queryClient.invalidateQueries({ queryKey: ["bt-scan", host] });
+        },
+    });
+}
+
 export function useBluetoothConnect() {
     const host = useHostStore((s) => s.selectedHost);
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (address: string) =>
             postAgent(host, `/api/v1/network/bluetooth/connect/${encodeURIComponent(address)}`),
-        onSettled: () => queryClient.invalidateQueries({ queryKey: ["bluetooth", host] }),
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["bluetooth", host] });
+            queryClient.invalidateQueries({ queryKey: ["bt-scan", host] });
+        },
     });
 }
 
@@ -196,7 +215,10 @@ export function useBluetoothDisconnect() {
     return useMutation({
         mutationFn: (address: string) =>
             postAgent(host, `/api/v1/network/bluetooth/disconnect/${encodeURIComponent(address)}`),
-        onSettled: () => queryClient.invalidateQueries({ queryKey: ["bluetooth", host] }),
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["bluetooth", host] });
+            queryClient.invalidateQueries({ queryKey: ["bt-scan", host] });
+        },
     });
 }
 
@@ -206,7 +228,10 @@ export function useBluetoothRemove() {
     return useMutation({
         mutationFn: (address: string) =>
             fetchAgent(host, `/api/v1/network/bluetooth/device/${encodeURIComponent(address)}`, { method: "DELETE" }),
-        onSettled: () => queryClient.invalidateQueries({ queryKey: ["bluetooth", host] }),
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ["bluetooth", host] });
+            queryClient.invalidateQueries({ queryKey: ["bt-scan", host] });
+        },
     });
 }
 

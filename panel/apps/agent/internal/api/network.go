@@ -204,6 +204,27 @@ func bluetoothScanHandler(d Deps) http.HandlerFunc {
 	}
 }
 
+// bluetoothPairHandler handles POST /api/v1/network/bluetooth/pair/{address}.
+func bluetoothPairHandler(d Deps) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		address := r.PathValue("address")
+		if address == "" {
+			writeError(w, http.StatusBadRequest, map[string]string{"message": "address is required"})
+			return
+		}
+		if err := d.Bluetooth.PairDevice(r.Context(), address); err != nil {
+			writeError(w, http.StatusServiceUnavailable, map[string]string{
+				"address": address,
+				"message": err.Error(),
+			})
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"address": address, "status": "paired"}) //nolint:errcheck
+	}
+}
+
 // bluetoothConnectHandler handles POST /api/v1/network/bluetooth/connect/{address}.
 func bluetoothConnectHandler(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

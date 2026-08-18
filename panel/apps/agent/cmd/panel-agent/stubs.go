@@ -104,6 +104,9 @@ func (s *stubBluetooth) ToggleBluetooth(_ context.Context) error {
 func (s *stubBluetooth) ScanDevices(_ context.Context) ([]dbus.BTDevice, error) {
 	return []dbus.BTDevice{}, nil
 }
+func (s *stubBluetooth) PairDevice(_ context.Context, _ string) error {
+	return errors.New("stub: bluetooth not implemented")
+}
 func (s *stubBluetooth) ConnectDevice(_ context.Context, _ string) error {
 	return errors.New("stub: bluetooth not implemented")
 }

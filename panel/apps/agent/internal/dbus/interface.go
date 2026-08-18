@@ -83,6 +83,7 @@ type BluetoothClient interface {
 	GetBluetoothStatus(ctx context.Context) (*BluetoothStatus, error)
 	ToggleBluetooth(ctx context.Context) error
 	ScanDevices(ctx context.Context) ([]BTDevice, error)
+	PairDevice(ctx context.Context, address string) error
 	ConnectDevice(ctx context.Context, address string) error
 	DisconnectDevice(ctx context.Context, address string) error
 	RemoveDevice(ctx context.Context, address string) error
@@ -117,8 +118,11 @@ type WifiStatus struct {
 
 // BluetoothStatus is the JSON-serialisable Bluetooth adapter state.
 type BluetoothStatus struct {
-	Enabled bool       `json:"enabled"`
-	Devices []BTDevice `json:"devices"`
+	Enabled     bool       `json:"enabled"`
+	AdapterName *string    `json:"adapter_name,omitempty"`
+	AdapterAddr *string    `json:"adapter_addr,omitempty"`
+	Discovering bool       `json:"discovering"`
+	Devices     []BTDevice `json:"devices"`
 }
 
 // BTDevice represents a single paired Bluetooth device.

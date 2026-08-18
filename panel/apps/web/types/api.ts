@@ -106,6 +106,9 @@ export interface BluetoothDevice {
 
 export interface BluetoothStatus {
     enabled: boolean;
+    adapter_name?: string;
+    adapter_addr?: string;
+    discovering?: boolean;
     devices: BluetoothDevice[];
 }
 

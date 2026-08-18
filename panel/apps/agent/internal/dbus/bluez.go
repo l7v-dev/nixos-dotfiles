@@ -43,6 +43,34 @@ func (b *bluetoothClient) GetBluetoothStatus(_ context.Context) (*BluetoothStatu
 	}
 	powered, _ := poweredV.Value().(bool)
 
+	var adapterName *string
+	if nameV, err := adapterObj.GetProperty(bluezAdapter1 + ".Alias"); err == nil {
+		if s, ok := nameV.Value().(string); ok && s != "" {
+			adapterName = &s
+		}
+	}
+	if adapterName == nil {
+		if nameV, err := adapterObj.GetProperty(bluezAdapter1 + ".Name"); err == nil {
+			if s, ok := nameV.Value().(string); ok && s != "" {
+				adapterName = &s
+			}
+		}
+	}
+
+	var adapterAddr *string
+	if addrV, err := adapterObj.GetProperty(bluezAdapter1 + ".Address"); err == nil {
+		if s, ok := addrV.Value().(string); ok && s != "" {
+			adapterAddr = &s
+		}
+	}
+
+	discovering := false
+	if discV, err := adapterObj.GetProperty(bluezAdapter1 + ".Discovering"); err == nil {
+		if d, ok := discV.Value().(bool); ok {
+			discovering = d
+		}
+	}
+
 	devices, err := b.getAllDevices()
 	if err != nil {
 		devices = []BTDevice{}
@@ -57,7 +85,13 @@ func (b *bluetoothClient) GetBluetoothStatus(_ context.Context) (*BluetoothStatu
 	if paired == nil {
 		paired = []BTDevice{}
 	}
-	return &BluetoothStatus{Enabled: powered, Devices: paired}, nil
+	return &BluetoothStatus{
+		Enabled:     powered,
+		AdapterName: adapterName,
+		AdapterAddr: adapterAddr,
+		Discovering: discovering,
+		Devices:     paired,
+	}, nil
 }
 
 // ToggleBluetooth flips the Powered property on the first Bluetooth adapter.
@@ -83,9 +117,7 @@ func (b *bluetoothClient) ToggleBluetooth(_ context.Context) error {
 const scanTimeout = 5 * time.Second
 
 // ScanDevices starts discovery, waits for results, stops discovery, then returns
-// all visible + paired devices. Using a short sleep is the pragmatic approach
-// because BlueZ discovery is asynchronous and emits results via PropertiesChanged
-// signals rather than a synchronous return value.
+// all visible + paired devices.
 func (b *bluetoothClient) ScanDevices(ctx context.Context) ([]BTDevice, error) {
 	adapter, err := b.findAdapter()
 	if err != nil {
@@ -112,13 +144,39 @@ func (b *bluetoothClient) ScanDevices(ctx context.Context) ([]BTDevice, error) {
 	return b.getAllDevices()
 }
 
+// PairDevice pairs with an unbonded device, sets it trusted, and connects.
+func (b *bluetoothClient) PairDevice(_ context.Context, address string) error {
+	devPath, err := b.findDevice(address)
+	if err != nil {
+		return err
+	}
+	devObj := b.conn.Object(bluezBus, devPath)
+
+	// Call Pair if not already paired
+	if err := devObj.Call(bluezDevice1+".Pair", 0).Err; err != nil {
+		// If already paired or not supported, ignore and proceed to trust & connect
+		if !strings.Contains(err.Error(), "AlreadyExists") && !strings.Contains(err.Error(), "Already Paired") {
+			// Some simple BLE devices may not require explicit pairing, try Connect directly
+		}
+	}
+
+	// Set Trusted = true so the device can auto-reconnect
+	_ = devObj.SetProperty(bluezDevice1+".Trusted", dbus.MakeVariant(true))
+
+	// Connect profiles
+	return devObj.Call(bluezDevice1+".Connect", 0).Err
+}
+
 // ConnectDevice connects to a paired Bluetooth device by address.
 func (b *bluetoothClient) ConnectDevice(_ context.Context, address string) error {
 	devPath, err := b.findDevice(address)
 	if err != nil {
 		return err
 	}
-	return b.conn.Object(bluezBus, devPath).Call(bluezDevice1+".Connect", 0).Err
+	devObj := b.conn.Object(bluezBus, devPath)
+	// Ensure trusted is enabled on connection
+	_ = devObj.SetProperty(bluezDevice1+".Trusted", dbus.MakeVariant(true))
+	return devObj.Call(bluezDevice1+".Connect", 0).Err
 }
 
 // DisconnectDevice disconnects a connected Bluetooth device.
@@ -166,14 +224,18 @@ func (b *bluetoothClient) findDevice(address string) (dbus.ObjectPath, error) {
 	if err := obj.Call(objManager+".GetManagedObjects", 0).Store(&managed); err != nil {
 		return "", fmt.Errorf("GetManagedObjects: %w", err)
 	}
+	normalizedQuery := strings.ToUpper(strings.ReplaceAll(address, "-", ":"))
 	for path, ifaces := range managed {
 		dev, ok := ifaces[bluezDevice1]
 		if !ok {
 			continue
 		}
 		if av, ok := dev["Address"]; ok {
-			if addr, ok := av.Value().(string); ok && strings.EqualFold(addr, address) {
-				return path, nil
+			if addr, ok := av.Value().(string); ok {
+				normAddr := strings.ToUpper(strings.ReplaceAll(addr, "-", ":"))
+				if normAddr == normalizedQuery {
+					return path, nil
+				}
 			}
 		}
 	}
@@ -225,22 +287,42 @@ func (b *bluetoothClient) getAllDevices() ([]BTDevice, error) {
 		if iv, ok := dev["Icon"]; ok {
 			icon, _ = iv.Value().(string)
 		}
+
+		// Read battery percentage from org.bluez.Battery1 interface
 		var battPct *uint8
-		if bv, ok := dev["Battery"]; ok {
-			if bm, ok := bv.Value().(map[string]dbus.Variant); ok {
-				if pv, ok := bm["Percentage"]; ok {
-					if p, ok := pv.Value().(uint8); ok {
-						battPct = &p
-					}
+		if batIface, ok := ifaces["org.bluez.Battery1"]; ok {
+			if pv, ok := batIface["Percentage"]; ok {
+				switch v := pv.Value().(type) {
+				case uint8:
+					battPct = &v
+				case int16:
+					b := uint8(v)
+					battPct = &b
+				case int32:
+					b := uint8(v)
+					battPct = &b
+				case int:
+					b := uint8(v)
+					battPct = &b
 				}
 			}
 		}
+
+		// Read RSSI signal strength
 		var rssi *int16
 		if rv, ok := dev["RSSI"]; ok {
-			if r, ok := rv.Value().(int16); ok {
+			switch v := rv.Value().(type) {
+			case int16:
+				rssi = &v
+			case int32:
+				r := int16(v)
+				rssi = &r
+			case int:
+				r := int16(v)
 				rssi = &r
 			}
 		}
+
 		devices = append(devices, BTDevice{
 			Name:       name,
 			Address:    addr,

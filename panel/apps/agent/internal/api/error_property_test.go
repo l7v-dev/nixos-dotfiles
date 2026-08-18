@@ -187,6 +187,9 @@ func (b *alwaysErrBluetooth) ToggleBluetooth(_ context.Context) error {
 func (b *alwaysErrBluetooth) ScanDevices(_ context.Context) ([]dbus.BTDevice, error) {
 	return nil, errors.New("bluez unavailable")
 }
+func (b *alwaysErrBluetooth) PairDevice(_ context.Context, _ string) error {
+	return errors.New("bluez unavailable")
+}
 func (b *alwaysErrBluetooth) ConnectDevice(_ context.Context, _ string) error {
 	return errors.New("bluez unavailable")
 }

@@ -165,6 +165,7 @@ func NewRouter(d Deps) http.Handler {
 	mux.Handle("GET /api/v1/network/bluetooth", bluetoothStatusHandler(d))
 	mux.Handle("POST /api/v1/network/bluetooth/toggle", bluetoothToggleHandler(d))
 	mux.Handle("GET /api/v1/network/bluetooth/scan", bluetoothScanHandler(d))
+	mux.Handle("POST /api/v1/network/bluetooth/pair/{address}", bluetoothPairHandler(d))
 	mux.Handle("POST /api/v1/network/bluetooth/connect/{address}", bluetoothConnectHandler(d))
 	mux.Handle("POST /api/v1/network/bluetooth/disconnect/{address}", bluetoothDisconnectHandler(d))
 	mux.Handle("DELETE /api/v1/network/bluetooth/device/{address}", bluetoothRemoveHandler(d))
