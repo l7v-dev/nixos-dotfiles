@@ -295,19 +295,11 @@ func (f *fallbackReader) GetStats(ctx context.Context, since, until time.Time, b
 	if bucketDuration <= 0 {
 		bucketDuration = time.Minute
 	}
-
-	var buckets []LogStatsBucket
-	bucketMap := make(map[int64]*LogStatsBucket)
-
-	for t := since.Truncate(bucketDuration); !t.After(until); t = t.Add(bucketDuration) {
-		b := LogStatsBucket{
-			Timestamp: t,
-			Counts:    make(map[string]int),
-			Total:     0,
-		}
-		buckets = append(buckets, b)
-		bucketMap[t.Unix()] = &buckets[len(buckets)-1]
+	if until.Before(since) {
+		since, until = until, since
 	}
+
+	buckets, bucketMap := InitStatsBuckets(since, until, bucketDuration)
 
 	for _, entry := range res.Entries {
 		bucketTime := entry.Timestamp.Truncate(bucketDuration).Unix()

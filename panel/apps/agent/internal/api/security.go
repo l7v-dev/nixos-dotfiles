@@ -2,8 +2,11 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
+
+	"github.com/l7v/panel-agent/internal/auth"
 )
 
 // securityStatusHandler handles GET /api/v1/security/status.
@@ -207,6 +210,11 @@ func authLoginHandler(d Deps) http.HandlerFunc {
 		clientIP := r.RemoteAddr
 		sess, err := d.Auth.Login(req.PIN, req.Password, clientIP)
 		if err != nil {
+			if errors.Is(err, auth.ErrLockedOut) {
+				w.Header().Set("Retry-After", "300")
+				writeError(w, http.StatusTooManyRequests, map[string]string{"message": err.Error()})
+				return
+			}
 			writeError(w, http.StatusUnauthorized, map[string]string{"message": err.Error()})
 			return
 		}

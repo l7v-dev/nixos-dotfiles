@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -163,7 +164,13 @@ func (c *systemNixOSClient) TriggerRebuild(ctx context.Context, req RebuildReque
 		req.FlakePath = "/home/l7v/dev/projects/company/active/nixos"
 	}
 	if req.Host == "" {
-		req.Host = "L7V"
+		if envHost := os.Getenv("PANEL_HOST"); envHost != "" {
+			req.Host = envHost
+		} else if hostname, err := os.Hostname(); err == nil && hostname != "" {
+			req.Host = hostname
+		} else {
+			req.Host = "L7V"
+		}
 	}
 
 	// Prepare command arguments based on action

@@ -52,6 +52,7 @@ type Deps struct {
 	AppsEngine       apps.Engine
 	AppsController   apps.LifecycleController
 	ContainerManager containers.Manager
+	AllowedOrigins   []string
 }
 
 // terminalManagerClient interface for dependency injection & testing
@@ -313,5 +314,6 @@ func NewRouter(d Deps) http.Handler {
 	// Prometheus metrics (not under /api/v1/)
 	mux.Handle("GET /metrics", prometheusHandler(d))
 
-	return withMiddleware(mux, d.Logger)
+	return withMiddleware(requireAuth(d)(mux), d.Logger)
 }
+

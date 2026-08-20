@@ -7,18 +7,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gorilla/websocket"
 	"github.com/l7v/panel-agent/internal/apps"
 	"github.com/l7v/panel-agent/internal/containers"
+	"github.com/l7v/panel-agent/internal/terminal"
 )
-
-var containerWSUpgrader = websocket.Upgrader{
-	ReadBufferSize:  4096,
-	WriteBufferSize: 4096,
-	CheckOrigin: func(r *http.Request) bool {
-		return true // Auth / CORS handled via middleware / reverse-proxy
-	},
-}
 
 func getContainerManager(d Deps) containers.Manager {
 	if d.ContainerManager != nil {
@@ -421,7 +413,8 @@ func containerExecWSHandler(d Deps) http.HandlerFunc {
 			return
 		}
 
-		ws, err := containerWSUpgrader.Upgrade(w, r, nil)
+		upgrader := terminal.NewUpgrader(d.AllowedOrigins)
+		ws, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			d.Logger.Error("container exec ws upgrade failed", "err", err)
 			return

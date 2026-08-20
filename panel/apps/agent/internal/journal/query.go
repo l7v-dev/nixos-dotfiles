@@ -9,8 +9,8 @@ import (
 	"github.com/coreos/go-systemd/v22/sdjournal"
 )
 
-// priorityToLevelName maps numeric priority 0-7 to category key.
-func priorityToLevelName(p int) string {
+// PriorityToLevelName maps numeric priority 0-7 to category key.
+func PriorityToLevelName(p int) string {
 	switch p {
 	case 0:
 		return "emergency"
@@ -31,6 +31,10 @@ func priorityToLevelName(p int) string {
 	default:
 		return "info"
 	}
+}
+
+func priorityToLevelName(p int) string {
+	return PriorityToLevelName(p)
 }
 
 // Query performs a filtered historical query against systemd journald.
@@ -175,6 +179,39 @@ func (j *journalReader) ListUnits(ctx context.Context) ([]string, error) {
 	return units, nil
 }
 
+// InitStatsBuckets pre-allocates buckets slice and map with the exact capacity
+// required to cover the time range [since, until] at step bucketDuration.
+// Pre-allocating exact capacity ensures append never reallocates the backing array,
+// preventing *LogStatsBucket pointers stored in bucketMap from becoming dangling references.
+func InitStatsBuckets(since, until time.Time, bucketDuration time.Duration) ([]LogStatsBucket, map[int64]*LogStatsBucket) {
+	if bucketDuration <= 0 {
+		bucketDuration = time.Minute
+	}
+	if until.Before(since) {
+		since, until = until, since
+	}
+
+	start := since.Truncate(bucketDuration)
+	exactCount := int(until.Sub(start)/bucketDuration) + 1
+	if exactCount <= 0 {
+		exactCount = 1
+	}
+
+	buckets := make([]LogStatsBucket, 0, exactCount)
+	bucketMap := make(map[int64]*LogStatsBucket, exactCount)
+
+	for t := start; !t.After(until); t = t.Add(bucketDuration) {
+		buckets = append(buckets, LogStatsBucket{
+			Timestamp: t,
+			Counts:    make(map[string]int),
+			Total:     0,
+		})
+		bucketMap[t.Unix()] = &buckets[len(buckets)-1]
+	}
+
+	return buckets, bucketMap
+}
+
 // GetStats returns aggregated log count buckets over the specified time range.
 func (j *journalReader) GetStats(ctx context.Context, since, until time.Time, bucketDuration time.Duration) ([]LogStatsBucket, error) {
 	if bucketDuration <= 0 {
@@ -195,19 +232,8 @@ func (j *journalReader) GetStats(ctx context.Context, since, until time.Time, bu
 
 	_ = jrnl.SeekRealtimeUsec(uint64(since.UnixNano() / 1000))
 
-	// Pre-create time buckets
-	var buckets []LogStatsBucket
-	bucketMap := make(map[int64]*LogStatsBucket)
-
-	for t := since.Truncate(bucketDuration); !t.After(until); t = t.Add(bucketDuration) {
-		b := LogStatsBucket{
-			Timestamp: t,
-			Counts:    make(map[string]int),
-			Total:     0,
-		}
-		buckets = append(buckets, b)
-		bucketMap[t.Unix()] = &buckets[len(buckets)-1]
-	}
+	// Pre-create time buckets with exact capacity
+	buckets, bucketMap := InitStatsBuckets(since, until, bucketDuration)
 
 	maxScan := 20000
 	scanned := 0

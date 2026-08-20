@@ -92,3 +92,34 @@ func withMiddleware(next http.Handler, logger *slog.Logger) http.Handler {
 		)
 	})
 }
+
+// requireAuth returns middleware that enforces token authentication when auth is enabled.
+// Exempt routes: GET /api/v1/health, POST /api/v1/auth/login, GET /api/v1/auth/status.
+func requireAuth(d Deps) func(http.Handler) http.Handler {
+	exemptPaths := map[string]bool{
+		"GET /api/v1/health":      true,
+		"POST /api/v1/auth/login": true,
+		"GET /api/v1/auth/status": true,
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if d.Auth == nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+			key := r.Method + " " + r.URL.Path
+			if exemptPaths[key] {
+				next.ServeHTTP(w, r)
+				return
+			}
+			tok := extractToken(r)
+			if !d.Auth.Verify(tok) {
+				writeError(w, http.StatusUnauthorized,
+					map[string]string{"message": "authentication required"})
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+

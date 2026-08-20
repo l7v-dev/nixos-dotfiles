@@ -144,7 +144,7 @@ func (m *containerManager) GetContainer(ctx context.Context, id string) (*Contai
 			} `json:"Health"`
 		} `json:"State"`
 		Image           string `json:"Image"`
-		ImageID         string `json:"Image"`
+		ImageID         string `json:"ImageID"`
 		Name            string `json:"Name"`
 		RestartCount    int    `json:"RestartCount"`
 		Driver          string `json:"Driver"`

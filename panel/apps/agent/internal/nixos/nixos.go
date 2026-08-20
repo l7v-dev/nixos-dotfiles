@@ -136,14 +136,7 @@ func (c *systemNixOSClient) RunGarbageCollect(ctx context.Context, deleteOlderTh
 		outputStr += "\n" + stderr.String()
 	}
 
-	var freedMB uint64
-	// Match "... freeing 123.45 MiB" or "... deleted X bytes"
-	re := regexp.MustCompile(`([0-9.]+)\s+(?:MiB|MB|GiB|GB)\s+freed`)
-	if matches := re.FindStringSubmatch(outputStr); len(matches) > 1 {
-		if val, err := strconv.ParseFloat(matches[1], 64); err == nil {
-			freedMB = uint64(val)
-		}
-	}
+	freedMB := parseFreedMB(outputStr)
 
 	res := &MaintenanceResult{
 		Action:  "garbage_collection",
@@ -176,13 +169,7 @@ func (c *systemNixOSClient) RunStoreOptimise(ctx context.Context) (*MaintenanceR
 		outputStr += "\n" + stderr.String()
 	}
 
-	var freedMB uint64
-	re := regexp.MustCompile(`([0-9.]+)\s+(?:MiB|MB|GiB|GB)\s+freed`)
-	if matches := re.FindStringSubmatch(outputStr); len(matches) > 1 {
-		if val, err := strconv.ParseFloat(matches[1], 64); err == nil {
-			freedMB = uint64(val)
-		}
-	}
+	freedMB := parseFreedMB(outputStr)
 
 	res := &MaintenanceResult{
 		Action:  "store_optimise",
@@ -197,4 +184,36 @@ func (c *systemNixOSClient) RunStoreOptimise(ctx context.Context) (*MaintenanceR
 	}
 
 	return res, nil
+}
+
+// parseFreedMB parses various Nix store GC and optimise output formats to calculate freed space in MB.
+func parseFreedMB(output string) uint64 {
+	// Patterns like:
+	// "123.45 MiB freed" / "freed 123.45 MiB" / "123.45 MB freed" / "1.23 GiB freed" / "12345 bytes freed"
+	re := regexp.MustCompile(`(?i)(?:freed\s+)?([0-9.]+)\s*(bytes|b|kib|kb|mib|mb|gib|gb)\s*(?:freed)?`)
+	matches := re.FindAllStringSubmatch(output, -1)
+	if len(matches) == 0 {
+		return 0
+	}
+
+	// Use the last match (summary usually at the end)
+	lastMatch := matches[len(matches)-1]
+	val, err := strconv.ParseFloat(lastMatch[1], 64)
+	if err != nil {
+		return 0
+	}
+
+	unit := strings.ToLower(lastMatch[2])
+	switch {
+	case strings.HasPrefix(unit, "g"):
+		return uint64(val * 1024)
+	case strings.HasPrefix(unit, "m"):
+		return uint64(val)
+	case strings.HasPrefix(unit, "k"):
+		return uint64(val / 1024)
+	case strings.HasPrefix(unit, "b"):
+		return uint64(val / (1024 * 1024))
+	default:
+		return uint64(val)
+	}
 }

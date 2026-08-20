@@ -12,11 +12,13 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/coreos/go-systemd/v22/activation"
 	"github.com/l7v/panel-agent/internal/ai"
 	"github.com/l7v/panel-agent/internal/api"
+	"github.com/l7v/panel-agent/internal/apps"
 	"github.com/l7v/panel-agent/internal/audio"
 	"github.com/l7v/panel-agent/internal/auth"
 	"github.com/l7v/panel-agent/internal/containers"
@@ -128,6 +130,11 @@ func main() {
 
 	containerMgr := containers.NewManager(os.Getenv("PANEL_CONTAINER_SOCKET"), logger)
 
+	appsEngine := apps.NewEngine(systemd)
+	appsCtrl := apps.NewController(appsEngine, systemd)
+
+	allowedOrigins := parseAllowedOrigins(os.Getenv("PANEL_ALLOWED_ORIGINS"))
+
 	deps := api.Deps{
 		Systemd:          systemd,
 		Logind:           logind,
@@ -153,6 +160,9 @@ func main() {
 		PrometheusWidget: os.Getenv("PANEL_PROMETHEUS_WIDGET") == "1",
 		TerminalManager:  termManager,
 		ContainerManager: containerMgr,
+		AppsEngine:       appsEngine,
+		AppsController:   appsCtrl,
+		AllowedOrigins:   allowedOrigins,
 	}
 
 	srv := &http.Server{Handler: api.NewRouter(deps)}
@@ -210,4 +220,20 @@ func parseWoLHosts(raw string) map[string]string {
 		return hosts
 	}
 	return hosts
+}
+
+// parseAllowedOrigins parses PANEL_ALLOWED_ORIGINS env var (comma-separated origins).
+func parseAllowedOrigins(raw string) []string {
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	var result []string
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			result = append(result, p)
+		}
+	}
+	return result
 }

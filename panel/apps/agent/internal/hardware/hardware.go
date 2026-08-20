@@ -57,13 +57,17 @@ func (c *systemHardwareClient) GetStatus(ctx context.Context) (*Status, error) {
 	defer c.mu.Unlock()
 
 	status := &Status{
-		CPUTempC:          45.0,
+		CPUTempC:          0.0,
 		Sensors:           make([]ThermalSensor, 0),
 		Fans:              make([]FanSensor, 0),
 		PowerProfile:      "balanced",
 		CPUGovernor:       "powersave",
 		AvailableProfiles: []string{"performance", "balanced", "powersave"},
 	}
+
+	var bestCPUTemp float64
+	var bestCPUPriority int // 3: Package/Tctl/Tdie, 2: Core/CPU match, 1: generic sensor max
+	var maxSensorTemp float64
 
 	// 1. Read hwmon temperatures
 	hwmonDirs, _ := filepath.Glob("/sys/class/hwmon/hwmon*")
@@ -87,7 +91,7 @@ func (c *systemHardwareClient) GetStatus(ctx context.Context) (*Status, error) {
 
 			valBytes, err := os.ReadFile(inputPath)
 			if err == nil {
-				if milliC, err := strconv.ParseFloat(strings.TrimSpace(string(valBytes)), 64); err == nil {
+				if milliC, err := strconv.ParseFloat(strings.TrimSpace(string(valBytes)), 64); err == nil && milliC > 0 {
 					tempC := milliC / 1000.0
 					sensor := ThermalSensor{
 						Name:  sensorLabel,
@@ -96,20 +100,33 @@ func (c *systemHardwareClient) GetStatus(ctx context.Context) (*Status, error) {
 
 					critBytes, err := os.ReadFile(filepath.Join(dir, prefix+"_crit"))
 					if err == nil {
-						if critMilli, err := strconv.ParseFloat(strings.TrimSpace(string(critBytes)), 64); err == nil {
+						if critMilli, err := strconv.ParseFloat(strings.TrimSpace(string(critBytes)), 64); err == nil && critMilli > 0 {
 							sensor.Critical = critMilli / 1000.0
 						}
 					}
 
 					status.Sensors = append(status.Sensors, sensor)
 
-					// Best match for CPU temp
+					if tempC > maxSensorTemp {
+						maxSensorTemp = tempC
+					}
+
 					lowerName := strings.ToLower(sensorLabel)
-					if strings.Contains(lowerName, "cpu") || strings.Contains(lowerName, "tctl") || strings.Contains(lowerName, "core") || strings.Contains(lowerName, "k10temp") {
-						status.CPUTempC = tempC
-					} else if strings.Contains(lowerName, "gpu") || strings.Contains(lowerName, "amdgpu") || strings.Contains(lowerName, "edge") {
-						gpuVal := tempC
-						status.GPUTempC = &gpuVal
+					if strings.Contains(lowerName, "package id 0") || strings.Contains(lowerName, "tctl") || strings.Contains(lowerName, "tdie") {
+						if bestCPUPriority < 3 || tempC > bestCPUTemp {
+							bestCPUTemp = tempC
+							bestCPUPriority = 3
+						}
+					} else if strings.Contains(lowerName, "cpu") || strings.Contains(lowerName, "core") || strings.Contains(lowerName, "k10temp") {
+						if bestCPUPriority < 2 || (bestCPUPriority == 2 && tempC > bestCPUTemp) {
+							bestCPUTemp = tempC
+							bestCPUPriority = 2
+						}
+					} else if strings.Contains(lowerName, "gpu") || strings.Contains(lowerName, "amdgpu") || strings.Contains(lowerName, "nouveau") || strings.Contains(lowerName, "nvidia") || strings.Contains(lowerName, "edge") || strings.Contains(lowerName, "junction") {
+						if status.GPUTempC == nil || tempC > *status.GPUTempC {
+							gpuVal := tempC
+							status.GPUTempC = &gpuVal
+						}
 					}
 				}
 			}
@@ -132,7 +149,52 @@ func (c *systemHardwareClient) GetStatus(ctx context.Context) (*Status, error) {
 		}
 	}
 
-	// 2. Read CPU scaling governor
+	// 2. Fallback to /sys/class/thermal/thermal_zone* if no hwmon sensors or CPU temp not found
+	if len(status.Sensors) == 0 || bestCPUPriority == 0 {
+		tzDirs, _ := filepath.Glob("/sys/class/thermal/thermal_zone*")
+		for _, tzDir := range tzDirs {
+			typeBytes, _ := os.ReadFile(filepath.Join(tzDir, "type"))
+			tzType := strings.TrimSpace(string(typeBytes))
+			if tzType == "" {
+				tzType = filepath.Base(tzDir)
+			}
+
+			tempBytes, err := os.ReadFile(filepath.Join(tzDir, "temp"))
+			if err == nil {
+				if milliC, err := strconv.ParseFloat(strings.TrimSpace(string(tempBytes)), 64); err == nil && milliC > 0 {
+					tempC := milliC / 1000.0
+					sensor := ThermalSensor{
+						Name:  tzType,
+						TempC: tempC,
+					}
+					status.Sensors = append(status.Sensors, sensor)
+
+					if tempC > maxSensorTemp {
+						maxSensorTemp = tempC
+					}
+
+					lowerType := strings.ToLower(tzType)
+					if strings.Contains(lowerType, "x86_pkg_temp") || strings.Contains(lowerType, "cpu") || strings.Contains(lowerType, "soc") {
+						if bestCPUPriority < 2 || tempC > bestCPUTemp {
+							bestCPUTemp = tempC
+							bestCPUPriority = 2
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Resolve final CPU Temp
+	if bestCPUTemp > 0 {
+		status.CPUTempC = bestCPUTemp
+	} else if maxSensorTemp > 0 {
+		status.CPUTempC = maxSensorTemp
+	} else {
+		status.CPUTempC = 45.0 // fallback nominal if no sensors exist
+	}
+
+	// 3. Read CPU scaling governor
 	govBytes, err := os.ReadFile("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor")
 	if err == nil {
 		status.CPUGovernor = strings.TrimSpace(string(govBytes))
@@ -145,7 +207,7 @@ func (c *systemHardwareClient) GetStatus(ctx context.Context) (*Status, error) {
 		}
 	}
 
-	// 3. Read Energy Performance Preference (EPP) if available (AMD / Intel P-State)
+	// 4. Read Energy Performance Preference (EPP) if available (AMD / Intel P-State)
 	if eppBytes, err := os.ReadFile("/sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference"); err == nil {
 		epp := strings.TrimSpace(string(eppBytes))
 		if epp != "" {
@@ -161,7 +223,7 @@ func (c *systemHardwareClient) GetStatus(ctx context.Context) (*Status, error) {
 		}
 	}
 
-	// 4. Read ACPI Platform Profile if available (ASUS, Lenovo ThinkPad, Dell, Framework, etc.)
+	// 5. Read ACPI Platform Profile if available (ASUS, Lenovo ThinkPad, Dell, Framework, etc.)
 	if platBytes, err := os.ReadFile("/sys/firmware/acpi/platform_profile"); err == nil {
 		plat := strings.TrimSpace(string(platBytes))
 		if plat != "" {
@@ -177,7 +239,7 @@ func (c *systemHardwareClient) GetStatus(ctx context.Context) (*Status, error) {
 		}
 	}
 
-	// 5. Query powerprofilesctl if active
+	// 6. Query powerprofilesctl if active
 	if _, err := exec.LookPath("powerprofilesctl"); err == nil {
 		cmd := exec.CommandContext(ctx, "powerprofilesctl", "get")
 		if out, err := cmd.Output(); err == nil {
@@ -193,7 +255,7 @@ func (c *systemHardwareClient) GetStatus(ctx context.Context) (*Status, error) {
 		}
 	}
 
-	// 6. Check auto-cpufreq service active state (only if actually active service)
+	// 7. Check auto-cpufreq service active state (only if actually active service)
 	if isAutoCpuFreqActive(ctx) {
 		status.PowerProfile = "auto"
 		if !contains(status.AvailableProfiles, "auto") {
@@ -237,7 +299,12 @@ func (c *systemHardwareClient) SetPowerProfile(ctx context.Context, profile stri
 		ppdProfile = "balanced"
 	}
 
-	// 1. Set ACPI platform profile if supported
+	// 1. If powerprofilesctl is available, prioritize notifying power-profiles-daemon over D-Bus
+	if _, err := exec.LookPath("powerprofilesctl"); err == nil {
+		_ = exec.CommandContext(ctx, "powerprofilesctl", "set", ppdProfile).Run()
+	}
+
+	// 2. Set ACPI platform profile if supported
 	if _, err := os.Stat("/sys/firmware/acpi/platform_profile"); err == nil {
 		// Read available choices to pick exact matching string
 		if choicesBytes, err := os.ReadFile("/sys/firmware/acpi/platform_profile_choices"); err == nil {
@@ -249,21 +316,16 @@ func (c *systemHardwareClient) SetPowerProfile(ctx context.Context, profile stri
 		_ = os.WriteFile("/sys/firmware/acpi/platform_profile", []byte(platformProfile), 0644)
 	}
 
-	// 2. Set energy_performance_preference for all CPUs if available
+	// 3. Set energy_performance_preference for all CPUs if available
 	eppFiles, _ := filepath.Glob("/sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference")
 	for _, f := range eppFiles {
 		_ = os.WriteFile(f, []byte(epp), 0644)
 	}
 
-	// 3. Set scaling_governor for all CPUs
+	// 4. Set scaling_governor for all CPUs
 	govFiles, _ := filepath.Glob("/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor")
 	for _, f := range govFiles {
 		_ = os.WriteFile(f, []byte(governor), 0644)
-	}
-
-	// 4. If powerprofilesctl is available, also notify it
-	if _, err := exec.LookPath("powerprofilesctl"); err == nil {
-		_ = exec.CommandContext(ctx, "powerprofilesctl", "set", ppdProfile).Run()
 	}
 
 	return nil

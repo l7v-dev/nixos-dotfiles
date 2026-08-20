@@ -190,3 +190,62 @@ func TestRebuildJobManager(t *testing.T) {
 		t.Fatal("timeout waiting for broadcast")
 	}
 }
+
+func TestParseDiffClosuresOutput_WithANSI(t *testing.T) {
+	coloredOutput := "\x1b[32mdelve\x1b[0m: \x1b[32m∅\x1b[0m → \x1b[32m1.27.1\x1b[0m, \x1b[32m30.8 MiB\x1b[0m\n" +
+		"panel-agent: \x1b[31;1m12.0 KiB\x1b[0m\n" +
+		"claude-code: \x1b[33m1.0.0\x1b[0m → \x1b[32m2.0.0\x1b[0m, \x1b[32m5.2 KiB\x1b[0m\n"
+
+	diff := parseDiffClosuresOutput(coloredOutput)
+
+	if diff.Summary.AddedCount != 1 {
+		t.Errorf("expected 1 added, got %d", diff.Summary.AddedCount)
+	}
+	if diff.Summary.RebuiltCount != 1 {
+		t.Errorf("expected 1 rebuilt (panel-agent), got %d", diff.Summary.RebuiltCount)
+	}
+	if diff.Summary.UpdatedCount != 1 {
+		t.Errorf("expected 1 updated (claude-code), got %d", diff.Summary.UpdatedCount)
+	}
+
+	for _, item := range diff.Items {
+		if item.Name == "panel-agent" {
+			if item.ChangeType != "rebuilt" || item.SizeDelta != "12.0 KiB" {
+				t.Errorf("panel-agent ANSI mismatch: %+v", item)
+			}
+		}
+	}
+}
+
+func TestParseFreedMB(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected uint64
+	}{
+		{"123.45 MiB freed", 123},
+		{"freed 2.5 GiB", 2560},
+		{"104857600 bytes freed", 100},
+		{"51200 KiB freed", 50},
+		{"no garbage collected", 0},
+	}
+
+	for _, tt := range tests {
+		got := parseFreedMB(tt.input)
+		if got != tt.expected {
+			t.Errorf("parseFreedMB(%q) = %d; want %d", tt.input, got, tt.expected)
+		}
+	}
+}
+
+func TestParseGenerationNumbers(t *testing.T) {
+	from, to := ParseGenerationNumbers("10", "15", 20)
+	if from != 10 || to != 15 {
+		t.Errorf("expected from=10 to=15, got from=%d to=%d", from, to)
+	}
+
+	fromDef, toDef := ParseGenerationNumbers("", "", 20)
+	if fromDef != 19 || toDef != 20 {
+		t.Errorf("expected default from=19 to=20, got from=%d to=%d", fromDef, toDef)
+	}
+}
+

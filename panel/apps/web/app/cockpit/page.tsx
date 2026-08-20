@@ -6,24 +6,18 @@ import { QuickControlsRail, CockpitModuleId } from "@/components/cockpit/QuickCo
 import { SystemVitalsHUD } from "@/components/cockpit/SystemVitalsHUD";
 import { WifiCard } from "@/components/cockpit/WifiCard";
 import { BluetoothCard } from "@/components/cockpit/BluetoothCard";
-import { AudioCard } from "@/components/cockpit/AudioCard";
-import { DisplayCard } from "@/components/cockpit/DisplayCard";
-import { HardwareCard } from "@/components/cockpit/HardwareCard";
 import { NixOSCard } from "@/components/cockpit/NixOSCard";
 import { SecurityCard } from "@/components/cockpit/SecurityCard";
 import { StorageCard } from "@/components/cockpit/StorageCard";
 import { AIAgentCard } from "@/components/cockpit/AIAgentCard";
 import {
     Heart, LayoutGrid, SlidersHorizontal,
-    ChevronLeft, Radio, ArrowLeft,
-    Wifi, Bluetooth, Volume2, Zap, Flame, Shield,
+    Wifi, Bluetooth, Shield,
     Layers, HardDrive, Sparkles,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-type CockpitTab = "all" | "hardware" | "network" | "system" | "ai";
+type CockpitTab = "all" | "wireless" | "infrastructure" | "ai";
 type CockpitViewMode = "station" | "deck";
 
 export default function CockpitPage() {
@@ -32,23 +26,16 @@ export default function CockpitPage() {
     const [viewMode, setViewMode] = useState<CockpitViewMode>("station");
     const [deckTab, setDeckTab] = useState<CockpitTab>("all");
 
-    // Module name map for breadcrumb
+    // Module name map for breadcrumbs and cognitive indexing
     const MODULE_META: Record<CockpitModuleId, { title: string; category: string; icon: React.ComponentType<{ className?: string }> }> = {
-        vitals: { title: "System Vitals & Heartbeat HUD", category: "Telemetry", icon: Heart },
-        wifi: { title: "Wi-Fi & Wireless Interface", category: "Connectivity", icon: Wifi },
-        bluetooth: { title: "Bluetooth & Peripheral Mesh", category: "Connectivity", icon: Bluetooth },
-        vpn: { title: "Tailscale Mesh & Security", category: "Connectivity", icon: Shield },
-        hardware: { title: "Thermal & Compute Telemetry", category: "Hardware", icon: Flame },
-        display: { title: "Display & Night Light Engine", category: "Hardware", icon: SlidersHorizontal },
-        audio: { title: "Audio & PipeWire Streams", category: "Media", icon: Volume2 },
-        mic: { title: "Microphone & Input Streams", category: "Media", icon: Volume2 },
-        nixos: { title: "NixOS Generations & Store Engine", category: "System", icon: Layers },
-        storage: { title: "Storage Volumes & Snapshots", category: "System", icon: HardDrive },
-        ai: { title: "AI Agent Hub & Sandboxes", category: "Platform", icon: Sparkles },
+        vitals: { title: "System Vitals Master Avionics HUD", category: "Telemetry & Environment", icon: Heart },
+        wifi: { title: "Wi-Fi & Wireless Interface", category: "Wireless & Mesh", icon: Wifi },
+        bluetooth: { title: "Bluetooth & Peripheral Mesh", category: "Wireless & Mesh", icon: Bluetooth },
+        nixos: { title: "NixOS Generations & Store Engine", category: "Declarative Infrastructure", icon: Layers },
+        storage: { title: "Storage Volumes & Snapshots", category: "Declarative Infrastructure", icon: HardDrive },
+        security: { title: "Security, SOPS & Firewall", category: "Declarative Infrastructure", icon: Shield },
+        ai: { title: "AI Agent Hub & Sandboxes", category: "Platform Intelligence", icon: Sparkles },
     };
-
-    const currentMeta = MODULE_META[selectedModule] ?? MODULE_META.vitals;
-    const CurrentIcon = currentMeta.icon;
 
     return (
         <div className="mx-auto max-w-7xl space-y-4 pb-12 font-sans">
@@ -59,7 +46,7 @@ export default function CockpitPage() {
                     <div>
                         <h1 className="text-base font-bold text-foreground">Cockpit Telemetry & Controls</h1>
                         <p className="text-[11px] text-muted-foreground font-mono">
-                            Target Node: <strong className="text-foreground">{host}</strong> · Live Telemetry Bus
+                            Target Node: <strong className="text-foreground">{host}</strong> · Active Avionics Bus
                         </p>
                     </div>
                 </div>
@@ -98,11 +85,10 @@ export default function CockpitPage() {
                     {viewMode === "deck" && (
                         <div className="flex items-center gap-1 rounded-xl border border-border/80 bg-muted/40 p-1 text-xs">
                             {[
-                                { id: "all", label: "All" },
-                                { id: "hardware", label: "Compute" },
-                                { id: "network", label: "Network" },
-                                { id: "system", label: "System" },
-                                { id: "ai", label: "AI" },
+                                { id: "all", label: "All Hubs" },
+                                { id: "wireless", label: "Wireless" },
+                                { id: "infrastructure", label: "Infrastructure" },
+                                { id: "ai", label: "AI Fleet" },
                             ].map((t) => (
                                 <button
                                     key={t.id}
@@ -133,19 +119,14 @@ export default function CockpitPage() {
 
                     {/* Right Column: Companion Card Stage / Embedded Vitals HUD */}
                     <main className="flex-1 min-w-0 w-full space-y-4">
-
-                        {/* Active Companion Stage Content */}
                         {selectedModule === "vitals" && (
                             <SystemVitalsHUD onSelectModule={(id) => setSelectedModule(id as CockpitModuleId)} />
                         )}
                         {selectedModule === "wifi" && <WifiCard />}
                         {selectedModule === "bluetooth" && <BluetoothCard />}
-                        {selectedModule === "vpn" && <SecurityCard />}
-                        {selectedModule === "hardware" && <HardwareCard />}
-                        {selectedModule === "display" && <DisplayCard />}
-                        {(selectedModule === "audio" || selectedModule === "mic") && <AudioCard />}
                         {selectedModule === "nixos" && <NixOSCard />}
                         {selectedModule === "storage" && <StorageCard />}
+                        {selectedModule === "security" && <SecurityCard />}
                         {selectedModule === "ai" && <AIAgentCard />}
                     </main>
                 </div>
@@ -155,43 +136,30 @@ export default function CockpitPage() {
             {viewMode === "deck" && (
                 <div className="space-y-5">
                     {deckTab === "all" && (
-                        <div className="grid gap-5 lg:grid-cols-2">
-                            {/* Left Column */}
-                            <div className="space-y-5">
-                                <HardwareCard />
-                                <NixOSCard />
-                                <StorageCard />
-                                <AIAgentCard />
-                            </div>
-
-                            {/* Right Column */}
-                            <div className="space-y-5">
-                                <WifiCard />
-                                <BluetoothCard />
-                                <AudioCard />
-                                <DisplayCard />
-                                <SecurityCard />
-                            </div>
-                        </div>
-                    )}
-
-                    {deckTab === "hardware" && (
-                        <div className="grid gap-5 lg:grid-cols-2">
-                            <div className="space-y-5">
-                                <HardwareCard />
-                            </div>
-                            <div className="space-y-5">
-                                <AudioCard />
-                                <DisplayCard />
+                        <div className="space-y-5">
+                            <SystemVitalsHUD onSelectModule={(id) => {
+                                setViewMode("station");
+                                setSelectedModule(id as CockpitModuleId);
+                            }} />
+                            <div className="grid gap-5 lg:grid-cols-2">
+                                <div className="space-y-5">
+                                    <NixOSCard />
+                                    <StorageCard />
+                                    <SecurityCard />
+                                </div>
+                                <div className="space-y-5">
+                                    <WifiCard />
+                                    <BluetoothCard />
+                                    <AIAgentCard />
+                                </div>
                             </div>
                         </div>
                     )}
 
-                    {deckTab === "network" && (
+                    {deckTab === "wireless" && (
                         <div className="grid gap-5 lg:grid-cols-2">
                             <div className="space-y-5">
                                 <WifiCard />
-                                <SecurityCard />
                             </div>
                             <div className="space-y-5">
                                 <BluetoothCard />
@@ -199,11 +167,14 @@ export default function CockpitPage() {
                         </div>
                     )}
 
-                    {deckTab === "system" && (
+                    {deckTab === "infrastructure" && (
                         <div className="grid gap-5 lg:grid-cols-2">
                             <div className="space-y-5">
                                 <NixOSCard />
                                 <StorageCard />
+                            </div>
+                            <div className="space-y-5">
+                                <SecurityCard />
                             </div>
                         </div>
                     )}
@@ -214,7 +185,7 @@ export default function CockpitPage() {
                                 <AIAgentCard />
                             </div>
                             <div className="space-y-5">
-                                <HardwareCard />
+                                <NixOSCard />
                             </div>
                         </div>
                     )}

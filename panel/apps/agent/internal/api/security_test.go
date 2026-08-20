@@ -53,6 +53,9 @@ func (m *mockSecurityClient) BanIP(ctx context.Context, jail string, ip string) 
 }
 
 func TestSecurityAndAuthEndpoints(t *testing.T) {
+	t.Setenv("PANEL_AUTH_PIN", "1707")
+	t.Setenv("PANEL_AUTH_PASSWORD", "")
+
 	mockSec := &mockSecurityClient{
 		status: &security.Status{
 			VPN: security.VPNTunnel{
@@ -98,70 +101,15 @@ func TestSecurityAndAuthEndpoints(t *testing.T) {
 		Auth:     authMgr,
 	})
 
-	// 1. GET /api/v1/security/status
+	// 1. GET /api/v1/auth/status (exempt)
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "/api/v1/security/status", nil)
-	router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rec.Code)
-	}
-
-	// 2. GET /api/v1/security/audit
-	rec = httptest.NewRecorder()
-	req = httptest.NewRequest("GET", "/api/v1/security/audit", nil)
-	router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", rec.Code)
-	}
-	var auditRep security.SecurityAuditReport
-	_ = json.Unmarshal(rec.Body.Bytes(), &auditRep)
-	if auditRep.Score != 95 || auditRep.Grade != "A+" {
-		t.Fatalf("unexpected audit report: %+v", auditRep)
-	}
-
-	// 3. GET /api/v1/security/secrets
-	rec = httptest.NewRecorder()
-	req = httptest.NewRequest("GET", "/api/v1/security/secrets", nil)
-	router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200 on secrets, got %d", rec.Code)
-	}
-	var secResp struct {
-		Secrets []security.SecretMetadata `json:"secrets"`
-		Total   int                       `json:"total"`
-	}
-	_ = json.Unmarshal(rec.Body.Bytes(), &secResp)
-	if secResp.Total != 2 || len(secResp.Secrets) != 2 {
-		t.Fatalf("expected 2 secrets, got %+v", secResp)
-	}
-
-	// 4. POST /api/v1/security/fail2ban/ban
-	banPayload, _ := json.Marshal(map[string]string{"jail": "sshd", "ip": "10.0.0.99"})
-	rec = httptest.NewRecorder()
-	req = httptest.NewRequest("POST", "/api/v1/security/fail2ban/ban", bytes.NewReader(banPayload))
-	router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200 on ban, got %d", rec.Code)
-	}
-
-	// 5. POST /api/v1/security/fail2ban/unban
-	unbanPayload, _ := json.Marshal(map[string]string{"jail": "sshd", "ip": "192.168.1.50"})
-	rec = httptest.NewRecorder()
-	req = httptest.NewRequest("POST", "/api/v1/security/fail2ban/unban", bytes.NewReader(unbanPayload))
-	router.ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected 200 on unban, got %d", rec.Code)
-	}
-
-	// 6. GET /api/v1/auth/status
-	rec = httptest.NewRecorder()
-	req = httptest.NewRequest("GET", "/api/v1/auth/status", nil)
+	req := httptest.NewRequest("GET", "/api/v1/auth/status", nil)
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on auth status, got %d", rec.Code)
 	}
 
-	// 7. POST /api/v1/auth/login
+	// 2. POST /api/v1/auth/login (exempt)
 	loginPayload, _ := json.Marshal(map[string]string{"pin": "1707"})
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest("POST", "/api/v1/auth/login", bytes.NewReader(loginPayload))
@@ -175,12 +123,109 @@ func TestSecurityAndAuthEndpoints(t *testing.T) {
 		t.Fatal("expected token on login response")
 	}
 
-	// 8. POST /api/v1/auth/verify
+	// 3. POST /api/v1/auth/verify (with token)
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest("POST", "/api/v1/auth/verify", nil)
 	req.Header.Set("Authorization", "Bearer "+sess.Token)
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on auth verify, got %d", rec.Code)
+	}
+
+	// 4. GET /api/v1/security/status (protected)
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("GET", "/api/v1/security/status", nil)
+	req.Header.Set("Authorization", "Bearer "+sess.Token)
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	// 5. GET /api/v1/security/audit (protected)
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("GET", "/api/v1/security/audit", nil)
+	req.Header.Set("Authorization", "Bearer "+sess.Token)
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var auditRep security.SecurityAuditReport
+	_ = json.Unmarshal(rec.Body.Bytes(), &auditRep)
+	if auditRep.Score != 95 || auditRep.Grade != "A+" {
+		t.Fatalf("unexpected audit report: %+v", auditRep)
+	}
+
+	// 6. GET /api/v1/security/secrets (protected)
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("GET", "/api/v1/security/secrets", nil)
+	req.Header.Set("Authorization", "Bearer "+sess.Token)
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on secrets, got %d", rec.Code)
+	}
+	var secResp struct {
+		Secrets []security.SecretMetadata `json:"secrets"`
+		Total   int                       `json:"total"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &secResp)
+	if secResp.Total != 2 || len(secResp.Secrets) != 2 {
+		t.Fatalf("expected 2 secrets, got %+v", secResp)
+	}
+
+	// 7. POST /api/v1/security/fail2ban/ban (protected)
+	banPayload, _ := json.Marshal(map[string]string{"jail": "sshd", "ip": "10.0.0.99"})
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("POST", "/api/v1/security/fail2ban/ban", bytes.NewReader(banPayload))
+	req.Header.Set("Authorization", "Bearer "+sess.Token)
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on ban, got %d", rec.Code)
+	}
+
+	// 8. POST /api/v1/security/fail2ban/unban (protected)
+	unbanPayload, _ := json.Marshal(map[string]string{"jail": "sshd", "ip": "192.168.1.50"})
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("POST", "/api/v1/security/fail2ban/unban", bytes.NewReader(unbanPayload))
+	req.Header.Set("Authorization", "Bearer "+sess.Token)
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on unban, got %d", rec.Code)
+	}
+}
+
+func TestAuthLoginRateLimit_429LockedOut(t *testing.T) {
+	t.Setenv("PANEL_AUTH_PIN", "mypass123")
+	t.Setenv("PANEL_AUTH_MAX_ATTEMPTS", "3")
+	t.Setenv("PANEL_AUTH_LOCKOUT_DURATION", "5m")
+
+	authMgr := auth.NewManager()
+	router := NewRouter(Deps{Auth: authMgr})
+
+	wrongPayload, _ := json.Marshal(map[string]string{"pin": "wrong"})
+
+	// 3 failed logins from same client IP
+	for i := 1; i <= 3; i++ {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest("POST", "/api/v1/auth/login", bytes.NewReader(wrongPayload))
+		req.RemoteAddr = "10.10.10.10:12345"
+		router.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Fatalf("attempt %d: expected 401 Unauthorized, got %d", i, rec.Code)
+		}
+	}
+
+	// 4th login attempt must return HTTP 429 Too Many Requests and Retry-After header
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/api/v1/auth/login", bytes.NewReader(wrongPayload))
+	req.RemoteAddr = "10.10.10.10:12345"
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("expected 429 Too Many Requests on lockout, got %d (body: %s)", rec.Code, rec.Body.String())
+	}
+
+	if rec.Header().Get("Retry-After") == "" {
+		t.Fatalf("expected non-empty Retry-After header on 429 response")
 	}
 }

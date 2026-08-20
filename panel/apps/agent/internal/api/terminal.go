@@ -243,7 +243,7 @@ func terminalWSHandler(d Deps) http.HandlerFunc {
 			}
 		}
 
-		terminal.HandleWebSocket(w, r, session, d.Logger)
+		terminal.HandleWebSocket(w, r, session, d.AllowedOrigins, d.Logger)
 	}
 }
 
@@ -262,7 +262,7 @@ func terminalDefaultWSHandler(d Deps) http.HandlerFunc {
 			return
 		}
 
-		terminal.HandleWebSocket(w, r, session, d.Logger)
+		terminal.HandleWebSocket(w, r, session, d.AllowedOrigins, d.Logger)
 	}
 }
 

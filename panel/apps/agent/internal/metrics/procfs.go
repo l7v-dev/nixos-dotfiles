@@ -20,26 +20,37 @@ func NewProcfsReader() ProcfsReader {
 	return &procfsReader{}
 }
 
-// ReadSnapshot takes two CPU samples 1 second apart and returns a complete MetricsSnapshot.
+// ReadSnapshot samples CPU and network across a single shared 1-second window and returns a complete MetricsSnapshot.
 func (p *procfsReader) ReadSnapshot(ctx context.Context) (MetricsSnapshot, error) {
-	// CPU: two samples with a 1-second window.
+	// Take both pre-sleep samples before waiting.
 	cpu1, err := readCPUStat()
 	if err != nil {
 		return MetricsSnapshot{}, fmt.Errorf("read /proc/stat: %w", err)
 	}
+	net1, err := readNetDev()
+	if err != nil {
+		return MetricsSnapshot{}, fmt.Errorf("read /proc/net/dev: %w", err)
+	}
 
+	// Single shared 1-second window for both CPU and network delta.
 	select {
 	case <-time.After(time.Second):
 	case <-ctx.Done():
 		return MetricsSnapshot{}, ctx.Err()
 	}
 
+	// Post-sleep samples — both happen after the same wait.
 	cpu2, err := readCPUStat()
 	if err != nil {
 		return MetricsSnapshot{}, fmt.Errorf("read /proc/stat: %w", err)
 	}
+	net2, err := readNetDev()
+	if err != nil {
+		return MetricsSnapshot{}, fmt.Errorf("read /proc/net/dev: %w", err)
+	}
 
 	cpuPct := computeCPUPct(cpu1, cpu2)
+	netStats := computeNetStats(net1, net2)
 
 	mem, err := readMemInfo()
 	if err != nil {
@@ -50,24 +61,6 @@ func (p *procfsReader) ReadSnapshot(ctx context.Context) (MetricsSnapshot, error
 	if err != nil {
 		return MetricsSnapshot{}, fmt.Errorf("read disk stats: %w", err)
 	}
-
-	net1, err := readNetDev()
-	if err != nil {
-		return MetricsSnapshot{}, fmt.Errorf("read /proc/net/dev: %w", err)
-	}
-
-	select {
-	case <-time.After(time.Second):
-	case <-ctx.Done():
-		return MetricsSnapshot{}, ctx.Err()
-	}
-
-	net2, err := readNetDev()
-	if err != nil {
-		return MetricsSnapshot{}, fmt.Errorf("read /proc/net/dev: %w", err)
-	}
-
-	netStats := computeNetStats(net1, net2)
 
 	return MetricsSnapshot{
 		CPU:       CPUStats{UsagePct: cpuPct},

@@ -3,7 +3,9 @@ package terminal
 import (
 	"encoding/json"
 	"log/slog"
+	"net"
 	"net/http"
+	"strings"
 	"syscall"
 	"time"
 
@@ -17,13 +19,60 @@ const (
 	maxMessageSize = 1024 * 1024 // 1MB max frame
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  8192,
-	WriteBufferSize: 8192,
-	CheckOrigin: func(r *http.Request) bool {
-		// Allow local origins and reverse-proxy forwarded origins
-		return true
-	},
+// NewUpgrader returns a websocket.Upgrader that validates the Origin header against
+// allowedOrigins (exact strings) plus the request's own Host and localhost variants.
+func NewUpgrader(allowedOrigins []string) websocket.Upgrader {
+	allowed := make(map[string]bool, len(allowedOrigins))
+	for _, o := range allowedOrigins {
+		o = strings.TrimSpace(o)
+		if o != "" {
+			allowed[o] = true
+		}
+	}
+
+	return websocket.Upgrader{
+		ReadBufferSize:  8192,
+		WriteBufferSize: 8192,
+		CheckOrigin: func(r *http.Request) bool {
+			origin := r.Header.Get("Origin")
+			if origin == "" {
+				// No Origin header — same-origin tool or non-browser client; allow.
+				return true
+			}
+			host := r.Host
+			// Allow same-origin (http and https variants).
+			if origin == "http://"+host || origin == "https://"+host {
+				return true
+			}
+			// Allow localhost development origins.
+			for _, local := range localhostOrigins(r) {
+				if origin == local {
+					return true
+				}
+			}
+			// Allow explicitly configured origins.
+			if allowed[origin] {
+				return true
+			}
+			slog.Warn("websocket origin rejected", "origin", origin, "host", host)
+			return false
+		},
+	}
+}
+
+// localhostOrigins returns localhost variants on the same port as the request.
+func localhostOrigins(r *http.Request) []string {
+	_, port, _ := net.SplitHostPort(r.Host)
+	if port == "" {
+		return []string{
+			"http://localhost", "https://localhost",
+			"http://127.0.0.1", "https://127.0.0.1",
+		}
+	}
+	return []string{
+		"http://localhost:" + port, "https://localhost:" + port,
+		"http://127.0.0.1:" + port, "https://127.0.0.1:" + port,
+	}
 }
 
 // InboundWSMessage represents messages received from the browser terminal client.
@@ -49,11 +98,12 @@ type OutboundWSMessage struct {
 }
 
 // HandleWebSocket manages a bidirectional WebSocket connection to a terminal session.
-func HandleWebSocket(w http.ResponseWriter, r *http.Request, session *Session, logger *slog.Logger) {
+func HandleWebSocket(w http.ResponseWriter, r *http.Request, session *Session, allowedOrigins []string, logger *slog.Logger) {
 	if logger == nil {
 		logger = slog.Default()
 	}
 
+	upgrader := NewUpgrader(allowedOrigins)
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		logger.Error("websocket upgrade failed", "err", err)

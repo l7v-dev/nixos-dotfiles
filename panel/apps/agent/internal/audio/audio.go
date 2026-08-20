@@ -22,14 +22,14 @@ type AudioDevice struct {
 
 // AudioStatus contains full audio volume, mute and device information.
 type AudioStatus struct {
-	OutputVolume int           `json:"output_volume"` // 0-150%
-	OutputMuted  bool          `json:"output_muted"`
-	InputVolume  int           `json:"input_volume"`  // 0-100%
-	InputMuted   bool          `json:"input_muted"`
-	DefaultSink  string        `json:"default_sink"`
-	DefaultSource string       `json:"default_source"`
-	Sinks        []AudioDevice `json:"sinks"`
-	Sources      []AudioDevice `json:"sources"`
+	OutputVolume  int           `json:"output_volume"` // 0-150%
+	OutputMuted   bool          `json:"output_muted"`
+	InputVolume   int           `json:"input_volume"`  // 0-100%
+	InputMuted    bool          `json:"input_muted"`
+	DefaultSink   string        `json:"default_sink"`
+	DefaultSource string        `json:"default_source"`
+	Sinks         []AudioDevice `json:"sinks"`
+	Sources       []AudioDevice `json:"sources"`
 }
 
 // Client defines the interface for audio operations.
@@ -55,12 +55,14 @@ func (c *systemAudioClient) GetStatus(ctx context.Context) (*AudioStatus, error)
 	defer c.mu.Unlock()
 
 	status := &AudioStatus{
-		OutputVolume: 70,
-		OutputMuted:  false,
-		InputVolume:  80,
-		InputMuted:   false,
-		Sinks:        make([]AudioDevice, 0),
-		Sources:      make([]AudioDevice, 0),
+		OutputVolume:  70,
+		OutputMuted:   false,
+		InputVolume:   80,
+		InputMuted:    false,
+		DefaultSink:   "@DEFAULT_AUDIO_SINK@",
+		DefaultSource: "@DEFAULT_AUDIO_SOURCE@",
+		Sinks:         make([]AudioDevice, 0),
+		Sources:       make([]AudioDevice, 0),
 	}
 
 	// 1. Try wpctl (PipeWire / WirePlumber default on modern NixOS)
@@ -69,24 +71,30 @@ func (c *systemAudioClient) GetStatus(ctx context.Context) (*AudioStatus, error)
 		return status, nil
 	}
 
-	// 2. Try pamixer / pactl fallback
+	// 2. Try pamixer
 	if _, err := exec.LookPath("pamixer"); err == nil {
 		c.queryPamixer(ctx, status)
 		return status, nil
 	}
 
-	// Default fallback if no CLI is installed yet (dev or minimal server)
+	// 3. Try pactl fallback
+	if _, err := exec.LookPath("pactl"); err == nil {
+		c.queryPactl(ctx, status)
+		return status, nil
+	}
+
+	// Default fallback if no audio CLI is found
 	status.Sinks = append(status.Sinks, AudioDevice{
 		ID:          "@DEFAULT_AUDIO_SINK@",
-		Name:        "Default Output",
-		Description: "System Default Output",
+		Name:        "Default Speaker / Headset",
+		Description: "PipeWire Virtual Sink",
 		IsDefault:   true,
 		Type:        "sink",
 	})
 	status.Sources = append(status.Sources, AudioDevice{
 		ID:          "@DEFAULT_AUDIO_SOURCE@",
 		Name:        "Default Microphone",
-		Description: "System Default Input",
+		Description: "PipeWire Virtual Source",
 		IsDefault:   true,
 		Type:        "source",
 	})
@@ -134,23 +142,38 @@ func parseWpctlStatus(raw string, status *AudioStatus) {
 	section := ""
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "Sinks:") {
+
+		// Detect section start
+		if strings.Contains(trimmed, "Sinks:") && !strings.Contains(trimmed, "Sink endpoints:") {
 			section = "sinks"
 			continue
-		} else if strings.HasPrefix(trimmed, "Sources:") {
+		} else if strings.Contains(trimmed, "Sources:") && !strings.Contains(trimmed, "Source endpoints:") {
 			section = "sources"
 			continue
-		} else if strings.HasPrefix(trimmed, "Filters:") || strings.HasPrefix(trimmed, "Streams:") || strings.HasPrefix(trimmed, "Audio") {
+		} else if strings.Contains(trimmed, "Sink endpoints:") || strings.Contains(trimmed, "Filters:") ||
+			strings.Contains(trimmed, "Streams:") || strings.Contains(trimmed, "Video") ||
+			strings.Contains(trimmed, "Settings") {
 			section = ""
+			continue
 		}
 
 		if section == "sinks" || section == "sources" {
 			isDefault := strings.Contains(line, "*")
+
+			// Match: "48. Built-in Audio Analog Stereo [vol: 0.65]" or "48. Name"
 			re := regexp.MustCompile(`(\d+)\.\s+(.*?)(?:\s+\[vol:|$)`)
 			matches := re.FindStringSubmatch(line)
 			if len(matches) > 2 {
 				id := strings.TrimSpace(matches[1])
 				desc := strings.TrimSpace(matches[2])
+				// Clean trailing brackets if any
+				if idx := strings.Index(desc, "["); idx != -1 {
+					desc = strings.TrimSpace(desc[:idx])
+				}
+				if desc == "" {
+					desc = fmt.Sprintf("Audio Device %s", id)
+				}
+
 				dev := AudioDevice{
 					ID:          id,
 					Name:        desc,
@@ -185,6 +208,45 @@ func (c *systemAudioClient) queryPamixer(ctx context.Context, status *AudioStatu
 	if out, err := exec.CommandContext(ctx, "pamixer", "--get-mute").Output(); err == nil {
 		status.OutputMuted = strings.TrimSpace(string(out)) == "true"
 	}
+	if out, err := exec.CommandContext(ctx, "pamixer", "--default-source", "--get-volume").Output(); err == nil {
+		if v, err := strconv.Atoi(strings.TrimSpace(string(out))); err == nil {
+			status.InputVolume = v
+		}
+	}
+	if out, err := exec.CommandContext(ctx, "pamixer", "--default-source", "--get-mute").Output(); err == nil {
+		status.InputMuted = strings.TrimSpace(string(out)) == "true"
+	}
+}
+
+func (c *systemAudioClient) queryPactl(ctx context.Context, status *AudioStatus) {
+	// Query default sink volume
+	if out, err := exec.CommandContext(ctx, "pactl", "get-sink-volume", "@DEFAULT_SINK@").Output(); err == nil {
+		re := regexp.MustCompile(`/\s*(\d+)%\s*/`)
+		m := re.FindStringSubmatch(string(out))
+		if len(m) > 1 {
+			if v, err := strconv.Atoi(m[1]); err == nil {
+				status.OutputVolume = v
+			}
+		}
+	}
+	// Query default sink mute
+	if out, err := exec.CommandContext(ctx, "pactl", "get-sink-mute", "@DEFAULT_SINK@").Output(); err == nil {
+		status.OutputMuted = strings.Contains(strings.ToLower(string(out)), "yes")
+	}
+	// Query default source volume
+	if out, err := exec.CommandContext(ctx, "pactl", "get-source-volume", "@DEFAULT_SOURCE@").Output(); err == nil {
+		re := regexp.MustCompile(`/\s*(\d+)%\s*/`)
+		m := re.FindStringSubmatch(string(out))
+		if len(m) > 1 {
+			if v, err := strconv.Atoi(m[1]); err == nil {
+				status.InputVolume = v
+			}
+		}
+	}
+	// Query default source mute
+	if out, err := exec.CommandContext(ctx, "pactl", "get-source-mute", "@DEFAULT_SOURCE@").Output(); err == nil {
+		status.InputMuted = strings.Contains(strings.ToLower(string(out)), "yes")
+	}
 }
 
 // SetVolume updates the audio volume for sink or source.
@@ -209,7 +271,8 @@ func (c *systemAudioClient) SetVolume(ctx context.Context, target string, volume
 
 	if _, err := exec.LookPath("wpctl"); err == nil {
 		fraction := fmt.Sprintf("%.2f", float64(volumePct)/100.0)
-		cmd := exec.CommandContext(ctx, "wpctl", "set-volume", targetDevice, fraction)
+		// Use -l 1.5 to allow volume boost above 100% up to 150%
+		cmd := exec.CommandContext(ctx, "wpctl", "set-volume", "-l", "1.5", targetDevice, fraction)
 		var stderr bytes.Buffer
 		cmd.Stderr = &stderr
 		if err := cmd.Run(); err != nil {
@@ -219,11 +282,21 @@ func (c *systemAudioClient) SetVolume(ctx context.Context, target string, volume
 	}
 
 	if _, err := exec.LookPath("pamixer"); err == nil {
-		args := []string{"--set-volume", strconv.Itoa(volumePct)}
+		args := []string{"--set-volume", strconv.Itoa(volumePct), "--allow-boost"}
 		if target == "source" || target == "input" {
 			args = append([]string{"--default-source"}, args...)
 		}
 		return exec.CommandContext(ctx, "pamixer", args...).Run()
+	}
+
+	if _, err := exec.LookPath("pactl"); err == nil {
+		pactlTarget := "@DEFAULT_SINK@"
+		cmdName := "set-sink-volume"
+		if target == "source" || target == "input" {
+			pactlTarget = "@DEFAULT_SOURCE@"
+			cmdName = "set-source-volume"
+		}
+		return exec.CommandContext(ctx, "pactl", cmdName, pactlTarget, fmt.Sprintf("%d%%", volumePct)).Run()
 	}
 
 	return nil
@@ -260,6 +333,20 @@ func (c *systemAudioClient) SetMute(ctx context.Context, target string, muted bo
 		return exec.CommandContext(ctx, "pamixer", args...).Run()
 	}
 
+	if _, err := exec.LookPath("pactl"); err == nil {
+		pactlTarget := "@DEFAULT_SINK@"
+		cmdName := "set-sink-mute"
+		if target == "source" || target == "input" {
+			pactlTarget = "@DEFAULT_SOURCE@"
+			cmdName = "set-source-mute"
+		}
+		muteStr := "0"
+		if muted {
+			muteStr = "1"
+		}
+		return exec.CommandContext(ctx, "pactl", cmdName, pactlTarget, muteStr).Run()
+	}
+
 	return nil
 }
 
@@ -272,5 +359,15 @@ func (c *systemAudioClient) SetDefault(ctx context.Context, target string, devic
 		cmd := exec.CommandContext(ctx, "wpctl", "set-default", deviceID)
 		return cmd.Run()
 	}
+
+	if _, err := exec.LookPath("pactl"); err == nil {
+		cmdName := "set-default-sink"
+		if target == "source" || target == "input" {
+			cmdName = "set-default-source"
+		}
+		return exec.CommandContext(ctx, "pactl", cmdName, deviceID).Run()
+	}
+
 	return nil
 }
+

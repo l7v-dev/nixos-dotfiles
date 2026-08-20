@@ -1,0 +1,12 @@
+# 2026/08/20 17:49:56.430098 [TestPreservation_ExemptRoutesNeverReturn401] [rapid] draw exempt_route: api.exemptRoute{method:"POST", path:"/api/v1/auth/login"}
+# 2026/08/20 17:49:56.430124 [TestPreservation_ExemptRoutesNeverReturn401] [rapid] draw token_strategy: 0
+# 2026/08/20 17:49:56.430131 [TestPreservation_ExemptRoutesNeverReturn401] [rapid] draw random_token: ""
+# 2026/08/20 17:49:56.431045 [TestPreservation_ExemptRoutesNeverReturn401] exempt route POST /api/v1/auth/login returned 401 Unauthorized for token strategy 0
+# 
+v0.4.8#14708028011996940795
+0x0
+0x1
+0x0
+0x0
+0x0
+0x0

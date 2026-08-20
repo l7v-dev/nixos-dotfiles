@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/l7v/panel-agent/internal/files"
 )
@@ -139,12 +140,28 @@ func fsUploadHandler(d Deps) http.HandlerFunc {
 			return
 		}
 
-		targetDir := r.URL.Query().Get("path")
-		if targetDir == "" {
-			targetDir = r.FormValue("path")
+		rawTarget := r.URL.Query().Get("path")
+		if rawTarget == "" {
+			rawTarget = r.FormValue("path")
 		}
-		if targetDir == "" {
-			targetDir = "/"
+		if rawTarget == "" {
+			rawTarget = "/"
+		}
+
+		if strings.Contains(rawTarget, "..") {
+			writeError(w, http.StatusBadRequest, map[string]string{"message": "upload path must not contain '..' components"})
+			return
+		}
+
+		// Reject path traversal and relative paths.
+		targetDir := filepath.Clean(filepath.FromSlash(rawTarget))
+		if !filepath.IsAbs(targetDir) {
+			writeError(w, http.StatusBadRequest, map[string]string{"message": "upload path must be an absolute path"})
+			return
+		}
+		if strings.Contains(targetDir, "..") {
+			writeError(w, http.StatusBadRequest, map[string]string{"message": "upload path must not contain '..' components"})
+			return
 		}
 
 		form := r.MultipartForm

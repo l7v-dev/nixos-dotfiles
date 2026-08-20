@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -32,29 +33,63 @@ type Manager interface {
 	Logout(token string)
 }
 
-type sessionManager struct {
-	mu            sync.RWMutex
-	expectedPIN   string
-	expectedPass  string
-	sessions      map[string]*Session
-	sessionExpiry time.Duration
+type attemptTracker struct {
+	count       int
+	windowStart time.Time
 }
 
-// NewManager creates a new session and PIN authentication manager.
+type sessionManager struct {
+	mu              sync.RWMutex
+	expectedPIN     string
+	expectedPass    string
+	authDisabled    bool
+	sessions        map[string]*Session
+	sessionExpiry   time.Duration
+	attempts        map[string]*attemptTracker
+	maxAttempts     int
+	window          time.Duration
+	lockoutDuration time.Duration
+}
+
+func envIntAuth(key string, def int) int {
+	if val := os.Getenv(key); val != "" {
+		if n, err := strconv.Atoi(val); err == nil && n > 0 {
+			return n
+		}
+	}
+	return def
+}
+
+func envDurationAuth(key string, def time.Duration) time.Duration {
+	if val := os.Getenv(key); val != "" {
+		if d, err := time.ParseDuration(val); err == nil && d > 0 {
+			return d
+		}
+	}
+	return def
+}
+
+// NewManager creates a new session and PIN/password authentication manager.
+// If neither PANEL_AUTH_PIN nor PANEL_AUTH_PASSWORD is set, authentication is disabled.
 func NewManager() Manager {
 	pin := os.Getenv("PANEL_AUTH_PIN")
 	pass := os.Getenv("PANEL_AUTH_PASSWORD")
 
-	// Default PIN is 1707 if not specified in environment
-	if pin == "" && pass == "" {
-		pin = "1707"
-	}
+	authDisabled := pin == "" && pass == ""
+
+	maxAttempts := envIntAuth("PANEL_AUTH_MAX_ATTEMPTS", 5)
+	lockoutDuration := envDurationAuth("PANEL_AUTH_LOCKOUT_DURATION", 5*time.Minute)
 
 	return &sessionManager{
-		expectedPIN:   pin,
-		expectedPass:  pass,
-		sessions:      make(map[string]*Session),
-		sessionExpiry: 24 * time.Hour,
+		expectedPIN:     pin,
+		expectedPass:    pass,
+		authDisabled:    authDisabled,
+		sessions:        make(map[string]*Session),
+		sessionExpiry:   24 * time.Hour,
+		attempts:        make(map[string]*attemptTracker),
+		maxAttempts:     maxAttempts,
+		window:          time.Minute,
+		lockoutDuration: lockoutDuration,
 	}
 }
 
@@ -63,13 +98,16 @@ func (sm *sessionManager) GetStatus(token string) AuthStatus {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 
-	method := "pin"
-	if sm.expectedPass != "" {
-		method = "password"
+	method := "none"
+	if !sm.authDisabled {
+		method = "pin"
+		if sm.expectedPass != "" {
+			method = "password"
+		}
 	}
 
 	status := AuthStatus{
-		AuthEnabled:   sm.expectedPIN != "" || sm.expectedPass != "",
+		AuthEnabled:   !sm.authDisabled,
 		AuthMethod:    method,
 		ActiveSession: false,
 	}
@@ -87,9 +125,39 @@ func (sm *sessionManager) GetStatus(token string) AuthStatus {
 }
 
 // Login verifies the provided PIN or password and returns a new session token.
+// Per-IP rate limiting and lockout are enforced when auth is enabled.
 func (sm *sessionManager) Login(pin string, password string, clientIP string) (*Session, error) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
+
+	now := time.Now()
+
+	// If auth is disabled, skip credential check and issue a session immediately
+	if sm.authDisabled {
+		tokenBytes := make([]byte, 24)
+		_, _ = rand.Read(tokenBytes)
+		token := hex.EncodeToString(tokenBytes)
+
+		sess := &Session{
+			Token:     token,
+			CreatedAt: now,
+			ExpiresAt: now.Add(sm.sessionExpiry),
+			ClientIP:  clientIP,
+		}
+		sm.sessions[token] = sess
+		return sess, nil
+	}
+
+	// Check per-IP rate limiting
+	tracker, ok := sm.attempts[clientIP]
+	if ok {
+		if now.Sub(tracker.windowStart) >= sm.window {
+			tracker.count = 0
+			tracker.windowStart = now
+		} else if tracker.count >= sm.maxAttempts && now.Sub(tracker.windowStart) < sm.lockoutDuration {
+			return nil, ErrLockedOut
+		}
+	}
 
 	// Verify PIN or password
 	valid := false
@@ -101,15 +169,25 @@ func (sm *sessionManager) Login(pin string, password string, clientIP string) (*
 	}
 
 	if !valid {
+		if tracker == nil {
+			sm.attempts[clientIP] = &attemptTracker{
+				count:       1,
+				windowStart: now,
+			}
+		} else {
+			tracker.count++
+		}
 		return nil, ErrInvalidCredentials
 	}
+
+	// Clear attempts on success
+	delete(sm.attempts, clientIP)
 
 	// Generate secure random token
 	tokenBytes := make([]byte, 24)
 	_, _ = rand.Read(tokenBytes)
 	token := hex.EncodeToString(tokenBytes)
 
-	now := time.Now()
 	sess := &Session{
 		Token:     token,
 		CreatedAt: now,
@@ -163,4 +241,5 @@ func (e authError) Error() string { return string(e) }
 
 const (
 	ErrInvalidCredentials = authError("geçersiz PIN veya parola")
+	ErrLockedOut          = authError("çok fazla başarısız giriş denemesi; lütfen daha sonra tekrar deneyin")
 )

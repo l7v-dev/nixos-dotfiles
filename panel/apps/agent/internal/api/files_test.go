@@ -5,8 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -211,5 +214,165 @@ func TestFilesWriteEndpoint(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200 OK, got %d", w.Code)
+	}
+}
+
+func createMultipartUploadRequest(t *testing.T, targetURL string, fileMap map[string]string) *http.Request {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	for filename, content := range fileMap {
+		part, err := writer.CreateFormFile("files", filename)
+		if err != nil {
+			t.Fatalf("failed to create form file: %v", err)
+		}
+		if _, err := io.WriteString(part, content); err != nil {
+			t.Fatalf("failed to write content: %v", err)
+		}
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("failed to close multipart writer: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, targetURL, body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	return req
+}
+
+// Bug 3 — Upload Path Traversal
+// Property 1: Bug Condition — Traversal Paths and Relative Paths Rejected With 400
+// Validates: Requirements 1.7, 1.8, 2.8, 2.9, 2.10
+func TestFsUpload_BugCondition_PathTraversalRejected(t *testing.T) {
+	deps := Deps{
+		Files: &mockFilesClient{},
+	}
+	router := NewRouter(deps)
+
+	testCases := []struct {
+		name string
+		path string
+	}{
+		{name: "RelativeTraversal", path: "../../tmp/evil"},
+		{name: "RelativeDirectory", path: "relative/dir"},
+		{name: "DotDotInside", path: "/tmp/../../etc/cron.d"},
+		{name: "SingleDot", path: "."},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := createMultipartUploadRequest(t, "/api/v1/fs/upload?path="+tc.path, map[string]string{
+				"payload.txt": "malicious content",
+			})
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			if w.Code != http.StatusBadRequest {
+				t.Fatalf("expected 400 Bad Request for path %q, got %d (body: %s)",
+					tc.path, w.Code, w.Body.String())
+			}
+
+			var resp map[string]string
+			if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+				t.Fatalf("failed to decode error json: %v", err)
+			}
+			if resp["message"] == "" {
+				t.Fatalf("expected non-empty error message for path %q", tc.path)
+			}
+		})
+	}
+}
+
+// Property 2: Preservation — Valid Absolute Upload Paths Succeed
+// Validates: Requirements 3.8, 3.9
+func TestFsUpload_Preservation_ValidUpload(t *testing.T) {
+	tempDir := t.TempDir()
+
+	deps := Deps{
+		Files: &mockFilesClient{},
+	}
+	router := NewRouter(deps)
+
+	req := createMultipartUploadRequest(t, "/api/v1/fs/upload?path="+tempDir, map[string]string{
+		"config.nix": "{ config, ... }: {}",
+	})
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d (body: %s)", w.Code, w.Body.String())
+	}
+
+	var resp struct {
+		Status   string   `json:"status"`
+		Uploaded []string `json:"uploaded"`
+		Total    int      `json:"total"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if resp.Status != "ok" || resp.Total != 1 || len(resp.Uploaded) != 1 {
+		t.Fatalf("unexpected upload response: %+v", resp)
+	}
+
+	expectedPath := filepath.Join(tempDir, "config.nix")
+	if resp.Uploaded[0] != expectedPath {
+		t.Errorf("expected uploaded path %q, got %q", expectedPath, resp.Uploaded[0])
+	}
+
+	// Verify file was actually written to disk with correct content
+	data, err := os.ReadFile(expectedPath)
+	if err != nil {
+		t.Fatalf("failed to read uploaded file: %v", err)
+	}
+	if string(data) != "{ config, ... }: {}" {
+		t.Errorf("file content mismatch: got %q", string(data))
+	}
+}
+
+// Property 2: Preservation — Multiple Files Uploaded in Single Form
+func TestFsUpload_Preservation_MultipleFiles(t *testing.T) {
+	tempDir := t.TempDir()
+
+	deps := Deps{
+		Files: &mockFilesClient{},
+	}
+	router := NewRouter(deps)
+
+	filesMap := map[string]string{
+		"file1.txt": "first file content",
+		"file2.txt": "second file content",
+		"file3.txt": "third file content",
+	}
+
+	req := createMultipartUploadRequest(t, "/api/v1/fs/upload?path="+tempDir, filesMap)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d", w.Code)
+	}
+
+	var resp struct {
+		Status   string   `json:"status"`
+		Uploaded []string `json:"uploaded"`
+		Total    int      `json:"total"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	if resp.Total != 3 || len(resp.Uploaded) != 3 {
+		t.Fatalf("expected 3 uploaded files, got total=%d, len=%d", resp.Total, len(resp.Uploaded))
+	}
+
+	for fname, content := range filesMap {
+		path := filepath.Join(tempDir, fname)
+		data, err := os.ReadFile(path)
+		if err != nil {
+			t.Errorf("failed to read %s: %v", path, err)
+		}
+		if string(data) != content {
+			t.Errorf("content mismatch for %s: got %q, want %q", fname, string(data), content)
+		}
 	}
 }

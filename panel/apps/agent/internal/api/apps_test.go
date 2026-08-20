@@ -168,3 +168,88 @@ func TestAppsDependenciesEndpoint(t *testing.T) {
 		t.Errorf("Expected nodes in dependency graph")
 	}
 }
+
+// Bug 5 — AppsEngine Singleton (Audit Log Persistence)
+// Property 1: Bug Condition — Audit Records Persist Across Requests with Singleton Controller
+// Validates: Requirements 1.11, 1.12, 2.15, 2.16, 2.17
+func TestAppsAuditPersistenceWithSingleton(t *testing.T) {
+	mockSys := &mockSystemdApps{
+		units: []dbus.ServiceUnit{
+			{Name: "forgejo.service", ActiveState: "active", SubState: "running"},
+		},
+	}
+	engine := apps.NewEngine(mockSys)
+	ctrl := apps.NewController(engine, mockSys)
+
+	deps := Deps{
+		Systemd:        mockSys,
+		AppsEngine:     engine,
+		AppsController: ctrl,
+	}
+	router := NewRouter(deps)
+
+	// 1. Perform app action (restart forgejo)
+	body := strings.NewReader(`{"action":"restart"}`)
+	reqAction := httptest.NewRequest("POST", "/api/v1/apps/forgejo/action", body)
+	recAction := httptest.NewRecorder()
+	router.ServeHTTP(recAction, reqAction)
+
+	if recAction.Code != http.StatusOK {
+		t.Fatalf("Expected 200 OK on action, got %d", recAction.Code)
+	}
+
+	// 2. Query audit logs from the same router/deps
+	reqAudit := httptest.NewRequest("GET", "/api/v1/apps/audit", nil)
+	recAudit := httptest.NewRecorder()
+	router.ServeHTTP(recAudit, reqAudit)
+
+	if recAudit.Code != http.StatusOK {
+		t.Fatalf("Expected 200 OK on audit, got %d", recAudit.Code)
+	}
+
+	var records []apps.AuditRecord
+	if err := json.Unmarshal(recAudit.Body.Bytes(), &records); err != nil {
+		t.Fatalf("Failed to unmarshal audit records: %v", err)
+	}
+
+	if len(records) == 0 {
+		t.Fatalf("Expected at least 1 audit record, got 0 (audit log was discarded!)")
+	}
+
+	if records[0].AppID != "forgejo" || records[0].Action != "restart" {
+		t.Fatalf("Unexpected audit record: %+v", records[0])
+	}
+}
+
+// Property 2: Preservation — Lazy fallback when AppsEngine/AppsController are nil
+// Validates: Requirements 3.14, 3.15, 3.16
+func TestAppsPreservation_LazyFallbackAndSingleton(t *testing.T) {
+	mockSys := &mockSystemdApps{}
+
+	// Test fallback when nil
+	depsNil := Deps{Systemd: mockSys}
+	engFallback := getAppsEngine(depsNil)
+	if engFallback == nil {
+		t.Fatalf("expected non-nil engine from getAppsEngine with nil deps")
+	}
+	ctrlFallback := getAppsController(depsNil)
+	if ctrlFallback == nil {
+		t.Fatalf("expected non-nil controller from getAppsController with nil deps")
+	}
+
+	// Test singleton preservation when provided
+	customEng := apps.NewEngine(mockSys)
+	customCtrl := apps.NewController(customEng, mockSys)
+	depsProvided := Deps{
+		Systemd:        mockSys,
+		AppsEngine:     customEng,
+		AppsController: customCtrl,
+	}
+
+	if getAppsEngine(depsProvided) != customEng {
+		t.Fatalf("expected exact customEng instance returned")
+	}
+	if getAppsController(depsProvided) != customCtrl {
+		t.Fatalf("expected exact customCtrl instance returned")
+	}
+}

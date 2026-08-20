@@ -80,20 +80,42 @@ vi.mock("@/hooks/useHardware", () => ({
         data: {
             cpu_temp_c: 48,
             cpu_governor: "powersave",
+            power_profile: "balanced",
             fans: [{ name: "cpu_fan", rpm: 1200 }],
+            sensors: [],
         },
+        setPowerProfile: { mutate: vi.fn(), isPending: false },
+        isLoading: false,
     }),
 }));
 
 vi.mock("@/hooks/useAudio", () => ({
     useAudio: () => ({
-        data: { output_volume: 75, output_muted: false },
+        data: { output_volume: 75, output_muted: false, input_volume: 80, input_muted: false, sinks: [], sources: [] },
+        setVolume: { mutate: vi.fn(), isPending: false },
+        setMute: { mutate: vi.fn(), isPending: false },
+        setDefaultDevice: { mutate: vi.fn(), isPending: false },
+    }),
+}));
+
+vi.mock("@/hooks/useDisplay", () => ({
+    useDisplay: () => ({
+        data: { brightness_pct: 100, night_light: { enabled: false, temperature: 4500 } },
+        setBrightness: { mutate: vi.fn(), isPending: false },
+        setNightLight: { mutate: vi.fn(), isPending: false },
+        lockSession: { mutate: vi.fn(), isPending: false },
     }),
 }));
 
 vi.mock("@/hooks/useSecurity", () => ({
     useSecurity: () => ({
-        data: { vpn: { active: true } },
+        data: { vpn: { active: true }, open_ports: [22, 80], firewall_on: true },
+        toggleVPN: { mutate: vi.fn(), isPending: false },
+    }),
+    useSecurityAudit: () => ({
+        data: {
+            sops_report: { decryption_ok: true },
+        },
     }),
 }));
 

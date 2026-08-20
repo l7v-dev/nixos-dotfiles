@@ -4,22 +4,15 @@ import React from "react";
 import {
     Wifi, WifiOff,
     Bluetooth, BluetoothOff,
-    Shield, ShieldAlert,
-    Volume2, VolumeX,
-    Mic, MicOff,
-    SunMedium, Moon,
-    Zap, Flame,
-    Activity, HardDrive,
+    Shield, ShieldCheck,
+    HardDrive,
     Sparkles, Layers,
     ChevronRight, Heart,
-    Sliders,
+    SlidersHorizontal,
 } from "lucide-react";
 import { useWifi, useBluetooth } from "@/hooks/useMetrics";
-import { useAudio } from "@/hooks/useAudio";
-import { useDisplay } from "@/hooks/useDisplay";
-import { useSecurity } from "@/hooks/useSecurity";
-import { useHardware } from "@/hooks/useHardware";
 import { useMetrics } from "@/hooks/useMetrics";
+import { useSecurity } from "@/hooks/useSecurity";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
@@ -27,13 +20,9 @@ export type CockpitModuleId =
     | "vitals"
     | "wifi"
     | "bluetooth"
-    | "vpn"
-    | "hardware"
-    | "display"
-    | "audio"
-    | "mic"
     | "nixos"
     | "storage"
+    | "security"
     | "ai";
 
 interface QuickControlsRailProps {
@@ -49,41 +38,27 @@ export function QuickControlsRail({
 }: QuickControlsRailProps) {
     const { data: wifi, toggle: toggleWifi } = useWifi();
     const { data: bt, toggle: toggleBt } = useBluetooth();
-    const { data: audio, setMute: setAudioMute } = useAudio();
-    const { data: display, setNightLight } = useDisplay();
-    const { data: security, toggleVPN } = useSecurity();
-    const { data: hardware, setPowerProfile } = useHardware();
+    const { data: security } = useSecurity();
     const { data: metrics } = useMetrics();
 
     const isWifiOn = wifi?.enabled ?? false;
     const isBtOn = bt?.enabled ?? false;
     const isVpnOn = security?.vpn?.active ?? false;
-    const isAudioMuted = audio?.output_muted ?? false;
-    const isMicMuted = audio?.input_muted ?? false;
-    const isNightLightOn = display?.night_light?.enabled ?? false;
-    const currentProfile = hardware?.power_profile ?? "balanced";
-    const cpuTemp = hardware?.cpu_temp_c ?? 42;
-
-    const nextProfile = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (currentProfile === "powersave") setPowerProfile.mutate("balanced");
-        else if (currentProfile === "balanced") setPowerProfile.mutate("performance");
-        else setPowerProfile.mutate("powersave");
-    };
+    const rootDisk = metrics?.disks?.find((d) => d.mount === "/") ?? metrics?.disks?.[0];
 
     return (
         <aside
             className={cn(
-                "instrument-card p-3.5 sm:p-4 space-y-4 font-sans shrink-0 w-full lg:w-[365px] xl:w-[390px]",
+                "instrument-card p-3.5 sm:p-4 space-y-4 font-sans shrink-0 w-full lg:w-[350px] xl:w-[370px]",
                 className
             )}
         >
-            {/* ── 1. Rail Title & Master Vitals Trigger ── */}
+            {/* ── 1. Master HUD Trigger (Foveal Focus) ── */}
             <div className="space-y-2">
                 <div className="flex items-center justify-between px-1">
                     <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2 font-mono">
                         <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                        Quick Controls
+                        Flight Station
                     </p>
                     <span className="text-xs font-mono text-muted-foreground/80">
                         /dev/sys
@@ -107,25 +82,25 @@ export function QuickControlsRail({
                         <div>
                             <p className="text-xs sm:text-sm font-bold text-foreground">System Vitals HUD</p>
                             <p className="text-xs font-mono text-muted-foreground">
-                                Heartbeat & Telemetry
+                                Master Avionics Hub
                             </p>
                         </div>
                     </div>
                     <Badge variant={selectedId === "vitals" ? "default" : "outline"} className="text-xs font-mono">
-                        Overview
+                        Live Flight
                     </Badge>
                 </button>
             </div>
 
-            {/* ── 2. Categorized Control Sections ── */}
+            {/* ── 2. Categorized Control Clusters (Miller's Law - 3 Clear Domains) ── */}
             <div className="space-y-4">
-                {/* ── Category A: Connectivity & Mesh ── */}
+                {/* ── Cluster 1: Wireless & Peripherals ── */}
                 <div className="space-y-1.5">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 px-1 font-mono">
-                        Connectivity & Mesh
+                        Wireless & Peripheral Mesh
                     </p>
 
-                    {/* Wi-Fi Item */}
+                    {/* Wi-Fi Station */}
                     <div
                         onClick={() => onSelect("wifi")}
                         className={cn(
@@ -144,7 +119,7 @@ export function QuickControlsRail({
                                 )}
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs font-semibold leading-tight text-foreground truncate">Wi-Fi</p>
+                                <p className="text-xs font-semibold leading-tight text-foreground truncate">Wi-Fi Station</p>
                                 <p className="text-[10px] font-mono text-muted-foreground truncate">
                                     {isWifiOn ? (wifi?.ssid ?? "Connected") : "Disabled"}
                                 </p>
@@ -170,7 +145,7 @@ export function QuickControlsRail({
                         </button>
                     </div>
 
-                    {/* Bluetooth Item */}
+                    {/* Bluetooth Mesh */}
                     <div
                         onClick={() => onSelect("bluetooth")}
                         className={cn(
@@ -189,7 +164,7 @@ export function QuickControlsRail({
                                 )}
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs font-semibold leading-tight text-foreground truncate">Bluetooth</p>
+                                <p className="text-xs font-semibold leading-tight text-foreground truncate">Bluetooth Mesh</p>
                                 <p className="text-[10px] font-mono text-muted-foreground truncate">
                                     {isBtOn ? `${bt?.devices?.filter(d => d.connected).length ?? 0} paired` : "Disabled"}
                                 </p>
@@ -214,236 +189,12 @@ export function QuickControlsRail({
                             {isBtOn ? "ON" : "OFF"}
                         </button>
                     </div>
-
-                    {/* Tailscale Mesh VPN */}
-                    <div
-                        onClick={() => onSelect("vpn")}
-                        className={cn(
-                            "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
-                            selectedId === "vpn"
-                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
-                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-card border border-border/60">
-                                {isVpnOn ? (
-                                    <Shield className="h-3.5 w-3.5 text-primary" strokeWidth={1.8} />
-                                ) : (
-                                    <ShieldAlert className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
-                                )}
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-xs font-semibold leading-tight text-foreground truncate">Tailscale Mesh</p>
-                                <p className="text-[10px] font-mono text-muted-foreground truncate">
-                                    {isVpnOn ? "Active Mesh" : "Offline"}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Inline Quick Toggle */}
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                toggleVPN.mutate();
-                            }}
-                            disabled={toggleVPN.isPending}
-                            title={isVpnOn ? "Disconnect VPN" : "Connect VPN"}
-                            className={cn(
-                                "h-6 px-2 rounded-md border text-[10px] font-mono font-medium transition-all shrink-0 active:scale-95",
-                                isVpnOn
-                                    ? "border-primary/50 bg-primary/15 text-primary hover:bg-primary/25"
-                                    : "border-border bg-muted/50 text-muted-foreground hover:text-foreground"
-                            )}
-                        >
-                            {isVpnOn ? "UP" : "DOWN"}
-                        </button>
-                    </div>
                 </div>
 
-                {/* ── Category B: Hardware & Environment ── */}
+                {/* ── Cluster 2: Declarative Infrastructure ── */}
                 <div className="space-y-1.5">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 px-1 font-mono">
-                        Hardware & Environment
-                    </p>
-
-                    {/* Thermals & Compute Item */}
-                    <div
-                        onClick={() => onSelect("hardware")}
-                        className={cn(
-                            "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
-                            selectedId === "hardware"
-                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
-                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-card border border-border/60">
-                                <Flame className={cn("h-3.5 w-3.5", cpuTemp > 75 ? "text-destructive" : "text-amber-500")} strokeWidth={1.8} />
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-xs font-semibold leading-tight text-foreground truncate">Compute & Thermal</p>
-                                <p className="text-[10px] font-mono text-muted-foreground truncate">
-                                    {cpuTemp}°C · {hardware?.cpu_governor ?? "schedutil"}
-                                </p>
-                            </div>
-                        </div>
-
-                        <Badge variant="outline" className="text-[10px] font-mono shrink-0">
-                            {cpuTemp}°C
-                        </Badge>
-                    </div>
-
-                    {/* Display & Night Light Item */}
-                    <div
-                        onClick={() => onSelect("display")}
-                        className={cn(
-                            "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
-                            selectedId === "display"
-                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
-                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-card border border-border/60">
-                                {isNightLightOn ? (
-                                    <Moon className="h-3.5 w-3.5 text-primary" strokeWidth={1.8} />
-                                ) : (
-                                    <SunMedium className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.5} />
-                                )}
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-xs font-semibold leading-tight text-foreground truncate">Night Light</p>
-                                <p className="text-[10px] font-mono text-muted-foreground truncate">
-                                    {isNightLightOn ? `${display?.night_light?.temperature ?? 4500}K` : "Off"}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Inline Quick Toggle */}
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setNightLight.mutate({
-                                    enabled: !isNightLightOn,
-                                    temperature: display?.night_light?.temperature ?? 4500,
-                                });
-                            }}
-                            disabled={setNightLight.isPending}
-                            title={isNightLightOn ? "Disable Night Light" : "Enable Night Light"}
-                            className={cn(
-                                "h-6 px-2 rounded-md border text-[10px] font-mono font-medium transition-all shrink-0 active:scale-95",
-                                isNightLightOn
-                                    ? "border-primary/50 bg-primary/15 text-primary hover:bg-primary/25"
-                                    : "border-border bg-muted/50 text-muted-foreground hover:text-foreground"
-                            )}
-                        >
-                            {isNightLightOn ? "ON" : "OFF"}
-                        </button>
-                    </div>
-                </div>
-
-                {/* ── Category C: Audio & Media ── */}
-                <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 px-1 font-mono">
-                        Audio & Streams
-                    </p>
-
-                    {/* Audio Output */}
-                    <div
-                        onClick={() => onSelect("audio")}
-                        className={cn(
-                            "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
-                            selectedId === "audio"
-                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
-                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-card border border-border/60">
-                                {isAudioMuted ? (
-                                    <VolumeX className="h-3.5 w-3.5 text-destructive" strokeWidth={1.8} />
-                                ) : (
-                                    <Volume2 className="h-3.5 w-3.5 text-foreground" strokeWidth={1.5} />
-                                )}
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-xs font-semibold leading-tight text-foreground truncate">Audio Output</p>
-                                <p className="text-[10px] font-mono text-muted-foreground truncate">
-                                    {isAudioMuted ? "Muted" : `${audio?.output_volume ?? 70}% Vol`}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Inline Mute Toggle */}
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setAudioMute.mutate({ target: "sink", muted: !isAudioMuted });
-                            }}
-                            disabled={setAudioMute.isPending}
-                            title={isAudioMuted ? "Unmute Audio" : "Mute Audio"}
-                            className={cn(
-                                "h-6 px-2 rounded-md border text-[10px] font-mono font-medium transition-all shrink-0 active:scale-95",
-                                isAudioMuted
-                                    ? "border-destructive/40 bg-destructive/15 text-destructive hover:bg-destructive/25"
-                                    : "border-border bg-muted/50 text-foreground hover:bg-muted"
-                            )}
-                        >
-                            {isAudioMuted ? "MUTED" : "MUTE"}
-                        </button>
-                    </div>
-
-                    {/* Microphone Item */}
-                    <div
-                        onClick={() => onSelect("audio")}
-                        className={cn(
-                            "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
-                            selectedId === "mic"
-                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
-                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-card border border-border/60">
-                                {isMicMuted ? (
-                                    <MicOff className="h-3.5 w-3.5 text-destructive" strokeWidth={1.8} />
-                                ) : (
-                                    <Mic className="h-3.5 w-3.5 text-foreground" strokeWidth={1.5} />
-                                )}
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-xs font-semibold leading-tight text-foreground truncate">Microphone</p>
-                                <p className="text-[10px] font-mono text-muted-foreground truncate">
-                                    {isMicMuted ? "Muted" : "Active"}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Inline Mic Toggle */}
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setAudioMute.mutate({ target: "source", muted: !isMicMuted });
-                            }}
-                            disabled={setAudioMute.isPending}
-                            title={isMicMuted ? "Unmute Mic" : "Mute Mic"}
-                            className={cn(
-                                "h-6 px-2 rounded-md border text-[10px] font-mono font-medium transition-all shrink-0 active:scale-95",
-                                isMicMuted
-                                    ? "border-destructive/40 bg-destructive/15 text-destructive hover:bg-destructive/25"
-                                    : "border-border bg-muted/50 text-foreground hover:bg-muted"
-                            )}
-                        >
-                            {isMicMuted ? "MUTED" : "LIVE"}
-                        </button>
-                    </div>
-                </div>
-
-                {/* ── Category D: System & Platform ── */}
-                <div className="space-y-1.5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 px-1 font-mono">
-                        System & Platform
+                        Declarative Infrastructure
                     </p>
 
                     {/* NixOS System */}
@@ -461,9 +212,9 @@ export function QuickControlsRail({
                                 <Layers className="h-3.5 w-3.5 text-primary" strokeWidth={1.8} />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs font-semibold leading-tight text-foreground truncate">NixOS System</p>
+                                <p className="text-xs font-semibold leading-tight text-foreground truncate">NixOS Generations</p>
                                 <p className="text-[10px] font-mono text-muted-foreground truncate">
-                                    Generations & Store
+                                    Store & Flake Engine
                                 </p>
                             </div>
                         </div>
@@ -485,14 +236,45 @@ export function QuickControlsRail({
                                 <HardDrive className="h-3.5 w-3.5 text-emerald-400" strokeWidth={1.8} />
                             </div>
                             <div className="min-w-0">
-                                <p className="text-xs font-semibold leading-tight text-foreground truncate">Storage Volumes</p>
+                                <p className="text-xs font-semibold leading-tight text-foreground truncate">Storage & Snapshots</p>
                                 <p className="text-[10px] font-mono text-muted-foreground truncate">
-                                    {metrics?.disks?.[0]?.usage_pct?.toFixed(0) ?? 0}% Root Used
+                                    {rootDisk?.usage_pct?.toFixed(0) ?? 0}% Root Used ({rootDisk?.fs_type ?? "ext4"})
                                 </p>
                             </div>
                         </div>
                         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                     </div>
+
+                    {/* Security & Secrets */}
+                    <div
+                        onClick={() => onSelect("security")}
+                        className={cn(
+                            "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
+                            selectedId === "security"
+                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
+                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-card border border-border/60">
+                                <Shield className="h-3.5 w-3.5 text-emerald-500" strokeWidth={1.8} />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-xs font-semibold leading-tight text-foreground truncate">Security & SOPS</p>
+                                <p className="text-[10px] font-mono text-muted-foreground truncate">
+                                    {isVpnOn ? "VPN Mesh Active" : "Local Direct"} · Audit
+                                </p>
+                            </div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+                    </div>
+                </div>
+
+                {/* ── Cluster 3: Platform Intelligence ── */}
+                <div className="space-y-1.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 px-1 font-mono">
+                        Platform & Intelligence
+                    </p>
 
                     {/* AI Agent Fleet */}
                     <div

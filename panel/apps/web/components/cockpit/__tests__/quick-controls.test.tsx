@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { QuickControlsRail, CockpitModuleId } from "../QuickControlsRail";
+import { QuickControlsRail } from "../QuickControlsRail";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Mock hooks
@@ -23,36 +23,12 @@ vi.mock("@/hooks/useMetrics", () => ({
         },
         isLoading: false,
     }),
-    useServices: () => ({ data: [] }),
-    usePowerStatus: () => ({ data: { ac_online: true, batteries: [] } }),
-}));
-
-vi.mock("@/hooks/useAudio", () => ({
-    useAudio: () => ({
-        data: { output_volume: 80, output_muted: false, input_muted: true },
-        setMute: { mutate: vi.fn(), isPending: false },
-        setVolume: { mutate: vi.fn() },
-    }),
-}));
-
-vi.mock("@/hooks/useDisplay", () => ({
-    useDisplay: () => ({
-        data: { night_light: { enabled: false, temperature: 4500 } },
-        setNightLight: { mutate: vi.fn(), isPending: false },
-    }),
 }));
 
 vi.mock("@/hooks/useSecurity", () => ({
     useSecurity: () => ({
         data: { vpn: { active: true } },
         toggleVPN: { mutate: vi.fn(), isPending: false },
-    }),
-}));
-
-vi.mock("@/hooks/useHardware", () => ({
-    useHardware: () => ({
-        data: { cpu_temp_c: 45, cpu_governor: "powersave", power_profile: "balanced" },
-        setPowerProfile: { mutate: vi.fn(), isPending: false },
     }),
 }));
 
@@ -64,7 +40,7 @@ vi.mock("@/store/host-store", () => ({
 describe("QuickControlsRail", () => {
     const queryClient = new QueryClient();
 
-    it("renders categorized sections and responds to card selection", () => {
+    it("renders categorized clusters and responds to card selection", () => {
         const onSelect = vi.fn();
         render(
             <QueryClientProvider client={queryClient}>
@@ -72,19 +48,21 @@ describe("QuickControlsRail", () => {
             </QueryClientProvider>
         );
 
-        // Verify categories are rendered
-        expect(screen.getByText("Connectivity & Mesh")).toBeDefined();
-        expect(screen.getByText("Hardware & Environment")).toBeDefined();
-        expect(screen.getByText("Audio & Streams")).toBeDefined();
-        expect(screen.getByText("System & Platform")).toBeDefined();
+        // Verify clusters are rendered
+        expect(screen.getByText("Wireless & Peripheral Mesh")).toBeDefined();
+        expect(screen.getByText("Declarative Infrastructure")).toBeDefined();
+        expect(screen.getByText("Platform & Intelligence")).toBeDefined();
 
         // Verify items
-        expect(screen.getByText("Wi-Fi")).toBeDefined();
-        expect(screen.getByText("Bluetooth")).toBeDefined();
-        expect(screen.getByText("Tailscale Mesh")).toBeDefined();
+        expect(screen.getByText("Wi-Fi Station")).toBeDefined();
+        expect(screen.getByText("Bluetooth Mesh")).toBeDefined();
+        expect(screen.getByText("NixOS Generations")).toBeDefined();
+        expect(screen.getByText("Storage & Snapshots")).toBeDefined();
+        expect(screen.getByText("Security & SOPS")).toBeDefined();
+        expect(screen.getByText("AI Agent Hub")).toBeDefined();
 
         // Click Wi-Fi row to trigger selection
-        const wifiItem = screen.getByText("Wi-Fi").closest("div");
+        const wifiItem = screen.getByText("Wi-Fi Station").closest("div");
         if (wifiItem) {
             fireEvent.click(wifiItem);
             expect(onSelect).toHaveBeenCalledWith("wifi");

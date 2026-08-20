@@ -82,19 +82,27 @@ func (c *systemNixOSClient) GetGenerationDiff(ctx context.Context, fromGen, toGe
 	return diff, nil
 }
 
+var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
+
+// stripANSI removes ANSI color and formatting escape sequences from text.
+func stripANSI(str string) string {
+	return ansiRegex.ReplaceAllString(str, "")
+}
+
 // parseDiffClosuresOutput parses the standard output of `nix store diff-closures`.
 func parseDiffClosuresOutput(output string) *GenerationDiff {
+	cleanOutput := stripANSI(output)
 	diff := &GenerationDiff{
 		Items:     make([]PackageDiffItem, 0),
-		RawOutput: strings.TrimSpace(output),
+		RawOutput: strings.TrimSpace(cleanOutput),
 	}
 
-	lines := strings.Split(output, "\n")
+	lines := strings.Split(cleanOutput, "\n")
 	// Patterns:
 	// 1. "pkg: ∅ → 1.2.3, 10.5 MiB" or "pkg: ∅ → ε"
 	// 2. "pkg: 1.2.3 → ∅, -10.5 MiB" or "pkg: ε → ∅"
 	// 3. "pkg: 1.0.0 → 2.0.0, 5.2 KiB"
-	// 4. "pkg: 264.8 KiB" or "pkg: -12.4 KiB"
+	// 4. "pkg: 264.8 KiB" or "pkg: -12.4 KiB" or "pkg: 12.0 KiB"
 	reArrow := regexp.MustCompile(`^([^:]+):\s*(.+?)\s*→\s*(.+?)(?:,\s*([+-]?[0-9.]+\s*[KMGT]?i?B))?$`)
 	reSimpleSize := regexp.MustCompile(`^([^:]+):\s*([+-]?[0-9.]+\s*[KMGT]?i?B)$`)
 

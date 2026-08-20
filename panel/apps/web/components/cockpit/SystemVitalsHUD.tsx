@@ -3,13 +3,15 @@
 import React, { useMemo, useState } from "react";
 import {
     Activity, Heart, Cpu, HardDrive,
-    Wifi, Bluetooth, Volume2, ShieldCheck,
+    Wifi, Bluetooth, Volume2, Volume1, VolumeX, ShieldCheck,
+    Mic, MicOff, Speaker, Headphones, Monitor, Lock, Shield, ShieldAlert, Network,
     Zap, Flame, Radio, Layers, Server,
     ArrowUpRight, ArrowDownRight, RefreshCw,
     Sparkles, CheckCircle2, AlertTriangle, AlertCircle,
     PowerOff, RotateCcw, Moon, BedDouble, Plug,
     Battery, BatteryWarning, BatteryCharging, Clock, X,
-    SlidersHorizontal, Compass,
+    SlidersHorizontal, Compass, Wind, ChevronDown, ChevronUp,
+    Thermometer, Gauge, SunMedium,
 } from "lucide-react";
 import {
     useMetrics,
@@ -23,7 +25,8 @@ import {
 } from "@/hooks/useMetrics";
 import { useHardware } from "@/hooks/useHardware";
 import { useAudio } from "@/hooks/useAudio";
-import { useSecurity } from "@/hooks/useSecurity";
+import { useSecurity, useSecurityAudit } from "@/hooks/useSecurity";
+import { useDisplay } from "@/hooks/useDisplay";
 import { useHostStore } from "@/store/host-store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,14 +50,25 @@ export function SystemVitalsHUD({ onSelectModule }: SystemVitalsHUDProps) {
     const host = useHostStore((s) => s.selectedHost);
     const { data: metrics, isLoading: isMetricsLoading, isFetching: isMetricsFetching } = useMetrics();
     const { data: services } = useServices();
-    const { data: hardware } = useHardware();
+    const { data: hardware, setPowerProfile, isLoading: isHardwareLoading } = useHardware();
     const { data: powerStatus } = usePowerStatus();
     const { data: caps } = usePowerCapabilities();
     const { data: scheduled, cancel: cancelSchedule } = useScheduledShutdown();
     const { data: wifi } = useWifi();
     const { data: bt } = useBluetooth();
-    const { data: audio } = useAudio();
-    const { data: security } = useSecurity();
+    const { data: audio, setVolume: setAudioVolume, setMute: setAudioMute, setDefaultDevice: setAudioDefaultDevice } = useAudio();
+    const { data: security, toggleVPN } = useSecurity();
+    const { data: audit } = useSecurityAudit();
+    const { data: display, setBrightness, setNightLight, lockSession } = useDisplay();
+
+    // Disclosure states
+    const [showSensors, setShowSensors] = useState(false);
+    const [showAudioDevices, setShowAudioDevices] = useState(false);
+
+    // Local Slider optimistic states
+    const [localOutputVol, setLocalOutputVol] = useState<number | null>(null);
+    const [localInputVol, setLocalInputVol] = useState<number | null>(null);
+    const [localBrightness, setLocalBrightness] = useState<number | null>(null);
 
     // Power Action Confirmation State
     const [confirmAction, setConfirmAction] = useState<PowerAction | null>(null);
@@ -741,76 +755,612 @@ export function SystemVitalsHUD({ onSelectModule }: SystemVitalsHUDProps) {
                 </div>
             </div>
 
-            {/* ── 6. Core System Matrix ── */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* Systemd Services Vitality */}
-                <div className="rounded-xl border border-border/60 bg-background/40 p-3.5 flex items-center justify-between">
+            {/* ── 5. INTEGRATED: Compute, Thermals & Silicon Governance Station ── */}
+            <div className="rounded-xl border border-border/80 bg-card/60 p-4 sm:p-5 space-y-4">
+                {/* Section Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border/50 pb-2.5">
                     <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-card border border-border text-foreground">
-                            <Server className="h-4 w-4" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted border border-border text-foreground">
+                            <Flame className={cn("h-4 w-4", cpuTemp >= 80 ? "text-destructive" : cpuTemp >= 65 ? "text-amber-500" : "text-emerald-500")} strokeWidth={1.8} />
                         </div>
                         <div>
-                            <p className="text-xs font-semibold text-foreground">Service Daemon</p>
-                            <p className="text-[10px] font-mono text-muted-foreground">
-                                {runningServices} running · {failedServices} failed
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-sm font-bold text-foreground">Compute, Thermals & Silicon Governance</h3>
+                                <Badge
+                                    variant={cpuTemp >= 80 ? "destructive" : cpuTemp >= 68 ? "warning" : "success"}
+                                    className="text-[10px] font-mono"
+                                >
+                                    {cpuTemp >= 80 ? "Critical Load" : cpuTemp >= 68 ? "Elevated Flux" : "Nominal Cooling"}
+                                </Badge>
+                                <Badge variant="outline" className="text-[10px] font-mono">
+                                    Profile: <span className="font-semibold text-primary capitalize ml-1">{hardware?.power_profile ?? "balanced"}</span>
+                                </Badge>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground font-mono">
+                                Silicon Governor: <strong className="text-foreground">{cpuGov}</strong> · {hardware?.epp ? `EPP: ${hardware.epp}` : "Autonomous Frequency Scaling"}
                             </p>
                         </div>
                     </div>
-                    <Badge variant={failedServices > 0 ? "destructive" : "success"} className="text-[10px] font-mono">
-                        {failedServices === 0 ? "100% Active" : `${failedServices} Alert`}
-                    </Badge>
+
+                    <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                        <span className="text-[11px] font-mono text-muted-foreground mr-1 hidden sm:inline">Active Policy:</span>
+                        {(["performance", "balanced", "powersave"] as const).map((p) => {
+                            const isActive = (hardware?.power_profile ?? "balanced") === p;
+                            return (
+                                <Button
+                                    key={p}
+                                    size="sm"
+                                    variant={isActive ? "default" : "outline"}
+                                    disabled={setPowerProfile.isPending}
+                                    onClick={() => setPowerProfile.mutate(p)}
+                                    className={cn(
+                                        "h-7 text-[10px] font-mono uppercase px-2.5 transition-all active:scale-95",
+                                        isActive && "ring-1 ring-primary/50 shadow-xs"
+                                    )}
+                                >
+                                    {p === "performance" && <Zap className="h-3 w-3 mr-1 text-amber-400" />}
+                                    {p === "balanced" && <SlidersHorizontal className="h-3 w-3 mr-1 text-sky-400" />}
+                                    {p === "powersave" && <Moon className="h-3 w-3 mr-1 text-emerald-400" />}
+                                    {p}
+                                </Button>
+                            );
+                        })}
+                    </div>
                 </div>
 
-                {/* Thermal & Governor Health */}
-                <div className="rounded-xl border border-border/60 bg-background/40 p-3.5 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-card border border-border text-foreground">
-                            <Flame className={cn("h-4 w-4", cpuTemp > 75 ? "text-destructive" : "text-amber-500")} />
+                {/* 4-Metric Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                    {/* 1. CPU Package Core */}
+                    <div className="flex flex-col justify-between rounded-xl border border-border/70 bg-background/50 p-4 transition-all hover:border-border hover:bg-background/80 relative overflow-hidden group shadow-xs">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                                CPU Package
+                            </span>
+                            <Cpu className="h-4 w-4 text-primary" />
                         </div>
-                        <div>
-                            <p className="text-xs font-semibold text-foreground">Thermals & Core</p>
-                            <p className="text-[10px] font-mono text-muted-foreground">
-                                {cpuTemp}°C CPU · {hardware?.fans?.[0]?.rpm ? `${hardware.fans[0].rpm} RPM` : "Silent Fans"}
-                            </p>
+
+                        <div className="space-y-2 my-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                    <Flame className={cn("h-3.5 w-3.5", cpuTemp > 75 ? "text-destructive" : "text-amber-400")} /> Core Junction
+                                </span>
+                                <span className="text-xs font-bold font-mono text-foreground tnum">
+                                    {cpuTemp.toFixed(1)}°C
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                    <Activity className="h-3.5 w-3.5 text-sky-400" /> State
+                                </span>
+                                <span className={cn("text-xs font-bold font-mono", cpuTemp >= 80 ? "text-destructive" : cpuTemp >= 68 ? "text-amber-400" : "text-emerald-400")}>
+                                    {cpuTemp >= 80 ? "▲ Throttling Risk" : cpuTemp >= 68 ? "● Warm Activity" : "● Calm Nominal"}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-border/40 pt-1.5 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                            <span>Governor Mode</span>
+                            <span className="text-foreground font-semibold truncate max-w-[110px] text-right">{cpuGov}</span>
                         </div>
                     </div>
-                    <Badge variant={cpuTemp > 75 ? "warning" : "secondary"} className="text-[10px] font-mono">
-                        {cpuTemp < 65 ? "Nominal" : "Warm"}
-                    </Badge>
+
+                    {/* 2. GPU Processing Core */}
+                    <div className="flex flex-col justify-between rounded-xl border border-border/70 bg-background/50 p-4 transition-all hover:border-border hover:bg-background/80 relative overflow-hidden group shadow-xs">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                                GPU Graphics
+                            </span>
+                            <Zap className="h-4 w-4 text-sky-400" />
+                        </div>
+
+                        <div className="space-y-2 my-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                    <Flame className="h-3.5 w-3.5 text-sky-400" /> Raster Core
+                                </span>
+                                <span className="text-xs font-bold font-mono text-foreground tnum">
+                                    {hardware?.gpu_temp_c !== undefined ? `${hardware.gpu_temp_c.toFixed(1)}°C` : "Integrated"}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                    <Activity className="h-3.5 w-3.5 text-sky-400" /> Architecture
+                                </span>
+                                <span className="text-xs font-bold font-mono text-primary">
+                                    {hardware?.gpu_temp_c !== undefined ? "Discrete Core" : "SoC Integrated"}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-border/40 pt-1.5 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                            <span>Vulkan / OpenGL</span>
+                            <span className="text-emerald-500 font-semibold">Active Pipeline</span>
+                        </div>
+                    </div>
+
+                    {/* 3. Cooling Fan & Acoustics */}
+                    <div className="flex flex-col justify-between rounded-xl border border-border/70 bg-background/50 p-4 transition-all hover:border-border hover:bg-background/80 relative overflow-hidden group shadow-xs">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                                Cooling Fans
+                            </span>
+                            <Wind className={cn("h-4 w-4 text-emerald-400", ((hardware?.fans?.[0]?.rpm ?? 0) > 0) && "animate-spin")} />
+                        </div>
+
+                        <div className="space-y-2 my-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                    <Wind className="h-3.5 w-3.5 text-emerald-400" /> Fan Speed
+                                </span>
+                                <span className="text-xs font-bold font-mono text-foreground tnum">
+                                    {hardware?.fans && hardware.fans.length > 0 && hardware.fans[0].rpm > 0 ? `${hardware.fans[0].rpm} RPM` : "0 RPM (Silent)"}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                    <Gauge className="h-3.5 w-3.5 text-sky-400" /> Probes
+                                </span>
+                                <span className="text-xs font-bold font-mono text-foreground">
+                                    {hardware?.fans && hardware.fans.length > 0 ? `${hardware.fans.length} Active Tach` : "Passive Heatpipe"}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-border/40 pt-1.5 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                            <span>Acoustics Mode</span>
+                            <span className="text-foreground font-semibold">
+                                {hardware?.fans && hardware.fans.length > 0 && hardware.fans[0].rpm > 3000 ? "Active Turbo" : "0dB Zero-RPM"}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* 4. Platform Power Mode */}
+                    <div className="flex flex-col justify-between rounded-xl border border-border/70 bg-background/50 p-4 transition-all hover:border-border hover:bg-background/80 relative overflow-hidden group shadow-xs">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                                Silicon Governor
+                            </span>
+                            <SlidersHorizontal className="h-4 w-4 text-amber-400" />
+                        </div>
+
+                        <div className="space-y-2 my-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                    <Zap className="h-3.5 w-3.5 text-amber-400" /> Active Policy
+                                </span>
+                                <span className="text-xs font-bold font-mono text-primary uppercase">
+                                    {hardware?.power_profile ?? "balanced"}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                    <Layers className="h-3.5 w-3.5 text-sky-400" /> Scaling D-Bus
+                                </span>
+                                <span className="text-xs font-bold font-mono text-emerald-400">
+                                    power-profiles
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-border/40 pt-1.5 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                            <span>Dynamic EPP</span>
+                            <span className="text-muted-foreground font-semibold truncate max-w-[110px] text-right">
+                                {hardware?.epp ?? "schedutil"}
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Peripheral Mesh Summary */}
-                <div className="rounded-xl border border-border/60 bg-background/40 p-3.5 flex items-center justify-between">
+                {/* Progressive Disclosure: Detailed Hardware Thermal Probes */}
+                {hardware?.sensors && hardware.sensors.length > 0 && (
+                    <div className="border-t border-border/50 pt-2">
+                        <button
+                            onClick={() => setShowSensors(!showSensors)}
+                            className="flex w-full items-center justify-between text-xs text-muted-foreground hover:text-foreground transition-colors py-1.5 px-1 rounded-lg hover:bg-white/[0.03]"
+                        >
+                            <span className="flex items-center gap-2 font-mono">
+                                <Thermometer className="h-3.5 w-3.5 text-primary" />
+                                Detailed Hardware Thermal Probes ({hardware.sensors.length} sensors detected)
+                            </span>
+                            <div className="flex items-center gap-1 text-[11px] font-mono">
+                                <span>{showSensors ? "Collapse telemetry" : "Expand all sensors"}</span>
+                                {showSensors ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                            </div>
+                        </button>
+
+                        {showSensors && (
+                            <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 p-3 rounded-xl border border-border/70 bg-background/60">
+                                {hardware.sensors.map((s, idx) => {
+                                    const isCrit = s.critical ? s.temp_c >= s.critical : s.temp_c >= 85;
+                                    const isWarm = s.temp_c >= 70;
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className="flex flex-col justify-between p-2.5 rounded-lg border border-border/50 bg-card/40 space-y-1.5"
+                                        >
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="font-medium text-foreground truncate max-w-[160px]" title={s.name}>
+                                                    {s.name}
+                                                </span>
+                                                <span className={cn("font-mono font-bold tnum", isCrit ? "text-destructive" : isWarm ? "text-amber-400" : "text-emerald-400")}>
+                                                    {s.temp_c.toFixed(1)}°C
+                                                </span>
+                                            </div>
+
+                                            {/* Mini Visual Thermal Bar */}
+                                            <div className="w-full bg-muted/60 h-1.5 rounded-full overflow-hidden">
+                                                <div
+                                                    className={cn(
+                                                        "h-full rounded-full transition-all duration-500",
+                                                        isCrit ? "bg-destructive" : isWarm ? "bg-amber-400" : "bg-emerald-400"
+                                                    )}
+                                                    style={{ width: `${Math.min(100, Math.max(8, (s.temp_c / (s.critical ?? 100)) * 100))}%` }}
+                                                />
+                                            </div>
+
+                                            <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                                                <span>Limit: {s.critical ? `${s.critical.toFixed(0)}°C Crit` : "100°C Ref"}</span>
+                                                <span className={cn(isCrit ? "text-destructive" : isWarm ? "text-amber-400" : "text-muted-foreground")}>
+                                                    {isCrit ? "CRITICAL" : isWarm ? "WARM" : "NOMINAL"}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* ── 6. INTEGRATED: Audio & Microphone Acoustic Station ── */}
+            <div className="rounded-xl border border-border/80 bg-card/60 p-4 sm:p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border/50 pb-2.5">
                     <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-card border border-border text-foreground">
-                            <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted border border-border text-foreground">
+                            <Volume2 className="h-4 w-4 text-sky-400" strokeWidth={1.8} />
                         </div>
                         <div>
-                            <p className="text-xs font-semibold text-foreground">Mesh & Security</p>
-                            <p className="text-[10px] font-mono text-muted-foreground">
-                                {security?.vpn?.active ? "VPN Active" : "Local Direct"} · {wifi?.enabled ? "Wi-Fi Up" : "Wi-Fi Off"}
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-sm font-bold text-foreground">Audio & PipeWire Streams</h3>
+                                <Badge variant={audio?.output_muted ? "destructive" : "info"} className="text-[10px] font-mono">
+                                    {audio?.output_muted ? "Master Muted" : `${localOutputVol !== null ? localOutputVol : (audio?.output_volume ?? 70)}% Output`}
+                                </Badge>
+                                <Badge variant={audio?.input_muted ? "destructive" : "success"} className="text-[10px] font-mono">
+                                    {audio?.input_muted ? "Mic Muted" : `${localInputVol !== null ? localInputVol : (audio?.input_volume ?? 80)}% Input`}
+                                </Badge>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground font-mono">
+                                Daemon: <strong className="text-foreground">PipeWire / WirePlumber</strong> · Low-latency Spatial Routing
                             </p>
                         </div>
                     </div>
-                    <Badge variant={security?.vpn?.active ? "success" : "outline"} className="text-[10px] font-mono">
-                        {security?.vpn?.active ? "Secured" : "Nominal"}
-                    </Badge>
+
+                    {((audio?.sinks?.length ?? 0) > 1 || (audio?.sources?.length ?? 0) > 1) && (
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setShowAudioDevices(!showAudioDevices)}
+                            className="h-7 text-xs font-mono text-muted-foreground hover:text-foreground self-start sm:self-auto"
+                        >
+                            <span>Routing Devices</span>
+                            {showAudioDevices ? <ChevronUp className="h-3.5 w-3.5 ml-1" /> : <ChevronDown className="h-3.5 w-3.5 ml-1" />}
+                        </Button>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Master Output Sink */}
+                    <div className="rounded-xl border border-border/70 bg-background/50 p-3.5 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold flex items-center gap-1.5 text-foreground font-mono">
+                                <Speaker className="h-3.5 w-3.5 text-primary" /> Master Speaker Output
+                            </span>
+                            <button
+                                onClick={() => setAudioMute.mutate({ target: "sink", muted: !(audio?.output_muted ?? false) })}
+                                disabled={setAudioMute.isPending}
+                                className={cn(
+                                    "flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-mono font-medium transition-all active:scale-95",
+                                    audio?.output_muted
+                                        ? "bg-destructive/15 text-destructive hover:bg-destructive/25 border border-destructive/30"
+                                        : "bg-muted text-foreground hover:bg-muted/80 border border-border"
+                                )}
+                            >
+                                {audio?.output_muted ? <VolumeX className="h-3 w-3" /> : <Volume1 className="h-3 w-3" />}
+                                <span>{audio?.output_muted ? "MUTED" : "MUTE"}</span>
+                            </button>
+                        </div>
+
+                        <div className="flex items-center gap-3 pt-1">
+                            <input
+                                type="range"
+                                min="0"
+                                max="150"
+                                value={localOutputVol !== null ? localOutputVol : (audio?.output_volume ?? 70)}
+                                disabled={audio?.output_muted ?? false}
+                                onChange={(e) => {
+                                    const val = parseInt(e.target.value, 10);
+                                    setLocalOutputVol(val);
+                                    setAudioVolume.mutate({ target: "sink", volume: val });
+                                }}
+                                onMouseUp={() => setLocalOutputVol(null)}
+                                onTouchEnd={() => setLocalOutputVol(null)}
+                                className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary disabled:opacity-50"
+                            />
+                            <span className="w-12 text-right font-mono text-xs font-bold tnum text-foreground">
+                                {localOutputVol !== null ? localOutputVol : (audio?.output_volume ?? 70)}%
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Microphone Input Source */}
+                    <div className="rounded-xl border border-border/70 bg-background/50 p-3.5 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold flex items-center gap-1.5 text-foreground font-mono">
+                                <Mic className="h-3.5 w-3.5 text-emerald-400" /> Microphone Input
+                            </span>
+                            <button
+                                onClick={() => setAudioMute.mutate({ target: "source", muted: !(audio?.input_muted ?? false) })}
+                                disabled={setAudioMute.isPending}
+                                className={cn(
+                                    "flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-mono font-medium transition-all active:scale-95",
+                                    audio?.input_muted
+                                        ? "bg-destructive/15 text-destructive hover:bg-destructive/25 border border-destructive/30"
+                                        : "bg-muted text-foreground hover:bg-muted/80 border border-border"
+                                )}
+                            >
+                                {audio?.input_muted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                                <span>{audio?.input_muted ? "MUTED" : "LIVE"}</span>
+                            </button>
+                        </div>
+
+                        <div className="flex items-center gap-3 pt-1">
+                            <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={localInputVol !== null ? localInputVol : (audio?.input_volume ?? 80)}
+                                disabled={audio?.input_muted ?? false}
+                                onChange={(e) => {
+                                    const val = parseInt(e.target.value, 10);
+                                    setLocalInputVol(val);
+                                    setAudioVolume.mutate({ target: "source", volume: val });
+                                }}
+                                onMouseUp={() => setLocalInputVol(null)}
+                                onTouchEnd={() => setLocalInputVol(null)}
+                                className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary disabled:opacity-50"
+                            />
+                            <span className="w-12 text-right font-mono text-xs font-bold tnum text-foreground">
+                                {localInputVol !== null ? localInputVol : (audio?.input_volume ?? 80)}%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Progressive Disclosure: Audio Sinks / Sources Dropdowns */}
+                {showAudioDevices && (
+                    <div className="mt-2.5 grid grid-cols-1 md:grid-cols-2 gap-3 p-3 rounded-xl border border-border/70 bg-background/60 text-xs">
+                        {(audio?.sinks?.length ?? 0) > 0 && (
+                            <div>
+                                <label className="text-[10px] uppercase font-semibold text-muted-foreground font-mono mb-1 block">
+                                    Default Audio Sink
+                                </label>
+                                <select
+                                    value={audio?.default_sink ?? ""}
+                                    onChange={(e) => setAudioDefaultDevice.mutate({ target: "sink", id: e.target.value })}
+                                    className="w-full rounded-lg border border-border/80 bg-card px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-mono"
+                                >
+                                    {audio?.sinks?.map((s) => (
+                                        <option key={s.id} value={s.id}>{s.description || s.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        {(audio?.sources?.length ?? 0) > 0 && (
+                            <div>
+                                <label className="text-[10px] uppercase font-semibold text-muted-foreground font-mono mb-1 block">
+                                    Default Input Source
+                                </label>
+                                <select
+                                    value={audio?.default_source ?? ""}
+                                    onChange={(e) => setAudioDefaultDevice.mutate({ target: "source", id: e.target.value })}
+                                    className="w-full rounded-lg border border-border/80 bg-card px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-mono"
+                                >
+                                    {audio?.sources?.map((s) => (
+                                        <option key={s.id} value={s.id}>{s.description || s.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* ── 7. INTEGRATED: Display Luminance, Night Light & Optical Shield ── */}
+            <div className="rounded-xl border border-border/80 bg-card/60 p-4 sm:p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border/50 pb-2.5">
+                    <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted border border-border text-foreground">
+                            <SunMedium className="h-4 w-4 text-amber-400" strokeWidth={1.8} />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-sm font-bold text-foreground">Display & Night Light Engine</h3>
+                                <Badge variant={display?.night_light?.enabled ? "warning" : "secondary"} className="text-[10px] font-mono">
+                                    {display?.night_light?.enabled ? `${display.night_light.temperature}K Warm Shield` : "Daylight Normal"}
+                                </Badge>
+                                <Badge variant="outline" className="text-[10px] font-mono">
+                                    {localBrightness !== null ? localBrightness : (display?.brightness_pct ?? 100)}% Luminance
+                                </Badge>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground font-mono">
+                                Compositor: <strong className="text-foreground">{display?.device_name || "Wayland / Niri Engine"}</strong> · Gamma & Backlight Bus
+                            </p>
+                        </div>
+                    </div>
+
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => lockSession.mutate()}
+                        disabled={lockSession.isPending}
+                        className="h-7 text-xs font-mono gap-1 text-muted-foreground hover:text-foreground self-start sm:self-auto border-border hover:border-primary/40"
+                    >
+                        <Lock className="h-3 w-3" />
+                        <span>Lock Session</span>
+                    </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Backlight Luminance */}
+                    <div className="rounded-xl border border-border/70 bg-background/50 p-3.5 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold flex items-center gap-1.5 text-foreground font-mono">
+                                <SunMedium className="h-3.5 w-3.5 text-amber-400" /> Backlight Luminance
+                            </span>
+                            <span className="font-mono text-xs font-bold tnum text-foreground">
+                                {localBrightness !== null ? localBrightness : (display?.brightness_pct ?? 100)}%
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-3 pt-1">
+                            <input
+                                type="range"
+                                min="5"
+                                max="100"
+                                value={localBrightness !== null ? localBrightness : (display?.brightness_pct ?? 100)}
+                                onChange={(e) => {
+                                    const val = parseInt(e.target.value, 10);
+                                    setLocalBrightness(val);
+                                    setBrightness.mutate(val);
+                                }}
+                                onMouseUp={() => setLocalBrightness(null)}
+                                onTouchEnd={() => setLocalBrightness(null)}
+                                className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Night Light Warmth */}
+                    <div className="rounded-xl border border-border/70 bg-background/50 p-3.5 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold flex items-center gap-1.5 text-foreground font-mono">
+                                <Moon className="h-3.5 w-3.5 text-primary" /> Night Light / Blue Shield
+                            </span>
+                            <button
+                                onClick={() => setNightLight.mutate({
+                                    enabled: !(display?.night_light?.enabled ?? false),
+                                    temperature: display?.night_light?.temperature ?? 4500,
+                                })}
+                                disabled={setNightLight.isPending}
+                                className={cn(
+                                    "flex items-center gap-1 rounded-md px-2.5 py-0.5 text-[11px] font-mono font-medium transition-all active:scale-95",
+                                    display?.night_light?.enabled
+                                        ? "bg-primary/15 text-primary border border-primary/40 font-semibold"
+                                        : "bg-muted text-foreground hover:bg-muted/80 border border-border"
+                                )}
+                            >
+                                <span>{display?.night_light?.enabled ? "ACTIVE" : "OFF"}</span>
+                            </button>
+                        </div>
+                        <div className="flex items-center justify-between text-xs font-mono text-muted-foreground pt-1">
+                            <span>Color Temperature Spectrum:</span>
+                            <span className="text-amber-500 font-bold tnum">{display?.night_light?.temperature ?? 4500}K Warm</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* ── 7. Quick Peripheral Jump Links ── */}
+            {/* ── 8. INTEGRATED: Tailscale Mesh & System Security Rail ── */}
+            <div className="rounded-xl border border-border/80 bg-card/60 p-4 sm:p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border/50 pb-2.5">
+                    <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted border border-border text-foreground">
+                            <Shield className="h-4 w-4 text-emerald-500" strokeWidth={1.8} />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-sm font-bold text-foreground">Tailscale Mesh & Perimeter Security</h3>
+                                <Badge variant={security?.vpn?.active ? "success" : "destructive"} className="text-[10px] font-mono">
+                                    {security?.vpn?.active ? "Tailscale Mesh Active" : "VPN Offline"}
+                                </Badge>
+                                <Badge variant={security?.firewall_on ? "success" : "destructive"} className="text-[10px] font-mono">
+                                    {security?.firewall_on ? "Firewall 100%" : "Firewall Off"}
+                                </Badge>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground font-mono">
+                                Overlay: <strong className="text-foreground">WireGuard Mesh (100.x.y.z)</strong> · Zero-Trust Routing Bus
+                            </p>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={() => toggleVPN.mutate()}
+                        disabled={toggleVPN.isPending}
+                        className={cn(
+                            "h-7 px-3 rounded-lg border text-xs font-mono font-semibold transition-all shrink-0 active:scale-95 self-start sm:self-auto",
+                            security?.vpn?.active
+                                ? "border-primary/50 bg-primary/15 text-primary hover:bg-primary/25"
+                                : "border-border bg-muted text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        {security?.vpn?.active ? "VPN UP (CONNECTED)" : "VPN DOWN (CONNECT)"}
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-xs font-mono">
+                    <div className="rounded-xl border border-border/70 bg-background/50 p-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Network className="h-4 w-4 text-primary" />
+                            <div>
+                                <p className="text-muted-foreground text-[10px] uppercase font-semibold">Open Ports</p>
+                                <p className="text-foreground font-bold">{security?.open_ports?.length ?? 0} Listening</p>
+                            </div>
+                        </div>
+                        <Badge variant="outline" className="text-[10px]">TCP/UDP</Badge>
+                    </div>
+
+                    <div className="rounded-xl border border-border/70 bg-background/50 p-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                            <div>
+                                <p className="text-muted-foreground text-[10px] uppercase font-semibold">SOPS / Age Key</p>
+                                <p className={cn("font-bold", audit?.sops_report?.decryption_ok ? "text-emerald-400" : "text-destructive")}>
+                                    {audit?.sops_report?.decryption_ok ? "Verified Ok" : "Missing Key"}
+                                </p>
+                            </div>
+                        </div>
+                        <Badge variant={audit?.sops_report?.decryption_ok ? "success" : "destructive"} className="text-[10px]">/etc/age</Badge>
+                    </div>
+
+                    <div className="rounded-xl border border-border/70 bg-background/50 p-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Server className="h-4 w-4 text-sky-400" />
+                            <div>
+                                <p className="text-muted-foreground text-[10px] uppercase font-semibold">Services Daemon</p>
+                                <p className="text-foreground font-bold">{runningServices} running · {failedServices} failed</p>
+                            </div>
+                        </div>
+                        <Badge variant={failedServices === 0 ? "success" : "destructive"} className="text-[10px]">
+                            {failedServices === 0 ? "Nominal" : `${failedServices} Alert`}
+                        </Badge>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── 9. Quick Subsystem Jump Links (Neurodesign Focus Hub) ── */}
             {onSelectModule && (
                 <div className="border-t border-border/60 pt-4 space-y-2.5">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground font-mono">
-                        Quick Peripheral Inspect & Direct Controls
+                        Deep Subsystem Management & Diagnostic Cards
                     </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                         {[
-                            { id: "wifi", label: "Wi-Fi Card", icon: Wifi, status: wifi?.enabled ? (wifi.ssid ?? "Connected") : "Off" },
-                            { id: "bluetooth", label: "Bluetooth", icon: Bluetooth, status: bt?.enabled ? `${bt.devices?.filter(d => d.connected).length ?? 0} paired` : "Off" },
-                            { id: "audio", label: "Audio & Vol", icon: Volume2, status: audio?.output_muted ? "Muted" : `${audio?.output_volume ?? 70}%` },
-                            { id: "hardware", label: "Thermals & Sensors", icon: Flame, status: `${cpuTemp}°C` },
-                            { id: "vpn", label: "Tailscale VPN", icon: ShieldCheck, status: security?.vpn?.active ? "Active" : "Offline" },
+                            { id: "wifi", label: "Wi-Fi Station", icon: Wifi, status: wifi?.enabled ? (wifi.ssid ?? "Connected") : "Off" },
+                            { id: "bluetooth", label: "Bluetooth Mesh", icon: Bluetooth, status: bt?.enabled ? `${bt.devices?.filter(d => d.connected).length ?? 0} paired` : "Off" },
+                            { id: "nixos", label: "NixOS Engine", icon: Layers, status: "Generations" },
+                            { id: "storage", label: "Storage Volumes", icon: HardDrive, status: `${diskUsage.toFixed(0)}% Root` },
+                            { id: "security", label: "Security & SOPS", icon: ShieldCheck, status: "Audit Hub" },
+                            { id: "ai", label: "AI Agent Hub", icon: Sparkles, status: "Sandboxes" },
                         ].map((m) => (
                             <button
                                 key={m.id}
