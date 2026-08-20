@@ -1,21 +1,43 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
     Activity, Heart, Cpu, HardDrive,
     Wifi, Bluetooth, Volume2, ShieldCheck,
     Zap, Flame, Radio, Layers, Server,
     ArrowUpRight, ArrowDownRight, RefreshCw,
     Sparkles, CheckCircle2, AlertTriangle, AlertCircle,
+    PowerOff, RotateCcw, Moon, BedDouble, Plug,
+    Battery, BatteryWarning, BatteryCharging, Clock, X,
+    SlidersHorizontal, Compass,
 } from "lucide-react";
-import { useMetrics, useServices, usePowerStatus, useWifi, useBluetooth } from "@/hooks/useMetrics";
+import {
+    useMetrics,
+    useServices,
+    usePowerStatus,
+    usePowerCapabilities,
+    usePowerMutation,
+    useScheduledShutdown,
+    useWifi,
+    useBluetooth,
+} from "@/hooks/useMetrics";
 import { useHardware } from "@/hooks/useHardware";
 import { useAudio } from "@/hooks/useAudio";
 import { useSecurity } from "@/hooks/useSecurity";
 import { useHostStore } from "@/store/host-store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+
+type PowerAction = "shutdown" | "reboot" | "sleep" | "hibernate" | "hybrid-sleep";
 
 interface SystemVitalsHUDProps {
     onSelectModule?: (moduleId: string) => void;
@@ -27,10 +49,41 @@ export function SystemVitalsHUD({ onSelectModule }: SystemVitalsHUDProps) {
     const { data: services } = useServices();
     const { data: hardware } = useHardware();
     const { data: powerStatus } = usePowerStatus();
+    const { data: caps } = usePowerCapabilities();
+    const { data: scheduled, cancel: cancelSchedule } = useScheduledShutdown();
     const { data: wifi } = useWifi();
     const { data: bt } = useBluetooth();
     const { data: audio } = useAudio();
     const { data: security } = useSecurity();
+
+    // Power Action Confirmation State
+    const [confirmAction, setConfirmAction] = useState<PowerAction | null>(null);
+    const [pendingAction, setPendingAction] = useState<PowerAction | null>(null);
+
+    const shutdownMutation = usePowerMutation("shutdown");
+    const rebootMutation = usePowerMutation("reboot");
+    const sleepMutation = usePowerMutation("sleep");
+    const hibernateMutation = usePowerMutation("hibernate");
+    const hybridSleepMutation = usePowerMutation("hybrid-sleep");
+
+    const getMutation = (action: PowerAction) => {
+        switch (action) {
+            case "shutdown": return shutdownMutation;
+            case "reboot": return rebootMutation;
+            case "sleep": return sleepMutation;
+            case "hibernate": return hibernateMutation;
+            case "hybrid-sleep": return hybridSleepMutation;
+        }
+    };
+
+    const handleExecutePowerAction = (action: PowerAction) => {
+        const m = getMutation(action);
+        setPendingAction(action);
+        setConfirmAction(null);
+        m.mutate(undefined, {
+            onSettled: () => setPendingAction(null),
+        });
+    };
 
     // Telemetry calculations
     const cpuUsage = metrics?.cpu?.usage_pct ?? 0;
@@ -46,7 +99,17 @@ export function SystemVitalsHUD({ onSelectModule }: SystemVitalsHUDProps) {
     const netTx = metrics?.network?.reduce((acc, curr) => acc + curr.tx_kbps, 0) ?? 0;
 
     const cpuTemp = hardware?.cpu_temp_c ?? 42;
-    const powerProfile = hardware?.power_profile ?? "balanced";
+    const cpuGov = hardware?.cpu_governor ?? "schedutil";
+
+    // Battery & Power calculations
+    const primaryBat = powerStatus?.batteries?.[0];
+    const batPct = primaryBat?.capacity_pct ?? null;
+    const batStatus = primaryBat?.status ?? "Unknown";
+    const acOnline = powerStatus?.ac_online ?? true;
+    const livePowerW = primaryBat?.power_w;
+    const healthPct = primaryBat?.health_pct;
+    const timeRemainingMin = primaryBat?.time_remaining_min;
+    const cycleCount = primaryBat?.cycle_count;
 
     // Systemd services health
     const totalServices = services?.length ?? 0;
@@ -247,7 +310,7 @@ export function SystemVitalsHUD({ onSelectModule }: SystemVitalsHUDProps) {
                             Temp: <strong className="text-foreground tnum">{cpuTemp}°C</strong>
                         </span>
                         <span className="text-muted-foreground hidden sm:inline">
-                            Mode: <strong className="text-primary capitalize">{powerProfile}</strong>
+                            Supply: <strong className={cn("capitalize font-mono", acOnline ? "text-emerald-400" : "text-amber-400")}>{acOnline ? "AC Mains Grid" : `${batPct ?? 0}% Battery`}</strong>
                         </span>
                     </div>
                 </div>
@@ -337,7 +400,7 @@ export function SystemVitalsHUD({ onSelectModule }: SystemVitalsHUDProps) {
                     cpuUsage,
                     "CPU Load",
                     `${cpuUsage.toFixed(1)}% Active`,
-                    `Gov: ${hardware?.cpu_governor ?? "schedutil"}`,
+                    `Gov: ${cpuGov}`,
                     <Cpu className="h-4 w-4 text-primary" />,
                     "text-primary",
                     "#38bdf8"
@@ -400,7 +463,285 @@ export function SystemVitalsHUD({ onSelectModule }: SystemVitalsHUDProps) {
                 </div>
             </div>
 
-            {/* ── 4. Core System & Fleet Telemetry Matrix ── */}
+            {/* ── 4. INTEGRATED: Power & Energy Control Station ── */}
+            <div className="rounded-xl border border-border/80 bg-card/60 p-4 sm:p-5 space-y-4">
+                {/* Section Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border/50 pb-2.5">
+                    <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted border border-border text-foreground">
+                            <Zap className="h-4 w-4 text-amber-500" strokeWidth={1.8} />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-sm font-bold text-foreground">Power & Energy Control</h3>
+                                <Badge
+                                    variant={acOnline ? "success" : "warning"}
+                                    className="gap-1 text-[10px] font-mono"
+                                >
+                                    {acOnline ? <Plug className="h-3 w-3" /> : <Battery className="h-3 w-3" />}
+                                    {acOnline ? "AC Mains Supply" : "Internal Battery Mode"}
+                                </Badge>
+                                {batPct !== null && (
+                                    <Badge
+                                        variant={batPct <= 20 ? "destructive" : batPct <= 40 ? "warning" : "secondary"}
+                                        className="text-[10px] font-mono"
+                                    >
+                                        {batPct}% ({batStatus})
+                                    </Badge>
+                                )}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground font-mono">
+                                System Bus: <strong className="text-foreground">systemd-logind</strong> · ACPI Power & Energy Telemetry
+                            </p>
+                        </div>
+                    </div>
+
+                    {scheduled?.scheduled && (
+                        <Badge variant="warning" className="gap-1 text-[10px] font-mono animate-pulse self-start sm:self-auto">
+                            <Clock className="h-3 w-3" />
+                            <span>Shutdown scheduled in ~{scheduled.remaining_min}m</span>
+                        </Badge>
+                    )}
+                </div>
+
+                {/* Scheduled Shutdown Banner if active */}
+                {scheduled?.scheduled && (
+                    <div className="flex items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-300">
+                        <div className="flex items-center gap-2">
+                            <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+                            <span className="font-medium">
+                                Host will {scheduled.action?.toUpperCase()} in approximately <strong>~{scheduled.remaining_min} minutes</strong> ({scheduled.execute_at ? new Date(scheduled.execute_at).toLocaleTimeString() : "Pending"}).
+                            </span>
+                        </div>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => cancelSchedule.mutate(undefined)}
+                            disabled={cancelSchedule.isPending}
+                            className="h-7 text-xs border-amber-500/40 text-amber-600 dark:text-amber-300 hover:bg-amber-500/20"
+                        >
+                            <X className="h-3.5 w-3.5 mr-1" />
+                            Abort Schedule
+                        </Button>
+                    </div>
+                )}
+
+                {/* High-Density Telemetry Matrix (Network I/O Aesthetic) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                    {/* 1. Power Source & Delivery */}
+                    <div className="flex flex-col justify-between rounded-xl border border-border/70 bg-background/50 p-4 transition-all hover:border-border hover:bg-background/80 relative overflow-hidden group shadow-xs">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                                Power Source
+                            </span>
+                            {acOnline ? (
+                                <Plug className="h-4 w-4 text-emerald-400" />
+                            ) : (
+                                <Zap className="h-4 w-4 text-amber-400 animate-pulse" />
+                            )}
+                        </div>
+
+                        <div className="space-y-2 my-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                    <Zap className="h-3.5 w-3.5 text-amber-400" /> Supply Line
+                                </span>
+                                <span className="text-xs font-bold font-mono text-foreground truncate max-w-[120px] text-right">
+                                    {acOnline ? "AC Mains Grid" : "DC Battery Rail"}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                    <Activity className="h-3.5 w-3.5 text-sky-400" /> Power Mode
+                                </span>
+                                <span className={cn("text-xs font-bold font-mono tnum", acOnline ? "text-emerald-400" : "text-amber-400")}>
+                                    {acOnline ? "Continuous Flow" : (batStatus || "Discharging")}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-border/40 pt-1.5 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                            <span>ACPI State</span>
+                            <span className={cn("font-semibold", acOnline ? "text-emerald-500" : "text-amber-500")}>
+                                {acOnline ? "● 230V Mains Synced" : "○ Discharging"}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* 2. Power Consumption Rate */}
+                    <div className="flex flex-col justify-between rounded-xl border border-border/70 bg-background/50 p-4 transition-all hover:border-border hover:bg-background/80 relative overflow-hidden group shadow-xs">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                                Power Draw Rate
+                            </span>
+                            <Zap className="h-4 w-4 text-sky-400" />
+                        </div>
+
+                        <div className="space-y-2 my-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                    <Flame className="h-3.5 w-3.5 text-amber-400" /> Draw Rate
+                                </span>
+                                <span className="text-xs font-bold font-mono text-primary tnum">
+                                    {livePowerW !== undefined ? `${livePowerW.toFixed(1)} W` : (acOnline ? "Passthrough" : "Active")}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                    <Activity className="h-3.5 w-3.5 text-sky-400" /> Rail Voltage
+                                </span>
+                                <span className="text-xs font-bold font-mono text-foreground tnum">
+                                    {primaryBat?.voltage_v !== undefined ? `${primaryBat.voltage_v.toFixed(1)} V` : (acOnline ? "230.0 V Nom" : "12.0 V Ref")}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-border/40 pt-1.5 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                            <span>Thermal Dissipation</span>
+                            <span className="text-foreground font-semibold">{cpuTemp}°C Heat Flux</span>
+                        </div>
+                    </div>
+
+                    {/* 3. Battery Accumulator & Health */}
+                    <div className="flex flex-col justify-between rounded-xl border border-border/70 bg-background/50 p-4 transition-all hover:border-border hover:bg-background/80 relative overflow-hidden group shadow-xs">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                                Accumulator State
+                            </span>
+                            {batPct !== null && batPct <= 20 ? (
+                                <BatteryWarning className="h-4 w-4 text-destructive animate-pulse" />
+                            ) : (
+                                <Battery className="h-4 w-4 text-emerald-400" />
+                            )}
+                        </div>
+
+                        <div className="space-y-2 my-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                    <BatteryCharging className="h-3.5 w-3.5 text-emerald-400" /> Charge Level
+                                </span>
+                                <span className="text-xs font-bold font-mono text-foreground tnum">
+                                    {batPct !== null ? `${batPct}%` : "AC Mains Only"}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                    <ShieldCheck className="h-3.5 w-3.5 text-sky-400" /> Cell Health
+                                </span>
+                                <span className="text-xs font-bold font-mono text-emerald-400 tnum">
+                                    {healthPct !== undefined ? `${healthPct.toFixed(0)}% Health` : "100% Nominal"}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-border/40 pt-1.5 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                            <span>Accumulator Cycles</span>
+                            <span className="text-muted-foreground font-semibold">
+                                {cycleCount !== undefined ? `${cycleCount} Cycles` : "Stationary Node"}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* 4. Estimated Runtime & Scheduling */}
+                    <div className="flex flex-col justify-between rounded-xl border border-border/70 bg-background/50 p-4 transition-all hover:border-border hover:bg-background/80 relative overflow-hidden group shadow-xs">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                                Estimated Runtime
+                            </span>
+                            <Clock className="h-4 w-4 text-violet-400" />
+                        </div>
+
+                        <div className="space-y-2 my-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                    <Clock className="h-3.5 w-3.5 text-violet-400" /> Active Buffer
+                                </span>
+                                <span className="text-xs font-bold font-mono text-foreground tnum">
+                                    {timeRemainingMin !== undefined && timeRemainingMin !== null
+                                        ? `${Math.floor(timeRemainingMin / 60)}h ${timeRemainingMin % 60}m`
+                                        : (acOnline ? "Continuous" : "Calculating…")}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                    <Moon className="h-3.5 w-3.5 text-amber-400" /> Power Timer
+                                </span>
+                                <span className={cn("text-xs font-bold font-mono", scheduled?.scheduled ? "text-amber-400 animate-pulse" : "text-muted-foreground")}>
+                                    {scheduled?.scheduled ? `~${scheduled.remaining_min}m left` : "Standby"}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-border/40 pt-1.5 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                            <span>System Bus</span>
+                            <span className="text-emerald-500 font-semibold">systemd-logind</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Direct ACPI Power Operations */}
+                <div className="space-y-2.5 pt-2">
+                    <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                            Direct ACPI System Operations
+                        </p>
+                        <span className="text-[10px] font-mono text-muted-foreground/70">
+                            Hardware Bus Protected · Confirmation Required
+                        </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        {/* Shutdown Trigger */}
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={pendingAction !== null || (caps && !caps.can_power_off)}
+                            onClick={() => setConfirmAction("shutdown")}
+                            className="h-9 gap-1.5 font-medium text-xs justify-start px-3 shadow-xs active:scale-[0.98] transition-transform"
+                        >
+                            <PowerOff className="h-4 w-4" />
+                            <span>Power Off</span>
+                        </Button>
+
+                        {/* Reboot Trigger */}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={pendingAction !== null || (caps && !caps.can_reboot)}
+                            onClick={() => setConfirmAction("reboot")}
+                            className="h-9 gap-1.5 font-medium text-xs justify-start px-3 border-amber-500/30 hover:border-amber-500/60 hover:bg-amber-500/10 text-amber-600 dark:text-amber-300 active:scale-[0.98] transition-transform"
+                        >
+                            <RotateCcw className="h-4 w-4" />
+                            <span>Restart Node</span>
+                        </Button>
+
+                        {/* Suspend / Sleep Trigger */}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={pendingAction !== null || (caps && !caps.can_suspend)}
+                            onClick={() => setConfirmAction("sleep")}
+                            className="h-9 gap-1.5 font-medium text-xs justify-start px-3 border-sky-500/30 hover:border-sky-500/60 hover:bg-sky-500/10 text-sky-600 dark:text-sky-300 active:scale-[0.98] transition-transform"
+                        >
+                            <Moon className="h-4 w-4" />
+                            <span>Suspend (Sleep)</span>
+                        </Button>
+
+                        {/* Hibernate Trigger */}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={pendingAction !== null || (caps && !caps.can_hibernate)}
+                            onClick={() => setConfirmAction("hibernate")}
+                            className="h-9 gap-1.5 font-medium text-xs justify-start px-3 border-violet-500/30 hover:border-violet-500/60 hover:bg-violet-500/10 text-violet-600 dark:text-violet-300 active:scale-[0.98] transition-transform"
+                        >
+                            <BedDouble className="h-4 w-4" />
+                            <span>Hibernate</span>
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── 6. Core System Matrix ── */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* Systemd Services Vitality */}
                 <div className="rounded-xl border border-border/60 bg-background/40 p-3.5 flex items-center justify-between">
@@ -438,38 +779,37 @@ export function SystemVitalsHUD({ onSelectModule }: SystemVitalsHUDProps) {
                     </Badge>
                 </div>
 
-                {/* Power & Energy State */}
+                {/* Peripheral Mesh Summary */}
                 <div className="rounded-xl border border-border/60 bg-background/40 p-3.5 flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-card border border-border text-foreground">
-                            <Zap className="h-4 w-4 text-primary" />
+                            <ShieldCheck className="h-4 w-4 text-emerald-500" />
                         </div>
                         <div>
-                            <p className="text-xs font-semibold text-foreground">Power & Battery</p>
+                            <p className="text-xs font-semibold text-foreground">Mesh & Security</p>
                             <p className="text-[10px] font-mono text-muted-foreground">
-                                {powerStatus?.ac_online ? "AC Connected" : `${powerStatus?.batteries?.[0]?.capacity_pct ?? 100}% Battery`}
+                                {security?.vpn?.active ? "VPN Active" : "Local Direct"} · {wifi?.enabled ? "Wi-Fi Up" : "Wi-Fi Off"}
                             </p>
                         </div>
                     </div>
-                    <Badge variant="outline" className="text-[10px] font-mono capitalize">
-                        {powerProfile}
+                    <Badge variant={security?.vpn?.active ? "success" : "outline"} className="text-[10px] font-mono">
+                        {security?.vpn?.active ? "Secured" : "Nominal"}
                     </Badge>
                 </div>
             </div>
 
-            {/* ── 5. Quick Peripheral Jump Links ── */}
+            {/* ── 7. Quick Peripheral Jump Links ── */}
             {onSelectModule && (
                 <div className="border-t border-border/60 pt-4 space-y-2.5">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground font-mono">
                         Quick Peripheral Inspect & Direct Controls
                     </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                         {[
                             { id: "wifi", label: "Wi-Fi Card", icon: Wifi, status: wifi?.enabled ? (wifi.ssid ?? "Connected") : "Off" },
                             { id: "bluetooth", label: "Bluetooth", icon: Bluetooth, status: bt?.enabled ? `${bt.devices?.filter(d => d.connected).length ?? 0} paired` : "Off" },
                             { id: "audio", label: "Audio & Vol", icon: Volume2, status: audio?.output_muted ? "Muted" : `${audio?.output_volume ?? 70}%` },
-                            { id: "power", label: "Power Engine", icon: Zap, status: powerProfile },
-                            { id: "hardware", label: "Thermals", icon: Flame, status: `${cpuTemp}°C` },
+                            { id: "hardware", label: "Thermals & Sensors", icon: Flame, status: `${cpuTemp}°C` },
                             { id: "vpn", label: "Tailscale VPN", icon: ShieldCheck, status: security?.vpn?.active ? "Active" : "Offline" },
                         ].map((m) => (
                             <button
@@ -489,6 +829,42 @@ export function SystemVitalsHUD({ onSelectModule }: SystemVitalsHUDProps) {
                     </div>
                 </div>
             )}
+
+            {/* ── 8. Two-Step Safety Confirmation Dialog Modal ── */}
+            <Dialog open={confirmAction !== null} onOpenChange={(open) => !open && setConfirmAction(null)}>
+                <DialogContent className="sm:max-w-md bg-card border-border/80">
+                    <DialogHeader>
+                        <div className="flex items-center gap-2 text-destructive">
+                            <AlertTriangle className="h-5 w-5" />
+                            <DialogTitle className="text-base font-bold">
+                                Confirm {confirmAction?.toUpperCase()} Operation
+                            </DialogTitle>
+                        </div>
+                        <DialogDescription className="text-xs text-muted-foreground pt-2">
+                            You are requesting to <strong>{confirmAction}</strong> the host machine <strong>{host}</strong>.
+                            Active processes, unsaved files, and daemon connections will be terminated immediately or suspended.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="flex gap-2 sm:justify-end pt-3">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setConfirmAction(null)}
+                            className="text-xs"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant={confirmAction === "shutdown" ? "destructive" : "default"}
+                            size="sm"
+                            onClick={() => confirmAction && handleExecutePowerAction(confirmAction)}
+                            className="text-xs font-semibold"
+                        >
+                            Confirm {confirmAction?.toUpperCase()}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

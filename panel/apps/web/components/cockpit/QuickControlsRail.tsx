@@ -28,7 +28,6 @@ export type CockpitModuleId =
     | "wifi"
     | "bluetooth"
     | "vpn"
-    | "power"
     | "hardware"
     | "display"
     | "audio"
@@ -267,39 +266,6 @@ export function QuickControlsRail({
                     <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 px-1 font-mono">
                         Hardware & Environment
                     </p>
-
-                    {/* Power Engine Item */}
-                    <div
-                        onClick={() => onSelect("power")}
-                        className={cn(
-                            "group flex items-center justify-between rounded-xl border p-2.5 transition-all cursor-pointer select-none",
-                            selectedId === "power"
-                                ? "border-primary/60 bg-primary/10 text-foreground ring-1 ring-primary/40 shadow-[0_0_15px_-3px_rgba(56,189,248,0.15)]"
-                                : "border-border/70 bg-card/60 hover:bg-white/[0.04] hover:border-white/15 text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-card border border-border/60">
-                                <Zap className="h-3.5 w-3.5 text-primary" strokeWidth={1.8} />
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-xs font-semibold leading-tight text-foreground truncate">Power Engine</p>
-                                <p className="text-[10px] font-mono text-muted-foreground capitalize truncate">
-                                    {currentProfile} profile
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Inline Profile Switcher */}
-                        <button
-                            onClick={nextProfile}
-                            disabled={setPowerProfile.isPending}
-                            title="Cycle power profile"
-                            className="h-6 px-2 rounded-md border border-border bg-muted/50 text-[10px] font-mono text-primary font-semibold hover:border-primary/40 hover:bg-muted transition-all shrink-0 active:scale-95 capitalize"
-                        >
-                            {currentProfile.slice(0, 4)}
-                        </button>
-                    </div>
 
                     {/* Thermals & Compute Item */}
                     <div

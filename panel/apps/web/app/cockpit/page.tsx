@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { useHostStore } from "@/store/host-store";
 import { QuickControlsRail, CockpitModuleId } from "@/components/cockpit/QuickControlsRail";
 import { SystemVitalsHUD } from "@/components/cockpit/SystemVitalsHUD";
-import { PowerCard } from "@/components/cockpit/PowerCard";
 import { WifiCard } from "@/components/cockpit/WifiCard";
 import { BluetoothCard } from "@/components/cockpit/BluetoothCard";
 import { AudioCard } from "@/components/cockpit/AudioCard";
@@ -39,7 +38,6 @@ export default function CockpitPage() {
         wifi: { title: "Wi-Fi & Wireless Interface", category: "Connectivity", icon: Wifi },
         bluetooth: { title: "Bluetooth & Peripheral Mesh", category: "Connectivity", icon: Bluetooth },
         vpn: { title: "Tailscale Mesh & Security", category: "Connectivity", icon: Shield },
-        power: { title: "Power Management & Batteries", category: "Hardware", icon: Zap },
         hardware: { title: "Thermal & Compute Telemetry", category: "Hardware", icon: Flame },
         display: { title: "Display & Night Light Engine", category: "Hardware", icon: SlidersHorizontal },
         audio: { title: "Audio & PipeWire Streams", category: "Media", icon: Volume2 },
@@ -143,7 +141,6 @@ export default function CockpitPage() {
                         {selectedModule === "wifi" && <WifiCard />}
                         {selectedModule === "bluetooth" && <BluetoothCard />}
                         {selectedModule === "vpn" && <SecurityCard />}
-                        {selectedModule === "power" && <PowerCard />}
                         {selectedModule === "hardware" && <HardwareCard />}
                         {selectedModule === "display" && <DisplayCard />}
                         {(selectedModule === "audio" || selectedModule === "mic") && <AudioCard />}
@@ -161,7 +158,6 @@ export default function CockpitPage() {
                         <div className="grid gap-5 lg:grid-cols-2">
                             {/* Left Column */}
                             <div className="space-y-5">
-                                <PowerCard />
                                 <HardwareCard />
                                 <NixOSCard />
                                 <StorageCard />
@@ -182,7 +178,6 @@ export default function CockpitPage() {
                     {deckTab === "hardware" && (
                         <div className="grid gap-5 lg:grid-cols-2">
                             <div className="space-y-5">
-                                <PowerCard />
                                 <HardwareCard />
                             </div>
                             <div className="space-y-5">
@@ -209,9 +204,6 @@ export default function CockpitPage() {
                             <div className="space-y-5">
                                 <NixOSCard />
                                 <StorageCard />
-                            </div>
-                            <div className="space-y-5">
-                                <PowerCard />
                             </div>
                         </div>
                     )}

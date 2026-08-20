@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -23,24 +24,33 @@ const (
 
 // PortAuditItem represents a listening port with process mapping and exposure level.
 type PortAuditItem struct {
-	Protocol     string       `json:"protocol"`
-	Port         int          `json:"port"`
-	Address      string       `json:"address"`
-	Process      string       `json:"process,omitempty"`
-	PID          int          `json:"pid,omitempty"`
-	Exposure     ExposureType `json:"exposure"`
-	IsProtected  bool         `json:"is_protected"`
+	Protocol    string       `json:"protocol"` // "tcp", "udp", "tcp6", "udp6"
+	Port        int          `json:"port"`
+	Address     string       `json:"address"`
+	Process     string       `json:"process,omitempty"`
+	PID         int          `json:"pid,omitempty"`
+	Exposure    ExposureType `json:"exposure"`
+	IsProtected bool         `json:"is_protected"`
 }
 
 // SOPSAuditReport represents the validation state of Age keys and SOPS secrets.
 type SOPSAuditReport struct {
-	KeyFileExists     bool      `json:"key_file_exists"`
-	KeyFilePath       string    `json:"key_file_path"`
-	PublicKey         string    `json:"public_key,omitempty"`
-	RegisteredInSops  bool      `json:"registered_in_sops"`
-	DecryptionOk      bool      `json:"decryption_ok"`
-	StatusMessage     string    `json:"status_message"`
-	LastTestedAt      time.Time `json:"last_tested_at"`
+	KeyFileExists    bool      `json:"key_file_exists"`
+	KeyFilePath      string    `json:"key_file_path"`
+	PublicKey        string    `json:"public_key,omitempty"`
+	RegisteredInSops bool      `json:"registered_in_sops"`
+	DecryptionOk     bool      `json:"decryption_ok"`
+	StatusMessage    string    `json:"status_message"`
+	LastTestedAt     time.Time `json:"last_tested_at"`
+}
+
+// SecretMetadata represents a declared SOPS secret in secrets.yaml.
+type SecretMetadata struct {
+	Key           string    `json:"key"`
+	Category      string    `json:"category"`
+	AssociatedApp string    `json:"associated_app,omitempty"`
+	Encrypted     bool      `json:"encrypted"`
+	LastModified  time.Time `json:"last_modified,omitempty"`
 }
 
 // Fail2banJailInfo represents an active intrusion prevention jail.
@@ -61,32 +71,34 @@ type Fail2banStatus struct {
 
 // SecurityAuditReport represents the overall system security health and score.
 type SecurityAuditReport struct {
-	Score              int               `json:"score"`               // 0 - 100
-	Grade              string            `json:"grade"`               // "A+", "A", "B", "C", "F"
-	FirewallActive     bool              `json:"firewall_active"`
-	VPNActive          bool              `json:"vpn_active"`
-	SOPSReport         SOPSAuditReport   `json:"sops_report"`
-	Fail2ban           Fail2banStatus    `json:"fail2ban"`
-	OpenPorts          []PortAuditItem   `json:"open_ports"`
-	TotalListening     int               `json:"total_listening"`
-	PublicListening    int               `json:"public_listening"`
-	SysctlHardened     bool              `json:"sysctl_hardened"`
-	Recommendations    []string          `json:"recommendations"`
-	AuditedAt          time.Time         `json:"audited_at"`
+	Score           int             `json:"score"` // 0 - 100
+	Grade           string          `json:"grade"` // "A+", "A", "B", "C", "F"
+	FirewallActive  bool            `json:"firewall_active"`
+	VPNActive       bool            `json:"vpn_active"`
+	SOPSReport      SOPSAuditReport `json:"sops_report"`
+	Fail2ban        Fail2banStatus  `json:"fail2ban"`
+	OpenPorts       []PortAuditItem `json:"open_ports"`
+	TotalListening  int             `json:"total_listening"`
+	PublicListening int             `json:"public_listening"`
+	SysctlHardened  bool            `json:"sysctl_hardened"`
+	Recommendations []string        `json:"recommendations"`
+	AuditedAt       time.Time       `json:"audited_at"`
 }
 
 // CheckSOPSIntegrity verifies /etc/age/key, .sops.yaml, and optionally tests decryption.
 func CheckSOPSIntegrity(ctx context.Context, flakeRoot string, testDecrypt bool) SOPSAuditReport {
 	keyPath := "/etc/age/key"
 	report := SOPSAuditReport{
-		KeyFilePath:   keyPath,
-		LastTestedAt:  time.Now(),
+		KeyFilePath:  keyPath,
+		LastTestedAt: time.Now(),
 	}
 
 	// 1. Key file verification
 	data, err := os.ReadFile(keyPath)
 	if err != nil {
 		report.KeyFileExists = false
+		report.DecryptionOk = false
+		report.RegisteredInSops = false
 		report.StatusMessage = "Age anahtar dosyası (/etc/age/key) bulunamadı. `sudo ./scripts/bootstrap.sh` çalıştırın."
 		return report
 	}
@@ -103,6 +115,8 @@ func CheckSOPSIntegrity(ctx context.Context, flakeRoot string, testDecrypt bool)
 	}
 
 	if report.PublicKey == "" {
+		report.DecryptionOk = false
+		report.RegisteredInSops = false
 		report.StatusMessage = "/etc/age/key içinde public key başlığı bulunamadı."
 		return report
 	}
@@ -114,36 +128,127 @@ func CheckSOPSIntegrity(ctx context.Context, flakeRoot string, testDecrypt bool)
 			report.RegisteredInSops = true
 		} else {
 			report.RegisteredInSops = false
-			report.StatusMessage = fmt.Sprintf("Public key (%s) .sops.yaml içinde kayıtlı değil.", report.PublicKey[:12]+"...")
+			prefix := report.PublicKey
+			if len(prefix) > 12 {
+				prefix = prefix[:12] + "..."
+			}
+			report.StatusMessage = fmt.Sprintf("Public key (%s) .sops.yaml içinde kayıtlı değil.", prefix)
 		}
 	} else {
-		// Fallback check
-		report.RegisteredInSops = true
+		report.RegisteredInSops = false
+		report.StatusMessage = fmt.Sprintf(".sops.yaml okunamadı (%s): %v", sopsYamlPath, sErr)
 	}
 
 	// 4. Test decryption if requested
+	secretsPath := filepath.Join(flakeRoot, "secrets", "sops", "secrets.yaml")
 	if testDecrypt && report.KeyFileExists {
-		secretsPath := filepath.Join(flakeRoot, "secrets", "sops", "secrets.yaml")
 		if _, statErr := os.Stat(secretsPath); statErr == nil {
 			cmd := exec.CommandContext(ctx, "sops", "--decrypt", secretsPath)
 			cmd.Env = append(os.Environ(), "SOPS_AGE_KEY_FILE="+keyPath)
-			if dErr := cmd.Run(); dErr == nil {
+			if out, dErr := cmd.CombinedOutput(); dErr == nil {
 				report.DecryptionOk = true
 				report.StatusMessage = "SOPS şifreleme ve Age anahtar eşleşmesi doğrulandı (OK)."
 			} else {
 				report.DecryptionOk = false
-				report.StatusMessage = "secrets.yaml şifresi çözülemedi. `sops updatekeys` gerekebilir."
+				outStr := strings.TrimSpace(string(out))
+				if outStr != "" {
+					report.StatusMessage = fmt.Sprintf("secrets.yaml şifresi çözülemedi: %s", outStr)
+				} else {
+					report.StatusMessage = "secrets.yaml şifresi çözülemedi. `sops updatekeys secrets/sops/secrets.yaml` çalıştırın."
+				}
 			}
 		} else {
-			report.DecryptionOk = true
-			report.StatusMessage = "Age anahtarı hazır ve doğrulandı."
+			report.DecryptionOk = false
+			report.StatusMessage = fmt.Sprintf("secrets.yaml dosyası bulunamadı (%s)", secretsPath)
 		}
 	} else if report.KeyFileExists && report.RegisteredInSops {
-		report.DecryptionOk = true
-		report.StatusMessage = "Age anahtarı ve SOPS yapılandırması geçerli."
+		report.DecryptionOk = false
+		report.StatusMessage = "Age anahtarı ve .sops.yaml kaydı mevcut (Doğrulama testi henüz çalıştırılmadı)."
 	}
 
 	return report
+}
+
+// GetSOPSSecretsSummary parses secrets.yaml and returns declared secret metadata without exposing plaintext.
+func GetSOPSSecretsSummary(flakeRoot string) ([]SecretMetadata, error) {
+	secretsPath := filepath.Join(flakeRoot, "secrets", "sops", "secrets.yaml")
+	data, err := os.ReadFile(secretsPath)
+	if err != nil {
+		return nil, fmt.Errorf("secrets.yaml okunamadı (%s): %w", secretsPath, err)
+	}
+
+	var secrets []SecretMetadata
+	var lastModified time.Time
+
+	// App mapping heuristics
+	appMap := map[string]string{
+		"forgejo":     "forgejo",
+		"vaultwarden": "vaultwarden",
+		"backup":      "restic",
+		"ci":          "buildkite-agent",
+		"database":    "postgresql",
+		"cache":       "nix-serve",
+		"matrix":      "conduit",
+		"grafana":     "grafana",
+		"ntfy":        "ntfy",
+		"cloudflare":  "cloudflared",
+		"tailscale":   "tailscale",
+	}
+
+	lines := strings.Split(string(data), "\n")
+	inSopsBlock := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+
+		if strings.HasPrefix(trimmed, "sops:") {
+			inSopsBlock = true
+			continue
+		}
+
+		if inSopsBlock {
+			if strings.HasPrefix(trimmed, "lastmodified:") {
+				parts := strings.SplitN(trimmed, ":", 2)
+				if len(parts) == 2 {
+					val := strings.Trim(strings.TrimSpace(parts[1]), "\"")
+					if t, parseErr := time.Parse(time.RFC3339, val); parseErr == nil {
+						lastModified = t
+					}
+				}
+			}
+			continue
+		}
+
+		// Top-level secret keys: e.g. "backup/restic_password: ENC[AES256_GCM,...]"
+		if strings.Contains(trimmed, ":") {
+			parts := strings.SplitN(trimmed, ":", 2)
+			key := strings.TrimSpace(parts[0])
+			val := strings.TrimSpace(parts[1])
+
+			category := "general"
+			if slashIdx := strings.Index(key, "/"); slashIdx != -1 {
+				category = key[:slashIdx]
+			}
+
+			assocApp := appMap[category]
+
+			secrets = append(secrets, SecretMetadata{
+				Key:           key,
+				Category:      category,
+				AssociatedApp: assocApp,
+				Encrypted:     strings.Contains(val, "ENC["),
+			})
+		}
+	}
+
+	for i := range secrets {
+		secrets[i].LastModified = lastModified
+	}
+
+	return secrets, nil
 }
 
 // GetFail2banStatus queries fail2ban-client for active jails and banned IPs.
@@ -228,21 +333,98 @@ func GetFail2banStatus(ctx context.Context) Fail2banStatus {
 // UnbanFail2banIP unbans a specific IP from a jail.
 func UnbanFail2banIP(ctx context.Context, jail string, ip string) error {
 	if jail == "" || ip == "" {
-		return fmt.Errorf("jail and ip required")
+		return fmt.Errorf("jail ve ip parametreleri zorunludur")
 	}
 
 	if _, err := exec.LookPath("fail2ban-client"); err != nil {
-		return fmt.Errorf("fail2ban-client not installed")
+		return fmt.Errorf("fail2ban-client bulunamadı")
 	}
 
 	cmd := exec.CommandContext(ctx, "fail2ban-client", "set", jail, "unbanip", ip)
-	return cmd.Run()
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("unban işlemi başarısız (%s): %w", strings.TrimSpace(string(out)), err)
+	}
+	return nil
 }
 
-// ListDetailedPorts inspects /proc/net/tcp and maps processes and exposure levels.
+// BanFail2banIP bans a specific IP in a jail manually.
+func BanFail2banIP(ctx context.Context, jail string, ip string) error {
+	if jail == "" || ip == "" {
+		return fmt.Errorf("jail ve ip parametreleri zorunludur")
+	}
+
+	if _, err := exec.LookPath("fail2ban-client"); err != nil {
+		return fmt.Errorf("fail2ban-client bulunamadı")
+	}
+
+	cmd := exec.CommandContext(ctx, "fail2ban-client", "set", jail, "banip", ip)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("ban işlemi başarısız (%s): %w", strings.TrimSpace(string(out)), err)
+	}
+	return nil
+}
+
+// CheckSysctlHardened inspects key kernel security sysctl parameters.
+func CheckSysctlHardened() bool {
+	checkFile := func(path string, expectedVal string) bool {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return false
+		}
+		return strings.TrimSpace(string(data)) == expectedVal
+	}
+
+	// rp_filter (anti-spoofing)
+	rp1 := checkFile("/proc/sys/net/ipv4/conf/all/rp_filter", "1")
+	rp2 := checkFile("/proc/sys/net/ipv4/conf/all/rp_filter", "2")
+	if !rp1 && !rp2 {
+		return false
+	}
+
+	// tcp_syncookies (syn flood protection)
+	if !checkFile("/proc/sys/net/ipv4/tcp_syncookies", "1") {
+		return false
+	}
+
+	return true
+}
+
+// CheckFirewallActive checks if NixOS firewall / iptables / nftables is actively running.
+func CheckFirewallActive(ctx context.Context) bool {
+	// 1. Check systemd firewall service
+	if _, err := exec.LookPath("systemctl"); err == nil {
+		cmd := exec.CommandContext(ctx, "systemctl", "is-active", "firewall")
+		if err := cmd.Run(); err == nil {
+			return true
+		}
+	}
+
+	// 2. Fallback check: iptables rules
+	if _, err := exec.LookPath("iptables"); err == nil {
+		cmd := exec.CommandContext(ctx, "iptables", "-S")
+		if out, err := cmd.Output(); err == nil && len(out) > 0 {
+			return true
+		}
+	}
+
+	// 3. Fallback check: nftables rules
+	if _, err := exec.LookPath("nft"); err == nil {
+		cmd := exec.CommandContext(ctx, "nft", "list", "ruleset")
+		if out, err := cmd.Output(); err == nil && len(out) > 0 {
+			return true
+		}
+	}
+
+	return false
+}
+
+// ListDetailedPorts inspects /proc/net/{tcp,tcp6,udp,udp6} and maps processes and exposure levels.
 func ListDetailedPorts(ctx context.Context) []PortAuditItem {
 	ports := make([]PortAuditItem, 0)
 	seen := make(map[string]bool)
+
+	// Build inode to PID/Process mapping from /proc
+	inodeMap := buildSocketInodeMap()
 
 	parseProc := func(path string, proto string) {
 		data, err := os.ReadFile(path)
@@ -256,56 +438,162 @@ func ListDetailedPorts(ctx context.Context) []PortAuditItem {
 				continue
 			}
 			fields := strings.Fields(line)
-			if len(fields) < 4 {
+			if len(fields) < 10 {
 				continue
 			}
-			if fields[3] != "0A" { // 0A = TCP_LISTEN
+
+			// For TCP: 0A = TCP_LISTEN. For UDP: 07 = UDP_LISTEN or any bound socket
+			state := fields[3]
+			if strings.HasPrefix(proto, "tcp") && state != "0A" {
 				continue
 			}
 
 			localAddr := fields[1]
 			parts := strings.Split(localAddr, ":")
-			if len(parts) == 2 {
-				portHex := parts[1]
-				if portNum, pErr := strconv.ParseInt(portHex, 16, 64); pErr == nil && portNum > 0 {
-					ipHex := parts[0]
-					var ipStr string
-					var exposure ExposureType
-
-					if ipHex == "0100007F" || strings.HasPrefix(ipHex, "0000000000000000000000000100007F") || ipHex == "00000000000000000000000000000001" {
-						ipStr = "127.0.0.1"
-						exposure = ExposureLocalhost
-					} else if strings.HasPrefix(ipHex, "00000000") || ipHex == "00000000" {
-						ipStr = "0.0.0.0"
-						exposure = ExposurePublic
-					} else {
-						ipStr = "100.64.*"
-						exposure = ExposureMesh
-					}
-
-					key := fmt.Sprintf("%s-%d", proto, portNum)
-					if !seen[key] {
-						seen[key] = true
-						item := PortAuditItem{
-							Protocol:    proto,
-							Port:        int(portNum),
-							Address:     ipStr,
-							Exposure:    exposure,
-							IsProtected: exposure != ExposurePublic,
-						}
-						// Assign friendly daemon names for standard ports
-						item.Process = mapPortToProcess(int(portNum))
-						ports = append(ports, item)
-					}
-				}
+			if len(parts) != 2 {
+				continue
 			}
+
+			portHex := parts[1]
+			portNum, pErr := strconv.ParseInt(portHex, 16, 64)
+			if pErr != nil || portNum <= 0 {
+				continue
+			}
+
+			ipHex := parts[0]
+			ipStr, exposure := parseHexIP(ipHex, proto)
+
+			key := fmt.Sprintf("%s-%s-%d", proto, ipStr, portNum)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+
+			inode := fields[9]
+			procName := ""
+			pid := 0
+
+			if info, exists := inodeMap[inode]; exists {
+				procName = info.name
+				pid = info.pid
+			}
+			if procName == "" {
+				procName = mapPortToProcess(int(portNum))
+			}
+
+			item := PortAuditItem{
+				Protocol:    proto,
+				Port:        int(portNum),
+				Address:     ipStr,
+				Exposure:    exposure,
+				IsProtected: exposure != ExposurePublic,
+				Process:     procName,
+				PID:         pid,
+			}
+
+			ports = append(ports, item)
 		}
 	}
 
 	parseProc("/proc/net/tcp", "tcp")
 	parseProc("/proc/net/tcp6", "tcp6")
+	parseProc("/proc/net/udp", "udp")
+	parseProc("/proc/net/udp6", "udp6")
 
 	return ports
+}
+
+type procSocketInfo struct {
+	pid  int
+	name string
+}
+
+func buildSocketInodeMap() map[string]procSocketInfo {
+	res := make(map[string]procSocketInfo)
+
+	entries, err := os.ReadDir("/proc")
+	if err != nil {
+		return res
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		pid, err := strconv.Atoi(entry.Name())
+		if err != nil {
+			continue
+		}
+
+		fdDir := filepath.Join("/proc", entry.Name(), "fd")
+		fds, err := os.ReadDir(fdDir)
+		if err != nil {
+			continue
+		}
+
+		var comm string
+		for _, fd := range fds {
+			link, err := os.Readlink(filepath.Join(fdDir, fd.Name()))
+			if err != nil {
+				continue
+			}
+			if strings.HasPrefix(link, "socket:[") && strings.HasSuffix(link, "]") {
+				inode := link[8 : len(link)-1]
+				if comm == "" {
+					if commBytes, cErr := os.ReadFile(filepath.Join("/proc", entry.Name(), "comm")); cErr == nil {
+						comm = strings.TrimSpace(string(commBytes))
+					}
+				}
+				res[inode] = procSocketInfo{
+					pid:  pid,
+					name: comm,
+				}
+			}
+		}
+	}
+
+	return res
+}
+
+func parseHexIP(hexStr string, proto string) (string, ExposureType) {
+	if strings.Contains(proto, "6") {
+		// IPv6 hex representation (32 hex characters)
+		if hexStr == "00000000000000000000000000000000" {
+			return "::", ExposurePublic
+		}
+		if hexStr == "00000000000000000000000001000000" || hexStr == "00000000000000000000000000000001" {
+			return "::1", ExposureLocalhost
+		}
+		return ":: (IPv6)", ExposurePublic
+	}
+
+	// IPv4 hex representation (8 characters, little endian)
+	if len(hexStr) != 8 {
+		return "0.0.0.0", ExposurePublic
+	}
+
+	b, err := strconv.ParseUint(hexStr, 16, 64)
+	if err != nil {
+		return "0.0.0.0", ExposurePublic
+	}
+
+	ip := net.IPv4(byte(b), byte(b>>8), byte(b>>16), byte(b>>24))
+	ipStr := ip.String()
+
+	if ip.IsLoopback() || ipStr == "127.0.0.1" {
+		return ipStr, ExposureLocalhost
+	}
+	if ip.IsUnspecified() || ipStr == "0.0.0.0" {
+		return ipStr, ExposurePublic
+	}
+	if strings.HasPrefix(ipStr, "100.") { // Tailscale CGNAT
+		return ipStr, ExposureMesh
+	}
+	if ip.IsPrivate() {
+		return ipStr, ExposureMesh
+	}
+
+	return ipStr, ExposurePublic
 }
 
 func mapPortToProcess(port int) string {
@@ -354,9 +642,12 @@ func CalculateSecurityScore(
 	// 2. SOPS & Age Encryption (25 points)
 	if sops.KeyFileExists && sops.RegisteredInSops && sops.DecryptionOk {
 		score += 25
-	} else if sops.KeyFileExists {
+	} else if sops.KeyFileExists && sops.RegisteredInSops {
 		score += 15
-		recs = append(recs, "SOPS Age anahtarı doğrulama testinden geçemedi. `scripts/age-check.sh` çalıştırın.")
+		recs = append(recs, "SOPS Age anahtarı kayıtlı fakat henüz canlı deşifre testi doğrulanmadı.")
+	} else if sops.KeyFileExists {
+		score += 10
+		recs = append(recs, "SOPS Age anahtarı .sops.yaml içinde kayıtlı değil. `scripts/age-check.sh` çalıştırın.")
 	} else {
 		recs = append(recs, "Age anahtarı bulunamadı (/etc/age/key). `scripts/bootstrap.sh` ile oluşturun.")
 	}
@@ -371,8 +662,11 @@ func CalculateSecurityScore(
 	// 4. Fail2ban (15 points)
 	if f2b.Enabled && f2b.ActiveJails > 0 {
 		score += 15
+	} else if f2b.Enabled {
+		score += 10
 	} else {
 		score += 5
+		recs = append(recs, "Fail2ban servisini aktif hale getirerek SSH kaba kuvvet saldırılarını engelleyin.")
 	}
 
 	// 5. Port Exposure (10 points)
@@ -389,7 +683,12 @@ func CalculateSecurityScore(
 	}
 
 	// 6. Sysctl Kernel Hardening (10 points)
-	score += 10
+	if CheckSysctlHardened() {
+		score += 10
+	} else {
+		score += 5
+		recs = append(recs, "Kernel network sertleştirmesini (rp_filter, tcp_syncookies) kontrol edin.")
+	}
 
 	if score > 100 {
 		score = 100

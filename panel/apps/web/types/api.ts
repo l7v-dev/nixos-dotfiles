@@ -161,6 +161,8 @@ export interface HardwareStatus {
     fans: FanSensor[];
     power_profile: string;
     cpu_governor: string;
+    platform_profile?: string;
+    epp?: string;
     available_profiles: string[];
 }
 
@@ -404,6 +406,19 @@ export interface SOPSAuditReport {
     last_tested_at: string;
 }
 
+export interface SecretMetadata {
+    key: string;
+    category: string;
+    associated_app?: string;
+    encrypted: boolean;
+    last_modified?: string;
+}
+
+export interface SecretsInventoryResponse {
+    secrets: SecretMetadata[];
+    total: number;
+}
+
 export interface Fail2banJailInfo {
     name: string;
     currently_banned: number;
@@ -553,7 +568,15 @@ export interface BatteryInfo {
     capacity_pct: number;
     energy_now_uwh?: number;
     energy_full_uwh?: number;
+    energy_full_design_uwh?: number;
     power_now_uw?: number;
+    power_w?: number;
+    voltage_v?: number;
+    health_pct?: number;
+    cycle_count?: number;
+    technology?: string;
+    manufacturer?: string;
+    model_name?: string;
     time_remaining_min?: number;
 }
 

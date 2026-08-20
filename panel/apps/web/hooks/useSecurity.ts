@@ -8,6 +8,7 @@ import type {
     SecurityAuditReport,
     SOPSAuditReport,
     Fail2banStatus,
+    SecretsInventoryResponse,
     AuthStatus,
     Session,
 } from "@/types/api";
@@ -56,6 +57,16 @@ export function useSOPSStatus() {
     });
 }
 
+export function useSOPSSecrets() {
+    const host = useHostStore((s) => s.selectedHost);
+
+    return useQuery<SecretsInventoryResponse>({
+        queryKey: ["security-secrets", host],
+        queryFn: () => fetchAgent<SecretsInventoryResponse>(host, "/api/v1/security/secrets"),
+        refetchInterval: 30_000,
+    });
+}
+
 export function useVerifySOPS() {
     const host = useHostStore((s) => s.selectedHost);
     const queryClient = useQueryClient();
@@ -64,6 +75,7 @@ export function useVerifySOPS() {
         mutationFn: () => postAgent<SOPSAuditReport>(host, "/api/v1/security/sops/verify"),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["security-sops", host] });
+            queryClient.invalidateQueries({ queryKey: ["security-secrets", host] });
             queryClient.invalidateQueries({ queryKey: ["security-audit", host] });
         },
     });
@@ -86,6 +98,20 @@ export function useUnbanIP() {
     return useMutation<any, Error, { jail: string; ip: string }>({
         mutationFn: ({ jail, ip }) =>
             postAgent(host, "/api/v1/security/fail2ban/unban", { jail, ip }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["security-fail2ban", host] });
+            queryClient.invalidateQueries({ queryKey: ["security-audit", host] });
+        },
+    });
+}
+
+export function useBanIP() {
+    const host = useHostStore((s) => s.selectedHost);
+    const queryClient = useQueryClient();
+
+    return useMutation<any, Error, { jail: string; ip: string }>({
+        mutationFn: ({ jail, ip }) =>
+            postAgent(host, "/api/v1/security/fail2ban/ban", { jail, ip }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["security-fail2ban", host] });
             queryClient.invalidateQueries({ queryKey: ["security-audit", host] });

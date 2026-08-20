@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strconv"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -52,8 +52,10 @@ type Client interface {
 	ToggleVPN(ctx context.Context) error
 	GetAuditReport(ctx context.Context) (*SecurityAuditReport, error)
 	VerifySOPS(ctx context.Context) (*SOPSAuditReport, error)
+	GetSecretsInventory(ctx context.Context) ([]SecretMetadata, error)
 	GetFail2ban(ctx context.Context) (*Fail2banStatus, error)
 	UnbanIP(ctx context.Context, jail string, ip string) error
+	BanIP(ctx context.Context, jail string, ip string) error
 }
 
 type systemSecurityClient struct {
@@ -61,14 +63,39 @@ type systemSecurityClient struct {
 	flakeRoot string
 }
 
+// resolveFlakeRoot finds the NixOS repository root with intelligent fallbacks.
+func resolveFlakeRoot() string {
+	if root := os.Getenv("FLAKE_ROOT"); root != "" {
+		if _, err := os.Stat(filepath.Join(root, "flake.nix")); err == nil {
+			return root
+		}
+	}
+
+	candidates := []string{
+		"/home/l7v/dev/projects/company/active/nixos",
+		"/etc/nixos",
+		".",
+		"..",
+		"../..",
+		"../../..",
+	}
+
+	for _, c := range candidates {
+		if _, err := os.Stat(filepath.Join(c, "flake.nix")); err == nil {
+			if abs, err := filepath.Abs(c); err == nil {
+				return abs
+			}
+			return c
+		}
+	}
+
+	return "/home/l7v/dev/projects/company/active/nixos"
+}
+
 // NewClient creates a new security client.
 func NewClient() Client {
-	root := os.Getenv("FLAKE_ROOT")
-	if root == "" {
-		root = "/home/l7v/dev/projects/company/active/nixos"
-	}
 	return &systemSecurityClient{
-		flakeRoot: root,
+		flakeRoot: resolveFlakeRoot(),
 	}
 }
 
@@ -77,6 +104,10 @@ func (c *systemSecurityClient) GetStatus(ctx context.Context) (*Status, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	return c.getStatusInternal(ctx)
+}
+
+func (c *systemSecurityClient) getStatusInternal(ctx context.Context) (*Status, error) {
 	status := &Status{
 		VPN: VPNTunnel{
 			Type:   "tailscale",
@@ -85,7 +116,7 @@ func (c *systemSecurityClient) GetStatus(ctx context.Context) (*Status, error) {
 		},
 		OpenPorts:  make([]OpenPort, 0),
 		Sessions:   make([]UserSession, 0),
-		FirewallOn: true,
+		FirewallOn: CheckFirewallActive(ctx),
 	}
 
 	// 1. Tailscale inspection
@@ -114,8 +145,16 @@ func (c *systemSecurityClient) GetStatus(ctx context.Context) (*Status, error) {
 		}
 	}
 
-	// 2. Open listening ports
-	c.readListeningPorts(ctx, status)
+	// 2. Open listening ports (TCP & UDP)
+	detailedPorts := ListDetailedPorts(ctx)
+	for _, p := range detailedPorts {
+		status.OpenPorts = append(status.OpenPorts, OpenPort{
+			Protocol: p.Protocol,
+			Port:     p.Port,
+			Address:  p.Address,
+			Process:  p.Process,
+		})
+	}
 
 	// 3. Active user sessions via loginctl
 	if _, err := exec.LookPath("loginctl"); err == nil {
@@ -143,62 +182,13 @@ func (c *systemSecurityClient) GetStatus(ctx context.Context) (*Status, error) {
 	return status, nil
 }
 
-func (c *systemSecurityClient) readListeningPorts(ctx context.Context, status *Status) {
-	parseProcTCP := func(path string, isV6 bool) {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return
-		}
-		lines := strings.Split(string(data), "\n")
-		for i, line := range lines {
-			if i == 0 {
-				continue
-			}
-			fields := strings.Fields(line)
-			if len(fields) < 4 {
-				continue
-			}
-			state := fields[3]
-			if state != "0A" {
-				continue
-			}
-			localAddr := fields[1]
-			parts := strings.Split(localAddr, ":")
-			if len(parts) == 2 {
-				portHex := parts[1]
-				if portNum, err := strconv.ParseInt(portHex, 16, 64); err == nil && portNum > 0 {
-					status.OpenPorts = append(status.OpenPorts, OpenPort{
-						Protocol: "tcp",
-						Port:     int(portNum),
-						Address:  "0.0.0.0",
-						Process:  mapPortToProcess(int(portNum)),
-					})
-				}
-			}
-		}
-	}
-
-	parseProcTCP("/proc/net/tcp", false)
-	parseProcTCP("/proc/net/tcp6", true)
-
-	seen := make(map[int]bool)
-	unique := make([]OpenPort, 0, len(status.OpenPorts))
-	for _, p := range status.OpenPorts {
-		if !seen[p.Port] {
-			seen[p.Port] = true
-			unique = append(unique, p)
-		}
-	}
-	status.OpenPorts = unique
-}
-
 // ToggleVPN toggles Tailscale Up or Down.
 func (c *systemSecurityClient) ToggleVPN(ctx context.Context) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	if _, err := exec.LookPath("tailscale"); err != nil {
-		return fmt.Errorf("tailscale not installed")
+		return fmt.Errorf("tailscale kurulu değil")
 	}
 
 	out, err := exec.CommandContext(ctx, "tailscale", "status", "--json").Output()
@@ -247,48 +237,10 @@ func (c *systemSecurityClient) GetAuditReport(ctx context.Context) (*SecurityAud
 		OpenPorts:       ports,
 		TotalListening:  len(ports),
 		PublicListening: publicCount,
-		SysctlHardened:  true,
+		SysctlHardened:  CheckSysctlHardened(),
 		Recommendations: recs,
 		AuditedAt:       time.Now(),
 	}, nil
-}
-
-func (c *systemSecurityClient) getStatusInternal(ctx context.Context) (*Status, error) {
-	status := &Status{
-		VPN: VPNTunnel{
-			Type:   "tailscale",
-			Active: false,
-			Status: "not_installed",
-		},
-		OpenPorts:  make([]OpenPort, 0),
-		Sessions:   make([]UserSession, 0),
-		FirewallOn: true,
-	}
-
-	if _, err := exec.LookPath("tailscale"); err == nil {
-		status.VPN.Status = "stopped"
-		out, err := exec.CommandContext(ctx, "tailscale", "status", "--json").Output()
-		if err == nil {
-			var tsData struct {
-				BackendState string `json:"BackendState"`
-				Self         struct {
-					TailscaleIPs []string `json:"TailscaleIPs"`
-					Online       bool     `json:"Online"`
-				} `json:"Self"`
-				Peer map[string]any `json:"Peer"`
-			}
-			if err := json.Unmarshal(out, &tsData); err == nil && tsData.BackendState == "Running" {
-				status.VPN.Active = true
-				status.VPN.Status = "connected"
-				if len(tsData.Self.TailscaleIPs) > 0 {
-					status.VPN.IPAddress = tsData.Self.TailscaleIPs[0]
-				}
-				status.VPN.PeersCount = len(tsData.Peer)
-			}
-		}
-	}
-
-	return status, nil
 }
 
 // VerifySOPS performs an active decryption test on secrets.yaml using Age.
@@ -298,6 +250,14 @@ func (c *systemSecurityClient) VerifySOPS(ctx context.Context) (*SOPSAuditReport
 
 	sops := CheckSOPSIntegrity(ctx, c.flakeRoot, true)
 	return &sops, nil
+}
+
+// GetSecretsInventory returns declared secret keys in secrets.yaml without exposing decrypted plaintext.
+func (c *systemSecurityClient) GetSecretsInventory(ctx context.Context) ([]SecretMetadata, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return GetSOPSSecretsSummary(c.flakeRoot)
 }
 
 // GetFail2ban queries the fail2ban service for active jails and banned IPs.
@@ -315,4 +275,12 @@ func (c *systemSecurityClient) UnbanIP(ctx context.Context, jail string, ip stri
 	defer c.mu.Unlock()
 
 	return UnbanFail2banIP(ctx, jail, ip)
+}
+
+// BanIP bans an IP address in a fail2ban jail.
+func (c *systemSecurityClient) BanIP(ctx context.Context, jail string, ip string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return BanFail2banIP(ctx, jail, ip)
 }

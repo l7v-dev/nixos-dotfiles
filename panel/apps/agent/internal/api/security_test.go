@@ -14,8 +14,9 @@ import (
 )
 
 type mockSecurityClient struct {
-	status *security.Status
-	audit  *security.SecurityAuditReport
+	status  *security.Status
+	audit   *security.SecurityAuditReport
+	secrets []security.SecretMetadata
 }
 
 func (m *mockSecurityClient) GetStatus(ctx context.Context) (*security.Status, error) {
@@ -35,11 +36,19 @@ func (m *mockSecurityClient) VerifySOPS(ctx context.Context) (*security.SOPSAudi
 	return &m.audit.SOPSReport, nil
 }
 
+func (m *mockSecurityClient) GetSecretsInventory(ctx context.Context) ([]security.SecretMetadata, error) {
+	return m.secrets, nil
+}
+
 func (m *mockSecurityClient) GetFail2ban(ctx context.Context) (*security.Fail2banStatus, error) {
 	return &m.audit.Fail2ban, nil
 }
 
 func (m *mockSecurityClient) UnbanIP(ctx context.Context, jail string, ip string) error {
+	return nil
+}
+
+func (m *mockSecurityClient) BanIP(ctx context.Context, jail string, ip string) error {
 	return nil
 }
 
@@ -76,6 +85,10 @@ func TestSecurityAndAuthEndpoints(t *testing.T) {
 				{Port: 22, Exposure: security.ExposureLocalhost, Protocol: "tcp"},
 			},
 		},
+		secrets: []security.SecretMetadata{
+			{Key: "backup/restic_password", Category: "backup", AssociatedApp: "restic", Encrypted: true},
+			{Key: "forgejo/admin_password", Category: "forgejo", AssociatedApp: "forgejo", Encrypted: true},
+		},
 	}
 
 	authMgr := auth.NewManager()
@@ -106,7 +119,32 @@ func TestSecurityAndAuthEndpoints(t *testing.T) {
 		t.Fatalf("unexpected audit report: %+v", auditRep)
 	}
 
-	// 3. POST /api/v1/security/fail2ban/unban
+	// 3. GET /api/v1/security/secrets
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("GET", "/api/v1/security/secrets", nil)
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on secrets, got %d", rec.Code)
+	}
+	var secResp struct {
+		Secrets []security.SecretMetadata `json:"secrets"`
+		Total   int                       `json:"total"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &secResp)
+	if secResp.Total != 2 || len(secResp.Secrets) != 2 {
+		t.Fatalf("expected 2 secrets, got %+v", secResp)
+	}
+
+	// 4. POST /api/v1/security/fail2ban/ban
+	banPayload, _ := json.Marshal(map[string]string{"jail": "sshd", "ip": "10.0.0.99"})
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("POST", "/api/v1/security/fail2ban/ban", bytes.NewReader(banPayload))
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on ban, got %d", rec.Code)
+	}
+
+	// 5. POST /api/v1/security/fail2ban/unban
 	unbanPayload, _ := json.Marshal(map[string]string{"jail": "sshd", "ip": "192.168.1.50"})
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest("POST", "/api/v1/security/fail2ban/unban", bytes.NewReader(unbanPayload))
@@ -115,7 +153,7 @@ func TestSecurityAndAuthEndpoints(t *testing.T) {
 		t.Fatalf("expected 200 on unban, got %d", rec.Code)
 	}
 
-	// 4. GET /api/v1/auth/status
+	// 6. GET /api/v1/auth/status
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest("GET", "/api/v1/auth/status", nil)
 	router.ServeHTTP(rec, req)
@@ -123,7 +161,7 @@ func TestSecurityAndAuthEndpoints(t *testing.T) {
 		t.Fatalf("expected 200 on auth status, got %d", rec.Code)
 	}
 
-	// 5. POST /api/v1/auth/login
+	// 7. POST /api/v1/auth/login
 	loginPayload, _ := json.Marshal(map[string]string{"pin": "1707"})
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest("POST", "/api/v1/auth/login", bytes.NewReader(loginPayload))
@@ -137,7 +175,7 @@ func TestSecurityAndAuthEndpoints(t *testing.T) {
 		t.Fatal("expected token on login response")
 	}
 
-	// 6. POST /api/v1/auth/verify
+	// 8. POST /api/v1/auth/verify
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest("POST", "/api/v1/auth/verify", nil)
 	req.Header.Set("Authorization", "Bearer "+sess.Token)

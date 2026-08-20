@@ -254,8 +254,10 @@ func NewRouter(d Deps) http.Handler {
 		mux.Handle("GET /api/v1/security/audit", securityAuditHandler(d))
 		mux.Handle("GET /api/v1/security/sops", securitySOPSHandler(d))
 		mux.Handle("POST /api/v1/security/sops/verify", securitySOPSVerifyHandler(d))
+		mux.Handle("GET /api/v1/security/secrets", securitySecretsHandler(d))
 		mux.Handle("GET /api/v1/security/fail2ban", securityFail2banHandler(d))
 		mux.Handle("POST /api/v1/security/fail2ban/unban", securityFail2banUnbanHandler(d))
+		mux.Handle("POST /api/v1/security/fail2ban/ban", securityFail2banBanHandler(d))
 		mux.Handle("POST /api/v1/security/vpn/toggle", securityVPNToggleHandler(d))
 	}
 

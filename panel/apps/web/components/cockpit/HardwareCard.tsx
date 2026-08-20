@@ -11,26 +11,19 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 export function HardwareCard() {
-    const { data: hardware, setPowerProfile, isLoading } = useHardware();
+    const { data: hardware, isLoading } = useHardware();
     const [showSensors, setShowSensors] = useState(false);
 
     const cpuTemp = hardware?.cpu_temp_c ?? 45;
     const gpuTemp = hardware?.gpu_temp_c;
     const fans = hardware?.fans ?? [];
     const sensors = hardware?.sensors ?? [];
-    const currentProfile = hardware?.power_profile ?? "balanced";
 
     const tempStatus = (t: number) => {
         if (t >= 85) return { label: "Critical", variant: "destructive" as const, color: "text-destructive" };
         if (t >= 70) return { label: "Elevated", variant: "warning" as const, color: "text-amber-600 dark:text-amber-400" };
         return { label: "Nominal", variant: "success" as const, color: "text-emerald-600 dark:text-emerald-400" };
     };
-
-    const PROFILES = [
-        { id: "performance", label: "Performance", icon: "🚀", desc: "Max frequency & power" },
-        { id: "balanced", label: "Balanced", icon: "⚖️", desc: "Dynamic clock scaling" },
-        { id: "powersave", label: "Powersave", icon: "🍃", desc: "Quiet fan & efficiency" },
-    ];
 
     const cpuStatus = tempStatus(cpuTemp);
 
@@ -111,38 +104,6 @@ export function HardwareCard() {
                 </div>
             </div>
 
-            {/* ── 3. Tactile Power Profile Switcher ── */}
-            <div className="space-y-1.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-                    Hardware Power Profile
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                    {PROFILES.map((p) => {
-                        const active = currentProfile === p.id;
-                        return (
-                            <button
-                                key={p.id}
-                                onClick={() => setPowerProfile.mutate(p.id)}
-                                disabled={setPowerProfile.isPending}
-                                className={cn(
-                                    "flex flex-col items-start gap-0.5 rounded-lg border p-2 text-left transition-all",
-                                    active
-                                        ? "border-primary/50 bg-primary/10 text-foreground ring-1 ring-primary/30"
-                                        : "border-border/60 bg-background/40 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                                )}
-                            >
-                                <div className="flex items-center gap-1 text-xs font-semibold whitespace-nowrap">
-                                    <span>{p.icon}</span>
-                                    <span>{p.label}</span>
-                                </div>
-                                <p className="text-[9px] text-muted-foreground/80 leading-tight whitespace-nowrap truncate">
-                                    {p.desc}
-                                </p>
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
 
             {/* ── 4. Progressive Disclosure (Sensors Extender) ── */}
             {sensors.length > 0 && (

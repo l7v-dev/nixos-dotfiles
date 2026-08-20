@@ -29,9 +29,11 @@ type Status struct {
 	GPUTempC          *float64        `json:"gpu_temp_c,omitempty"`
 	Sensors           []ThermalSensor `json:"sensors"`
 	Fans              []FanSensor     `json:"fans"`
-	PowerProfile      string          `json:"power_profile"`      // "performance", "balanced", "powersave", "auto"
-	CPUGovernor       string          `json:"cpu_governor"`       // e.g. "powersave", "performance", "schedutil"
-	AvailableProfiles []string        `json:"available_profiles"` // ["performance", "balanced", "powersave"]
+	PowerProfile      string          `json:"power_profile"`                 // "performance", "balanced", "powersave", "auto"
+	CPUGovernor       string          `json:"cpu_governor"`                  // e.g. "powersave", "performance", "schedutil"
+	PlatformProfile   *string         `json:"platform_profile,omitempty"`    // e.g. "performance", "balanced", "low-power"
+	EPP               *string         `json:"epp,omitempty"`                 // energy_performance_preference
+	AvailableProfiles []string        `json:"available_profiles"`            // ["performance", "balanced", "powersave", "auto"]
 }
 
 // Client defines the interface for hardware monitoring and power profile control.
@@ -143,47 +145,140 @@ func (c *systemHardwareClient) GetStatus(ctx context.Context) (*Status, error) {
 		}
 	}
 
-	// 3. Check auto-cpufreq status if available
-	if _, err := exec.LookPath("auto-cpufreq"); err == nil {
+	// 3. Read Energy Performance Preference (EPP) if available (AMD / Intel P-State)
+	if eppBytes, err := os.ReadFile("/sys/devices/system/cpu/cpu0/cpufreq/energy_performance_preference"); err == nil {
+		epp := strings.TrimSpace(string(eppBytes))
+		if epp != "" {
+			status.EPP = &epp
+			switch epp {
+			case "performance":
+				status.PowerProfile = "performance"
+			case "power", "balance_power":
+				status.PowerProfile = "powersave"
+			case "balance_performance", "default":
+				status.PowerProfile = "balanced"
+			}
+		}
+	}
+
+	// 4. Read ACPI Platform Profile if available (ASUS, Lenovo ThinkPad, Dell, Framework, etc.)
+	if platBytes, err := os.ReadFile("/sys/firmware/acpi/platform_profile"); err == nil {
+		plat := strings.TrimSpace(string(platBytes))
+		if plat != "" {
+			status.PlatformProfile = &plat
+			switch plat {
+			case "performance":
+				status.PowerProfile = "performance"
+			case "low-power", "quiet":
+				status.PowerProfile = "powersave"
+			case "balanced", "balanced-performance":
+				status.PowerProfile = "balanced"
+			}
+		}
+	}
+
+	// 5. Query powerprofilesctl if active
+	if _, err := exec.LookPath("powerprofilesctl"); err == nil {
+		cmd := exec.CommandContext(ctx, "powerprofilesctl", "get")
+		if out, err := cmd.Output(); err == nil {
+			ppd := strings.TrimSpace(string(out))
+			switch ppd {
+			case "performance":
+				status.PowerProfile = "performance"
+			case "power-saver":
+				status.PowerProfile = "powersave"
+			case "balanced":
+				status.PowerProfile = "balanced"
+			}
+		}
+	}
+
+	// 6. Check auto-cpufreq service active state (only if actually active service)
+	if isAutoCpuFreqActive(ctx) {
 		status.PowerProfile = "auto"
+		if !contains(status.AvailableProfiles, "auto") {
+			status.AvailableProfiles = append(status.AvailableProfiles, "auto")
+		}
 	}
 
 	return status, nil
 }
 
-// SetPowerProfile sets the CPU governor or power-profiles-daemon mode.
+// SetPowerProfile sets the CPU governor, EPP, ACPI platform profile, or power-profiles-daemon mode.
 func (c *systemHardwareClient) SetPowerProfile(ctx context.Context, profile string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	governor := "powersave"
+	epp := "balance_performance"
+	platformProfile := "balanced"
+	ppdProfile := "balanced"
+
 	switch profile {
 	case "performance":
 		governor = "performance"
+		epp = "performance"
+		platformProfile = "performance"
+		ppdProfile = "performance"
 	case "powersave":
 		governor = "powersave"
+		epp = "power"
+		platformProfile = "low-power"
+		ppdProfile = "power-saver"
 	case "balanced", "auto":
 		governor = "schedutil"
+		epp = "balance_performance"
+		platformProfile = "balanced"
+		ppdProfile = "balanced"
 	default:
 		governor = "powersave"
+		epp = "balance_performance"
+		platformProfile = "balanced"
+		ppdProfile = "balanced"
 	}
 
-	// Set scaling_governor for all CPUs
+	// 1. Set ACPI platform profile if supported
+	if _, err := os.Stat("/sys/firmware/acpi/platform_profile"); err == nil {
+		// Read available choices to pick exact matching string
+		if choicesBytes, err := os.ReadFile("/sys/firmware/acpi/platform_profile_choices"); err == nil {
+			choices := string(choicesBytes)
+			if profile == "powersave" && !strings.Contains(choices, "low-power") && strings.Contains(choices, "quiet") {
+				platformProfile = "quiet"
+			}
+		}
+		_ = os.WriteFile("/sys/firmware/acpi/platform_profile", []byte(platformProfile), 0644)
+	}
+
+	// 2. Set energy_performance_preference for all CPUs if available
+	eppFiles, _ := filepath.Glob("/sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference")
+	for _, f := range eppFiles {
+		_ = os.WriteFile(f, []byte(epp), 0644)
+	}
+
+	// 3. Set scaling_governor for all CPUs
 	govFiles, _ := filepath.Glob("/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor")
 	for _, f := range govFiles {
 		_ = os.WriteFile(f, []byte(governor), 0644)
 	}
 
-	// If powerprofilesctl is available, also notify it
+	// 4. If powerprofilesctl is available, also notify it
 	if _, err := exec.LookPath("powerprofilesctl"); err == nil {
-		ppdProfile := "balanced"
-		if profile == "performance" {
-			ppdProfile = "performance"
-		} else if profile == "powersave" {
-			ppdProfile = "power-saver"
-		}
 		_ = exec.CommandContext(ctx, "powerprofilesctl", "set", ppdProfile).Run()
 	}
 
 	return nil
+}
+
+func isAutoCpuFreqActive(ctx context.Context) bool {
+	cmd := exec.CommandContext(ctx, "systemctl", "is-active", "--quiet", "auto-cpufreq.service")
+	return cmd.Run() == nil
+}
+
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }

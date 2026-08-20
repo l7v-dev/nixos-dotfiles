@@ -3,9 +3,9 @@
 import React, { useState } from "react";
 import {
     PowerOff, RotateCcw, Moon, BedDouble,
-    Zap, Battery, BatteryWarning,
+    Zap, Battery, BatteryWarning, BatteryCharging,
     Plug, Clock, X, ChevronDown, ChevronUp,
-    AlertTriangle, Server,
+    AlertTriangle, Server, Activity, Flame, ShieldCheck,
 } from "lucide-react";
 import {
     usePowerMutation,
@@ -19,6 +19,7 @@ import { useHostStore } from "@/store/host-store";
 import type { PowerCapabilities } from "@/types/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type PowerAction = "shutdown" | "reboot" | "sleep" | "hibernate" | "hybrid-sleep";
 
@@ -57,6 +58,10 @@ export function PowerCard() {
     const batPct = bat?.capacity_pct ?? null;
     const batStatus = bat?.status ?? null;
     const acOnline = powerStatus?.ac_online ?? null;
+    const livePowerW = bat?.power_w;
+    const healthPct = bat?.health_pct;
+    const timeRemainingMin = bat?.time_remaining_min;
+    const cycleCount = bat?.cycle_count;
 
     return (
         <div className="instrument-card p-4 sm:p-5 space-y-4 font-sans">
@@ -64,12 +69,12 @@ export function PowerCard() {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted border border-border text-foreground">
-                        <Server className="h-4 w-4" strokeWidth={1.6} />
+                        <Server className="h-4 w-4 text-amber-500" strokeWidth={1.6} />
                     </div>
                     <div>
                         <p className="text-sm font-semibold leading-tight text-foreground whitespace-nowrap">Power & Energy Control</p>
                         <p className="text-[11px] text-muted-foreground font-mono whitespace-nowrap">
-                            Node: <strong className="text-foreground">{host}</strong> · System Bus
+                            Node: <strong className="text-foreground">{host}</strong> · ACPI System Bus
                         </p>
                     </div>
                 </div>
@@ -125,58 +130,156 @@ export function PowerCard() {
                 </div>
             )}
 
-            {/* ── 2. Primary Telemetry Metric Grid ── */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {/* AC Line */}
-                <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider whitespace-nowrap truncate block">
-                        Power Source
-                    </p>
-                    <p className="text-xs font-bold font-mono text-foreground whitespace-nowrap truncate">
-                        {acOnline ? "AC Mains Supply" : "Internal Battery"}
-                    </p>
-                    <p className={`text-[10px] font-mono whitespace-nowrap truncate ${acOnline ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
-                        {acOnline ? "● Charging / Passthrough" : "○ Discharging"}
-                    </p>
+            {/* ── 2. Primary Telemetry Metric Grid (Network I/O Aesthetic) ── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                {/* 1. Power Source & Delivery */}
+                <div className="flex flex-col justify-between rounded-xl border border-border/70 bg-background/50 p-3.5 transition-all hover:border-border hover:bg-background/80 relative overflow-hidden group shadow-xs">
+                    <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                            Power Source
+                        </span>
+                        {acOnline ? (
+                            <Plug className="h-3.5 w-3.5 text-emerald-400" />
+                        ) : (
+                            <Zap className="h-3.5 w-3.5 text-amber-400 animate-pulse" />
+                        )}
+                    </div>
+
+                    <div className="space-y-1.5 my-1">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                <Zap className="h-3 w-3 text-amber-400" /> Supply Bus
+                            </span>
+                            <span className="text-xs font-bold font-mono text-foreground truncate max-w-[110px] text-right">
+                                {acOnline ? "AC Mains Grid" : "DC Battery Rail"}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                <Activity className="h-3 w-3 text-sky-400" /> Power Mode
+                            </span>
+                            <span className={cn("text-xs font-bold font-mono tnum", acOnline ? "text-emerald-400" : "text-amber-400")}>
+                                {acOnline ? "Continuous Flow" : (batStatus || "Discharging")}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-border/40 pt-1.5 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                        <span>ACPI State</span>
+                        <span className={cn("font-semibold", acOnline ? "text-emerald-500" : "text-amber-500")}>
+                            {acOnline ? "● 230V Mains Synced" : "○ Discharging"}
+                        </span>
+                    </div>
                 </div>
 
-                {/* Battery Capacity */}
-                <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider whitespace-nowrap truncate block">
-                        Battery Capacity
-                    </p>
-                    <p className="text-lg font-bold font-mono tnum text-primary whitespace-nowrap truncate">
-                        {batPct !== null ? `${batPct}%` : "AC Only"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground font-mono whitespace-nowrap truncate">
-                        {batStatus || "No Battery Present"}
-                    </p>
+                {/* 2. Power Consumption Rate */}
+                <div className="flex flex-col justify-between rounded-xl border border-border/70 bg-background/50 p-3.5 transition-all hover:border-border hover:bg-background/80 relative overflow-hidden group shadow-xs">
+                    <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                            Power Draw Rate
+                        </span>
+                        <Zap className="h-3.5 w-3.5 text-sky-400" />
+                    </div>
+
+                    <div className="space-y-1.5 my-1">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                <Flame className="h-3 w-3 text-amber-400" /> Draw Rate
+                            </span>
+                            <span className="text-xs font-bold font-mono text-primary tnum">
+                                {livePowerW !== undefined ? `${livePowerW.toFixed(1)} W` : (acOnline ? "Passthrough" : "Active")}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                <Activity className="h-3 w-3 text-sky-400" /> Voltage
+                            </span>
+                            <span className="text-xs font-bold font-mono text-foreground tnum">
+                                {bat?.voltage_v !== undefined ? `${bat.voltage_v.toFixed(1)} V` : (acOnline ? "230.0 V Nom" : "12.0 V Ref")}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-border/40 pt-1.5 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                        <span>Power Circuit</span>
+                        <span className="text-foreground font-semibold">Regulated Bus</span>
+                    </div>
                 </div>
 
-                {/* System State */}
-                <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider whitespace-nowrap truncate block">
-                        System Bus
-                    </p>
-                    <p className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 whitespace-nowrap truncate">
-                        ● System Nominal
-                    </p>
-                    <p className="text-[10px] text-muted-foreground font-mono whitespace-nowrap truncate">
-                        systemd-logind
-                    </p>
+                {/* 3. Battery Accumulator & Health */}
+                <div className="flex flex-col justify-between rounded-xl border border-border/70 bg-background/50 p-3.5 transition-all hover:border-border hover:bg-background/80 relative overflow-hidden group shadow-xs">
+                    <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                            Accumulator State
+                        </span>
+                        {batPct !== null && batPct <= 15 ? (
+                            <BatteryWarning className="h-3.5 w-3.5 text-destructive animate-pulse" />
+                        ) : (
+                            <Battery className="h-3.5 w-3.5 text-emerald-400" />
+                        )}
+                    </div>
+
+                    <div className="space-y-1.5 my-1">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                <BatteryCharging className="h-3 w-3 text-emerald-400" /> Charge Level
+                            </span>
+                            <span className="text-xs font-bold font-mono text-foreground tnum">
+                                {batPct !== null ? `${batPct}%` : "AC Mains Only"}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                <ShieldCheck className="h-3 w-3 text-sky-400" /> Cell Health
+                            </span>
+                            <span className="text-xs font-bold font-mono text-emerald-400 tnum">
+                                {healthPct !== undefined ? `${healthPct.toFixed(0)}% Health` : "100% Nominal"}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-border/40 pt-1.5 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                        <span>Charge Cycles</span>
+                        <span className="text-muted-foreground font-semibold">
+                            {cycleCount !== undefined ? `${cycleCount} Cycles` : "Stationary Node"}
+                        </span>
+                    </div>
                 </div>
 
-                {/* Planned Schedule */}
-                <div className="rounded-lg border border-border/60 bg-background/50 p-2.5 space-y-1">
-                    <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider whitespace-nowrap truncate block">
-                        Power Timer
-                    </p>
-                    <p className="text-xs font-bold font-mono text-foreground whitespace-nowrap truncate">
-                        {scheduled?.scheduled ? `~${scheduled.remaining_min}m remaining` : "No Action"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground font-mono whitespace-nowrap truncate">
-                        {scheduled?.scheduled ? scheduled.action : "Standby"}
-                    </p>
+                {/* 4. Estimated Runtime & Scheduling */}
+                <div className="flex flex-col justify-between rounded-xl border border-border/70 bg-background/50 p-3.5 transition-all hover:border-border hover:bg-background/80 relative overflow-hidden group shadow-xs">
+                    <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
+                            Estimated Runtime
+                        </span>
+                        <Clock className="h-3.5 w-3.5 text-violet-400" />
+                    </div>
+
+                    <div className="space-y-1.5 my-1">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                <Clock className="h-3 w-3 text-violet-400" /> Active Buffer
+                            </span>
+                            <span className="text-xs font-bold font-mono text-foreground tnum">
+                                {timeRemainingMin !== undefined && timeRemainingMin !== null
+                                    ? `${Math.floor(timeRemainingMin / 60)}h ${timeRemainingMin % 60}m`
+                                    : (acOnline ? "Continuous" : "Calculating…")}
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground flex items-center gap-1 font-mono">
+                                <Moon className="h-3 w-3 text-amber-400" /> Power Timer
+                            </span>
+                            <span className={cn("text-xs font-bold font-mono", scheduled?.scheduled ? "text-amber-400 animate-pulse" : "text-muted-foreground")}>
+                                {scheduled?.scheduled ? `~${scheduled.remaining_min}m left` : "Standby"}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="border-t border-border/40 pt-1.5 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+                        <span>System Bus</span>
+                        <span className="text-emerald-500 font-semibold">systemd-logind</span>
+                    </div>
                 </div>
             </div>
 

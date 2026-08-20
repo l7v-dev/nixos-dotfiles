@@ -110,9 +110,53 @@ func securityFail2banUnbanHandler(d Deps) http.HandlerFunc {
 	}
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Auth Handlers
-   ───────────────────────────────────────────────────────────────────────────── */
+// securitySecretsHandler handles GET /api/v1/security/secrets.
+func securitySecretsHandler(d Deps) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		secrets, err := d.Security.GetSecretsInventory(r.Context())
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, map[string]string{"message": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"secrets": secrets,
+			"total":   len(secrets),
+		})
+	}
+}
+
+type banRequest struct {
+	Jail string `json:"jail"`
+	IP   string `json:"ip"`
+}
+
+// securityFail2banBanHandler handles POST /api/v1/security/fail2ban/ban.
+func securityFail2banBanHandler(d Deps) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req banRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, map[string]string{"message": "geçersiz JSON gövdesi"})
+			return
+		}
+
+		if req.Jail == "" || req.IP == "" {
+			writeError(w, http.StatusBadRequest, map[string]string{"message": "jail ve ip parametreleri zorunludur"})
+			return
+		}
+
+		if err := d.Security.BanIP(r.Context(), req.Jail, req.IP); err != nil {
+			writeError(w, http.StatusInternalServerError, map[string]string{"message": err.Error()})
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"status":  "banned",
+			"jail":    req.Jail,
+			"ip":      req.IP,
+			"message": "IP adresi jail listesine başarıyla eklendi",
+		})
+	}
+}
 
 func extractToken(r *http.Request) string {
 	authHeader := r.Header.Get("Authorization")

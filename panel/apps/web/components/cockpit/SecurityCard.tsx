@@ -23,9 +23,12 @@ export function SecurityCard() {
 
     const openPorts = security?.open_ports ?? [];
     const sessions = security?.sessions ?? [];
-    const sopsOk = audit?.sops_report?.decryption_ok ?? true;
-    const score = audit?.score ?? 95;
-    const grade = audit?.grade ?? "A+";
+    const sopsOk = audit?.sops_report?.decryption_ok ?? false;
+    const score = audit?.score ?? 0;
+    const grade = audit?.grade ?? "-";
+    const firewallOn = security?.firewall_on ?? audit?.firewall_active ?? false;
+    const bannedCount = audit?.fail2ban?.total_banned_ip ?? 0;
+    const jailsCount = audit?.fail2ban?.active_jails ?? 0;
 
     return (
         <>
@@ -45,8 +48,8 @@ export function SecurityCard() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <Badge variant="success" className="whitespace-nowrap">
-                            Firewall Active
+                        <Badge variant={firewallOn ? "success" : "destructive"} className="whitespace-nowrap">
+                            {firewallOn ? "Firewall Active" : "Firewall Off"}
                         </Badge>
                         <Button
                             size="xs"
@@ -122,11 +125,11 @@ export function SecurityCard() {
                         <div className="flex items-center gap-1.5 pt-0.5">
                             <Lock className="h-4 w-4 text-emerald-600 dark:text-emerald-400" strokeWidth={1.6} />
                             <span className="text-xs font-bold font-mono text-emerald-600 dark:text-emerald-400 whitespace-nowrap truncate">
-                                0 Banned IPs
+                                {bannedCount} Banned IPs
                             </span>
                         </div>
                         <p className="text-[10px] text-muted-foreground font-mono whitespace-nowrap truncate">
-                            sshd protection
+                            {jailsCount} active jails
                         </p>
                     </div>
                 </div>

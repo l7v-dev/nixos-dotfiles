@@ -24,6 +24,7 @@ import {
 import {
     useSecurityAudit,
     useSOPSStatus,
+    useSOPSSecrets,
     useVerifySOPS,
     useFail2ban,
     useUnbanIP,
@@ -44,6 +45,7 @@ export function SecurityDrawer({ open, onOpenChange }: SecurityDrawerProps) {
 
     const { data: audit, isLoading: auditLoading, refetch: refetchAudit } = useSecurityAudit();
     const { data: sops, isLoading: sopsLoading } = useSOPSStatus();
+    const { data: secretsData } = useSOPSSecrets();
     const verifySOPS = useVerifySOPS();
     const { data: f2b, isLoading: f2bLoading } = useFail2ban();
     const unbanIP = useUnbanIP();
@@ -68,8 +70,9 @@ export function SecurityDrawer({ open, onOpenChange }: SecurityDrawerProps) {
 
     const sopsReport = sops || audit?.sops_report;
     const fail2banStatus = f2b || audit?.fail2ban;
-    const score = audit?.score ?? 85;
-    const grade = audit?.grade ?? "A";
+    const score = audit?.score ?? 0;
+    const grade = audit?.grade ?? "-";
+    const secrets = secretsData?.secrets ?? [];
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end bg-background/60 backdrop-blur-xs animate-in fade-in duration-200">
@@ -388,6 +391,44 @@ export function SecurityDrawer({ open, onOpenChange }: SecurityDrawerProps) {
                                             <AlertTriangle className="h-4 w-4 shrink-0" />
                                         )}
                                         <span>{sopsReport.status_message}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Secrets Catalog Grid */}
+                            <div className="rounded-xl border border-border bg-muted/10 p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-semibold text-foreground">
+                                        Tanımlı SOPS Sır Anahtarları ({secrets.length})
+                                    </span>
+                                    <span className="text-[10px] font-mono text-muted-foreground">secrets/sops/secrets.yaml</span>
+                                </div>
+
+                                {secrets.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground italic">
+                                        secrets.yaml içinde kayıtlı sır bulunamadı.
+                                    </p>
+                                ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        {secrets.map((s) => (
+                                            <div
+                                                key={s.key}
+                                                className="rounded-lg border border-border/50 bg-background/60 p-2.5 space-y-1"
+                                            >
+                                                <div className="flex items-center justify-between gap-1 text-xs">
+                                                    <span className="font-mono font-bold text-foreground truncate">
+                                                        {s.key}
+                                                    </span>
+                                                    <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] uppercase font-mono text-muted-foreground">
+                                                        {s.category}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                                    <span>Uygulama: {s.associated_app || "sistem"}</span>
+                                                    <span className="text-emerald-400 font-mono">Şifreli</span>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>
