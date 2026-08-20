@@ -216,7 +216,7 @@ async function proxyToAgent(
             }
         }
 
-        return new Response(result.body, {
+        return new Response(new Uint8Array(result.body), {
             status: result.status,
             headers: {
                 "Content-Type": (result.headers["content-type"] as string) ?? "application/json",
