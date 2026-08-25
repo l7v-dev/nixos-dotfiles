@@ -93,14 +93,6 @@
     secrets.enable = true;
 
     metrics.enable = true;
-
-    # panel-agent: runs on the laptop and exposes the REST/SSE API
-    # to the panel-frontend on the server via nginx reverse proxy.
-    services.panel.agent = {
-      enable = true;
-      prometheusWidget = true;
-    };
-
     platform = {
       deploy.enable = true;
       inventory.enable = true;
