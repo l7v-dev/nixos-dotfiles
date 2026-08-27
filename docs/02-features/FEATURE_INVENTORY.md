@@ -59,5 +59,5 @@
 | **Forgejo** | `git.l7v.dev` | 3000 | PostgreSQL 16 (Unix socket), Nginx ACME |
 | **Grafana** | `grafana.l7v.dev` | 3001 | SQLite, Prometheus datasource, Nginx ACME |
 | **Vaultwarden** | `vault.l7v.dev` | 8222 | SQLite, Restic backup exporter, Nginx ACME |
-| **Control Panel** | `panel.l7v.dev` | 3002 | Next.js server, Go `panel-agent` socket, Nginx ACME |
+| **Control Panel** | `panel.l7v.dev` | N/A | Removed in `d07dbe8` (Managed via NixOS CLI: `nh`, `colmena`) |
 | **Binary Cache** | `cache.l7v.dev` | 5000 | `nix-serve` signed binary cache (SOPS signing key) |

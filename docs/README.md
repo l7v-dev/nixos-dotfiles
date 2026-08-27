@@ -9,7 +9,11 @@
 
 ```text
 docs/
+├── PLATFORM_OVERVIEW.md         # Platform Architecture, Core Capabilities & Scope
+├── CHANGELOG.md                 # System Commit History & Evolution Log
+│
 ├── 00-discovery/                 # Project Discovery & Audit Framework
+│   ├── HANDOVER_REPORT.md       # Final Developer Handover & Initial Audit Triage
 │   ├── PROJECT_DISCOVERY.md     # Discovery overview & CONFIRMED / UNKNOWN / MISSING triage
 │   ├── PROJECT_STATUS.md        # Real-time subsystem health & phase completions
 │   ├── DISCOVERY_LOG.md         # Chronological audit log & codebase inspection findings
@@ -26,7 +30,9 @@ docs/
 │
 ├── 03-technical/                 # Deep Technical Specifications
 │   ├── API_INVENTORY.md         # Panel-agent REST, SSE, and WebSocket endpoint specifications
+│   ├── API_OPERATIONS.md        # Operational interfaces and HTTP listener specifications
 │   ├── DATABASE_INVENTORY.md    # PostgreSQL 16, PgBouncer, SQLite, Redis configurations
+│   ├── DATABASE_DETAILS.md      # Detailed database schema boundaries, state & backup design
 │   ├── DEPENDENCIES.md          # Flake inputs, channels, Go modules, Node/PNPM dependencies
 │   └── ENVIRONMENT.md           # Env variables, systemd paths, hardware drivers, Wayland session vars
 │
@@ -37,6 +43,7 @@ docs/
 │   └── BACKUP_RECOVERY.md       # Restic S3/SFTP backups, Snapper btrfs snapshots, rollback strategies
 │
 ├── 05-quality/                   # Quality Assurance, Security & Risk
+│   ├── KNOWN_ISSUES.md          # Critical/High/Medium issues and technical debt inventory
 │   ├── TESTING_STATUS.md        # Go unit/property tests, Vitest web tests, Statix/Deadnix/Nixfmt checks
 │   ├── SECURITY_REVIEW.md       # SOPS/Age key management, Polkit permissions, SSH hardening, fail2ban
 │   └── TECHNICAL_DEBT.md        # Known stubs (Attic), hardcoded paths, TODO keys, memory footprint

@@ -128,21 +128,7 @@
 │       ├── default.nix
 │       ├── forgejo/              # Forgejo Git forge (git.l7v.dev)
 │       ├── grafana/              # Grafana dashboards (grafana.l7v.dev)
-│       ├── panel/                # Panel module proxy -> ../../panel/nix/module.nix
 │       └── vaultwarden/          # Vaultwarden password vault (vault.l7v.dev)
-│
-├── panel/                        # NixOS Control Center (l7v-panel)
-│   ├── apps/
-│   │   ├── agent/                # Go 1.25 REST/SSE API daemon (systemd socket-activated)
-│   │   └── web/                  # Next.js 15 web interface (React 19, TypeScript, xterm.js)
-│   ├── nix/                      # Panel Nix derivations & NixOS module
-│   │   ├── module.nix            # Systemd socket/service & Nginx vhost definitions
-│   │   └── pkgs/
-│   │       ├── panel-agent/      # Go derivation via gomod2nix
-│   │       └── panel-frontend/   # Next.js build via fetchPnpmDeps
-│   ├── packages/
-│   │   └── ui/                   # Shared UI components package (.gitkeep)
-│   ├── flake.nix                 # Panel isolated devShell (Go 1.25 + Node 22 + PNPM)
 │   ├── package.json              # Monorepo PNPM workspace
 │   ├── pnpm-workspace.yaml
 │   └── turbo.json                # Turborepo build pipeline

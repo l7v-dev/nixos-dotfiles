@@ -1,9 +1,9 @@
-# API Inventory & Endpoint Catalog (Panel-Agent)
+# Historical API Inventory & Endpoint Catalog (Panel-Agent)
 
-> **Daemon:** `panel-agent` (Go 1.25 REST/SSE/WS API)  
-> **Socket Path:** `/run/panel-agent/panel-agent.sock`  
-> **Dev Listener:** TCP `127.0.0.1:8080` / Unix `/tmp/panel-agent-dev.sock`  
-> **Prefix:** `/api/v1`
+> [!CAUTION]
+> **HISTORICAL / DEPRECATED DOCUMENTATION:** The `panel-agent` Go daemon and its `/api/v1/*` endpoint suite were removed in commit `d07dbe8` (`chore: remove panel references and standalone panel folder`).
+>
+> For active system interfaces, HTTP listeners (Nginx, Forgejo, Vaultwarden, Grafana, Exporters) and CLI operational utilities, please refer to **[API_OPERATIONS.md](file:///home/l7v/dev/projects/company/active/nixos/docs/03-technical/API_OPERATIONS.md)**.
 
 ---
 

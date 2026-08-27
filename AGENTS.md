@@ -87,22 +87,10 @@
 │       ├── attic/                # Nix cache (phase 4 stub)
 │       ├── forgejo/              # Git hosting
 │       ├── grafana/              # Observability dashboards
-│       ├── panel/                # → ../../panel/nix/module.nix (control panel)
 │       └── vaultwarden/          # Password manager
 ├── pkgs/                         # Custom Nix derivations
 │   ├── qoder/                    # Qoder IDE
 │   └── qoder-cli/                # Qoder CLI (pinned, fast-release)
-├── panel/                        # NixOS control panel (was: l7v-panel)
-│   ├── apps/
-│   │   ├── agent/                # Go backend — REST/SSE API (systemd socket-activated)
-│   │   └── web/                  # Next.js 16 frontend
-│   ├── packages/ui/              # Shared UI component library
-│   ├── nix/                      # Panel-specific NixOS configuration
-│   │   ├── pkgs/
-│   │   │   ├── panel-agent/      # Go binary derivation
-│   │   │   └── panel-frontend/   # Next.js derivation
-│   │   └── module.nix            # NixOS service module (agent + nginx)
-│   └── flake.nix                 # Panel dev shell (Go 1.25 + Node 22 + pnpm)
 ├── lib/                          # Nix utility functions
 │   ├── mkWorkstation.nix
 │   ├── mkServer.nix

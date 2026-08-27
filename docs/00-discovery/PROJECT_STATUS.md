@@ -37,7 +37,7 @@
 
 ### High-Confidence Systems
 - **Nix Flake Isolation:** Clean separation between unstable channels (workstations) and stable 25.05 release (servers).
-- **Socket Activation:** `panel-agent` initializes instantly without persistent memory overhead when idle.
+- **CLI Validation & Governance:** Fast, deterministic module evaluation and pre-commit checks (`./scripts/validate.sh`).
 - **Process & Security Hardening:** Non-root system users, Polkit scoped D-Bus permissions, passwordless sudo strictly restricted to wheel, sysctl network hardening.
 
 ### Active Vulnerabilities / Gaps
@@ -49,6 +49,6 @@
 ## 🔄 Phase Progression Tracker
 
 - [x] **Phase 1: Single-Host Workstation Foundation** — Niri Wayland, AMD GPU, AI tools, SOPS secrets, Developer tooling.
-- [x] **Phase 2: Management Control Center** — Go `panel-agent`, Next.js 15 web UI, interactive terminal, logs streaming, NixOS rebuild engine.
+- [x] **Phase 2: Management & Infrastructure Core** — Flake topology, Colmena orchestration, CLI automation (`nh`, `validate.sh`), system runbooks.
 - [x] **Phase 3: Core Service & Infrastructure Modules** — PostgreSQL, PgBouncer, Prometheus, Loki, Vaultwarden, Forgejo, Grafana.
 - [ ] **Phase 4: Multi-Node Fleet Deployment** — Physical bootstrap of `server`, `builder`, and `backup` hosts via Colmena; Attic cache migration.

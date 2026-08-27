@@ -46,16 +46,10 @@ The following components, subsystems, and configurations have been verified dire
   - Role-to-capability matrix dynamically provisioning server instances.
   - Channels segregated: Workstation tracks `nixos-unstable`; servers pin `nixos-25.05` LTS with Linux 6.6 LTS.
 
-### B. Control Center Subsystem (`panel/`)
-- **Go 1.25 Backend Agent (`panel/apps/agent`):**
-  - 18 core internal packages: `ai`, `api`, `apps`, `audio`, `auth`, `containers`, `dbus`, `display`, `files`, `fleet`, `hardware`, `journal`, `metrics`, `nixos`, `packages`, `security`, `storage`, `terminal`.
-  - Systemd socket-activated daemon listening on `/run/panel-agent/panel-agent.sock` and TCP `127.0.0.1:8080` in dev mode.
-  - Direct D-Bus clients for `systemd1`, `login1`, `NetworkManager`, and `bluez`.
-  - Real-time SSE streaming for logs, rebuild jobs, fleet deployments, container metrics.
-  - Full-duplex interactive terminal emulator backend using PTY session manager and WebSockets.
-- **Next.js 15 Web Dashboard (`panel/apps/web`):**
-  - React 19, TypeScript, Tailwind CSS, Lucide icons, TanStack Query, Zustand, Recharts, xterm.js.
-  - Dedicated pages for Cockpit, Services, Containers, Apps, Monitoring, Logs, Terminal, Packages, and Files.
+### B. Control Center Subsystem (`panel/` — Removed in `d07dbe8`)
+- **Historical Control Panel Subsystem:**
+  - The standalone `panel/` directory containing the Go `panel-agent` daemon and Next.js web dashboard was removed in commit `d07dbe8` (`chore: remove panel references and standalone panel folder`).
+  - System control and fleet operations are now handled directly via NixOS CLI tools (`nh`, `colmena`, `validate.sh`, `l7v-*` scripts).
 
 ### C. Infrastructure Capabilities & Services
 - **Database:** PostgreSQL 16 + PgBouncer connection pooler in session mode (port 6432) with MD5 hash authentication.

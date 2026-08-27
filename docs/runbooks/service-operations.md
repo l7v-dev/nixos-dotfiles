@@ -7,7 +7,7 @@
 ## 1. Systemd Service Management
 ```bash
 # Check service status
-systemctl status panel-agent.service
+systemctl status nginx.service
 systemctl status postgresql.service
 systemctl status forgejo.service
 

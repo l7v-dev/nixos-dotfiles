@@ -28,7 +28,7 @@ creation_rules:
 
 ## 🛡️ 2. Polkit & D-Bus Least-Privilege Rules
 
-The `panel-agent` service account and primary user are granted scoped Polkit permissions (`security.polkit.extraConfig`) explicitly restricted to:
+The primary user and system services are granted scoped Polkit permissions (`security.polkit.extraConfig`) explicitly restricted to:
 - `org.freedesktop.systemd1.manage-units`
 - `org.freedesktop.login1.power-off` / `reboot` / `suspend` / `hibernate`
 - `org.freedesktop.login1.set-wall-message` (Scheduled shutdowns)

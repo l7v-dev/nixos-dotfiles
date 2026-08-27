@@ -57,7 +57,7 @@ in
       inherit user inputs host;
       inherit (cfg) roles tags;
       # Unstable pkgs (with gomod2nix overlay) for modules that require
-      # unstable-only features (e.g. fetchPnpmDeps in panel-frontend).
+      # unstable-only features.
       unstablePkgs = import inputs.nixpkgs {
         inherit system;
         config.allowUnfree = true;

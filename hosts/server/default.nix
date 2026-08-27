@@ -8,7 +8,8 @@ _: {
 
     services = {
       forgejo.enable = true;
-      vaultwarden.enable = true;    };
+      vaultwarden.enable = true;
+    };
 
     # Local snapshots and restic repository verification. Root is mounted from the
     # "root" subvolume, which snapper requires.

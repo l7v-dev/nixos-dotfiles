@@ -66,7 +66,6 @@
     };
 
     # gomod2nix: provides buildGoApplication for reproducible Go builds.
-    # Used by panel/nix/pkgs/panel-agent.
     gomod2nix = {
       url = "github:nix-community/gomod2nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -117,7 +116,6 @@
       mkServer = import ./lib/mkServer.nix;
 
       # gomod2nix overlay: makes buildGoApplication available in pkgs.
-      # Required by panel/nix/module.nix → pkgs.callPackage ./pkgs/panel-agent { }.
       gomod2nixOverlay = inputs.gomod2nix.overlays.default;
 
       commonArgs = {
@@ -135,8 +133,7 @@
         pkgs = nixpkgs-stable;
         homeManager = home-manager-stable.nixosModules.home-manager;
         # Unstable pkgs (with gomod2nix overlay) passed so server modules that
-        # require unstable-only features (e.g. fetchPnpmDeps in panel-frontend)
-        # can use unstablePkgs instead of the stable pkgs set.
+        # require unstable-only features can use unstablePkgs instead of stable pkgs.
         unstablePkgs = import nixpkgs {
           system = "x86_64-linux";
           config.allowUnfree = true;

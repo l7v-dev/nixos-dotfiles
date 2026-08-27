@@ -15,8 +15,7 @@
   lib ? pkgs.lib,
   extraOverlays ? [ ],
   # Unstable nixpkgs instance passed as specialArgs so modules that require
-  # features not yet in stable (e.g. fetchPnpmDeps for panel-frontend) can
-  # reference it explicitly. Defaults to pkgs when omitted (workstation path).
+  # features not yet in stable can reference it explicitly.
   unstablePkgs ? pkgs,
 }:
 lib.nixosSystem {

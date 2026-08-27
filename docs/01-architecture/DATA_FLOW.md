@@ -13,34 +13,26 @@ sequenceDiagram
     autonumber
     actor Operator as Web Browser / Operator
     participant Nginx as Nginx Reverse Proxy
-    participant Frontend as Next.js Web Server (Port 3002)
-    participant Socket as Unix Domain Socket (/run/panel-agent/...)
-    participant Agent as Go panel-agent Daemon
-    participant DBus as Linux D-Bus (systemd1, login1, NM)
-    participant Kernel as Linux Kernel / procfs / journald
+    participant Service as Managed Service (Forgejo/Vaultwarden)
+    participant Postgres as PostgreSQL / PgBouncer
+    participant Exporter as Prometheus Exporters
+    participant Prom as Prometheus TSDB
+    participant Loki as Loki & Fluent-bit
 
-    Operator->>Nginx: HTTPS GET /cockpit (panel.l7v.dev)
-    Nginx->>Frontend: Proxy Pass to 127.0.0.1:3002
-    Frontend-->>Operator: Deliver React/Next.js Application
+    Operator->>Nginx: HTTPS GET / (git.l7v.dev / vault.l7v.dev)
+    Nginx->>Service: Proxy Pass to 127.0.0.1 (Loopback Listener)
+    Service->>Postgres: Unix Domain Socket / PgBouncer :6432
     
     rect rgb(240, 248, 255)
-    note over Operator, Agent: Real-time Metric & Log Streaming (SSE)
-    Operator->>Nginx: GET /api/agent/api/v1/logs/stream
-    Nginx->>Socket: Proxy Pass to Unix Socket
-    Socket->>Agent: Handle logsStreamHandler
-    Agent->>Kernel: Read /var/log/journal
-    Kernel-->>Agent: New Journal Log Events
-    Agent-->>Operator: Server-Sent Events (data: {JSON})
+    note over Exporter, Prom: Prometheus Metric Scraping
+    Prom->>Exporter: Scrape Exporter Endpoints (15s Interval)
+    Exporter-->>Prom: Return Procfs / Systemd / Service Metrics
     end
-
     rect rgb(255, 245, 238)
-    note over Operator, DBus: System Control & Rebuild Action
-    Operator->>Nginx: POST /api/agent/api/v1/nixos/rebuild
-    Nginx->>Socket: Forward JSON Body
-    Socket->>Agent: Trigger nixosRebuildHandler
-    Agent->>DBus: Request unit restart or spawn 'nh os switch'
-    DBus-->>Agent: Execution exit code / stream
-    Agent-->>Operator: 200 OK + Job ID
+    note over Loki, Service: Systemd Journal & Loki Log Ingestion
+    Service->>Kernel: Emit Systemd Journal Entries
+    Loki->>Kernel: Fluent-bit Collects Journal Logs
+    Loki-->>Loki: Store in Loki TSDB v13
     end
 
     rect rgb(240, 255, 240)

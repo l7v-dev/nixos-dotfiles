@@ -35,8 +35,8 @@ scrapeConfigs = [
 
 ### LogQL Query Examples:
 ```logql
-# Filter logs from panel-agent unit
-{job="systemd", unit="panel-agent.service"}
+# Filter logs from forgejo unit
+{job="systemd", unit="forgejo.service"}
 
 # Search for errors across all units
 {job="systemd"} |= "ERROR"
