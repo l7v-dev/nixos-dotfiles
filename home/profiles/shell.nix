@@ -93,6 +93,12 @@
         cdnix-real = "cd /home/l7v/dev/projects/company/active/nixos";
         nval = "/home/l7v/dev/projects/company/active/nixos/scripts/validate.sh L7V";
         nup = "/home/l7v/dev/projects/company/active/nixos/scripts/update.sh";
+        ".update" = "/home/l7v/dev/projects/company/active/nixos/scripts/update.sh";
+        ".validate" = "/home/l7v/dev/projects/company/active/nixos/scripts/validate.sh L7V";
+        ".nup" = "/home/l7v/dev/projects/company/active/nixos/scripts/update.sh";
+        ".nval" = "/home/l7v/dev/projects/company/active/nixos/scripts/validate.sh L7V";
+        update = "/home/l7v/dev/projects/company/active/nixos/scripts/update.sh";
+        validate = "/home/l7v/dev/projects/company/active/nixos/scripts/validate.sh L7V";
         nrb = "sudo nixos-rebuild switch --flake /etc/nixos#L7V";
 
         # SOPS / Age Key Management
@@ -144,8 +150,9 @@
           echo "  cdnix       : Navigates to system config (/etc/nixos)"
           echo "  cdnix-real  : Navigates to active development workspace"
           echo "  cdproj      : Navigates to projects directory (/home/l7v/dev/projects)"
-          echo "  nval        : Runs code validation and dry-run build (validate.sh)"
-          echo "  nup         : Updates flake inputs and rebuilds system (update.sh)"
+          echo "  nval / .validate : Runs code validation and dry-run build (validate.sh)"
+          echo "  nup / .update   : Updates flake inputs and rebuilds system (update.sh)"
+          echo "  validate / update: Direct script shortcuts for validation & updates"
           echo "  nrb         : Triggers NixOS rebuild switch"
           echo "  sage        : Verifies SOPS/Age encryption keys"
           echo "  srotate     : Rotates SOPS secret keys"
