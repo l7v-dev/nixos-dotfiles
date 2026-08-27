@@ -6,11 +6,18 @@
 # governance rules in AGENTS.md.
 #
 # Usage: ./scripts/validate.sh [HOST]
+#
+# RAM-saving flags:
+#   --max-jobs 3   derivation parallel builds (default: 3)
+#   --cores 3      CPU cores per derivation (default: 3)
+#   Override with: MAX_JOBS=4 CORES=8 ./scripts/validate.sh
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 HOST="${1:-L7V}"
-readonly REPO_ROOT HOST
+MAX_JOBS="${MAX_JOBS:-3}"
+CORES="${CORES:-3}"
+readonly REPO_ROOT HOST MAX_JOBS CORES
 
 cd "$REPO_ROOT"
 
@@ -90,7 +97,7 @@ done
 echo "[INFO] [6/7] Module eval passed for host: ${HOST}."
 
 run_step 7 7 "dry-run build for host ${HOST}" \
-  nix build --no-warn-dirty ".#nixosConfigurations.${HOST}.config.system.build.toplevel" --dry-run
+  nix build --no-warn-dirty --max-jobs "${MAX_JOBS}" --cores "${CORES}" ".#nixosConfigurations.${HOST}.config.system.build.toplevel" --dry-run
 
 echo ""
 echo "[SUCCESS] Validation completed for host: ${HOST}"
